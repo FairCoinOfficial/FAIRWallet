@@ -16,6 +16,7 @@ permissions:
 jobs:
   build-desktop:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -27,7 +28,7 @@ jobs:
           - os: macos-latest
             platform: mac
             targets: "--mac dmg"
-    
+
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -56,7 +57,16 @@ jobs:
         run: bun add -d electron@^33.0.0 electron-builder@^25.0.0
 
       - name: Build desktop app
-        run: bunx electron-builder ${{ matrix.targets }} --config electron-builder.yml
+        shell: bash
+        run: |
+          # electron-builder reads "main" from package.json
+          # Override it to point to Electron entry instead of expo-router
+          node -e "
+            const pkg = require('./package.json');
+            pkg.main = 'electron/main.js';
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+          bunx electron-builder ${{ matrix.targets }} --config electron-builder.yml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -65,10 +75,13 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME:-${{ github.event.inputs.release_tag || 'dev' }}}"
           mkdir -p desktop-output
-          # Copy all distributable files
-          find electron-dist -maxdepth 1 \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.zip" \) -exec cp {} desktop-output/ \; 2>/dev/null || true
+
+          for ext in dmg exe AppImage deb zip; do
+            find electron-dist -maxdepth 1 -name "*.${ext}" -exec cp {} desktop-output/ \; 2>/dev/null || true
+          done
+
           echo "=== Desktop builds ==="
-          ls -lh desktop-output/ || echo "No files found"
+          ls -lh desktop-output/ 2>/dev/null || echo "No files"
 
       - name: Upload as artifact
         uses: actions/upload-artifact@v4
@@ -76,6 +89,7 @@ jobs:
           name: FAIRWallet-${{ matrix.platform }}
           path: desktop-output/*
           retention-days: 90
+          if-no-files-found: warn
 
       - name: Attach to Release
         if: github.event_name == 'release'

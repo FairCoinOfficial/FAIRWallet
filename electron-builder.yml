@@ -2,15 +2,18 @@ appId: in.fairco.wallet
 productName: FAIRWallet
 copyright: Copyright (c) FairCoin
 
+# Electron entry point (not expo-router/entry)
+main: electron/main.js
+
 directories:
   output: electron-dist
   buildResources: assets
 
 files:
-  - dist/**/*
   - electron/**/*
-  - assets/**/*
-  - "!node_modules"
+  - dist/**/*
+  - assets/icon.png
+  - package.json
 
 extraResources:
   - from: dist
@@ -33,7 +36,6 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
-  installerIcon: assets/icon.png
 
 linux:
   icon: assets/icon.png
@@ -52,6 +54,3 @@ deb:
     - xdg-utils
     - libatspi2.0-0
     - libuuid1
-
-appImage:
-  license: LICENSE
