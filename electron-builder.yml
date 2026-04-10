@@ -2,9 +2,6 @@ appId: in.fairco.wallet
 productName: FAIRWallet
 copyright: Copyright (c) FairCoin
 
-# Electron entry point (not expo-router/entry)
-main: electron/main.js
-
 directories:
   output: electron-dist
   buildResources: assets
