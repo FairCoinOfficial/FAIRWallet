@@ -17,7 +17,7 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -48,7 +48,31 @@ jobs:
       - name: Prebuild Android project
         run: bunx expo prebuild --platform android --clean
 
-      - name: Build Release APK
+      - name: Enable ProGuard and ABI splits
+        run: |
+          # Enable ProGuard/R8 minification and per-ABI split
+          cat >> android/app/build.gradle << 'GRADLE'
+
+          android {
+              buildTypes {
+                  release {
+                      minifyEnabled true
+                      shrinkResources true
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+              splits {
+                  abi {
+                      enable true
+                      reset()
+                      include "arm64-v8a", "armeabi-v7a", "x86_64"
+                      universalApk true
+                  }
+              }
+          }
+          GRADLE
+
+      - name: Build Release APKs
         run: |
           cd android
           chmod +x gradlew
@@ -56,33 +80,47 @@ jobs:
             -Dorg.gradle.jvmargs="-Xmx4g" \
             -Dorg.gradle.parallel=true
 
-      - name: Rename APK with version
+      - name: Collect and rename APKs
         run: |
           VERSION="${GITHUB_REF_NAME:-${{ github.event.inputs.release_tag || 'dev' }}}"
-          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
-          if [ -n "$APK_PATH" ]; then
-            cp "$APK_PATH" "FAIRWallet-${VERSION}.apk"
-            echo "APK_NAME=FAIRWallet-${VERSION}.apk" >> $GITHUB_ENV
-            echo "APK built: FAIRWallet-${VERSION}.apk"
-            ls -lh "FAIRWallet-${VERSION}.apk"
-          fi
+          mkdir -p apk-output
 
-      - name: Upload APK as artifact
+          # Find all release APKs
+          for apk in $(find android/app/build/outputs/apk/release -name "*.apk"); do
+            filename=$(basename "$apk")
+            if echo "$filename" | grep -q "arm64"; then
+              cp "$apk" "apk-output/FAIRWallet-${VERSION}-arm64.apk"
+            elif echo "$filename" | grep -q "armeabi"; then
+              cp "$apk" "apk-output/FAIRWallet-${VERSION}-arm32.apk"
+            elif echo "$filename" | grep -q "x86_64"; then
+              cp "$apk" "apk-output/FAIRWallet-${VERSION}-x86_64.apk"
+            elif echo "$filename" | grep -q "universal"; then
+              cp "$apk" "apk-output/FAIRWallet-${VERSION}-universal.apk"
+            else
+              cp "$apk" "apk-output/FAIRWallet-${VERSION}.apk"
+            fi
+          done
+
+          echo "=== Built APKs ==="
+          ls -lh apk-output/
+          echo "APK_DIR=apk-output" >> $GITHUB_ENV
+
+      - name: Upload APKs as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FAIRWallet-APK
-          path: FAIRWallet-*.apk
+          name: FAIRWallet-APKs
+          path: apk-output/*.apk
           retention-days: 90
 
-      - name: Attach APK to Release
+      - name: Attach APKs to Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: FAIRWallet-*.apk
+          files: apk-output/*.apk
 
-      - name: Attach APK to Release (manual trigger)
+      - name: Attach APKs to Release (manual trigger)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.release_tag }}
-          files: FAIRWallet-*.apk
+          files: apk-output/*.apk

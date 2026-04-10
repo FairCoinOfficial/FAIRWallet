@@ -1,0 +1,57 @@
+appId: in.fairco.wallet
+productName: FAIRWallet
+copyright: Copyright (c) FairCoin
+
+directories:
+  output: electron-dist
+  buildResources: assets
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - assets/**/*
+  - "!node_modules"
+
+extraResources:
+  - from: dist
+    to: dist
+    filter:
+      - "**/*"
+
+mac:
+  category: public.app-category.finance
+  icon: assets/icon.png
+  target:
+    - dmg
+
+win:
+  icon: assets/icon.png
+  target:
+    - nsis
+    - portable
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: assets/icon.png
+
+linux:
+  icon: assets/icon.png
+  category: Finance
+  target:
+    - deb
+    - AppImage
+
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+
+appImage:
+  license: LICENSE

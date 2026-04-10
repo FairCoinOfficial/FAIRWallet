@@ -29,7 +29,13 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:8081');
     mainWindow.webContents.openDevTools();
   } else {
-    const distPath = path.join(__dirname, '..', 'dist', 'index.html');
+    // In production, try extraResources first (electron-builder), then local dist
+    const resourcePath = process.resourcesPath
+      ? path.join(process.resourcesPath, 'dist', 'index.html')
+      : null;
+    const localPath = path.join(__dirname, '..', 'dist', 'index.html');
+    const fs = require('fs');
+    const distPath = resourcePath && fs.existsSync(resourcePath) ? resourcePath : localPath;
     mainWindow.loadFile(distPath);
   }
 
