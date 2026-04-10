@@ -102,3 +102,7 @@ export {
   canUseFastSend,
   FastSendTracker,
 } from "./fastsend";
+
+export { createSocketProvider } from "./socket-provider";
+
+export { DatabaseHeaderStore } from "./header-store";

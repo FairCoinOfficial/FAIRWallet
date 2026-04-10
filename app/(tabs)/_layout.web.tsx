@@ -2,11 +2,13 @@
  * Tab layout for Web (Electron desktop).
  * Uses headless tabs from expo-router/ui with custom styling.
  * NativeTabs is not available on web, so we use the JS-based approach.
+ * Tab labels use the i18n system for translation.
  */
 
 import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
 import { View, Text, StyleSheet } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { t } from "../../src/i18n";
 
 interface WebTabProps {
   name: string;
@@ -32,10 +34,10 @@ export default function TabLayout() {
           <TabSlot />
         </View>
         <TabList style={styles.tabList}>
-          <WebTab name="index" href="/(tabs)" icon="wallet" label="Wallet" />
-          <WebTab name="send" href="/(tabs)/send" icon="arrow-up-bold" label="Send" />
-          <WebTab name="receive" href="/(tabs)/receive" icon="arrow-down-bold" label="Receive" />
-          <WebTab name="settings" href="/(tabs)/settings" icon="cog" label="Settings" />
+          <WebTab name="index" href="/(tabs)" icon="wallet" label={t("wallet.title")} />
+          <WebTab name="send" href="/(tabs)/send" icon="arrow-up-bold" label={t("wallet.send")} />
+          <WebTab name="receive" href="/(tabs)/receive" icon="arrow-down-bold" label={t("wallet.receive")} />
+          <WebTab name="settings" href="/(tabs)/settings" icon="cog" label={t("wallet.settings")} />
         </TabList>
       </Tabs>
     </View>

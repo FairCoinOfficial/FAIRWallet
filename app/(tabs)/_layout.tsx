@@ -2,6 +2,12 @@
  * Tab layout for Android and iOS using native system tab bar.
  * Uses NativeTabs from expo-router for platform-native look and feel.
  * Material symbols (md) for Android, SF Symbols (sf) for iOS.
+ *
+ * Note: NativeTabs labels are static strings set at render time.
+ * For full i18n support, these would need to use translated values
+ * from the i18n system. The web tab layout (_layout.web.tsx) already
+ * uses t() for translated labels. NativeTabs i18n requires passing
+ * the translated strings directly to <NativeTabs.Trigger.Label>.
  */
 
 import { ThemeProvider, DarkTheme } from "@react-navigation/native";

@@ -193,6 +193,113 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Watch-only wallet modal
+// ---------------------------------------------------------------------------
+
+interface WatchOnlyModalProps {
+  visible: boolean;
+  onCancel: () => void;
+  onImport: (name: string, xpub: string) => void;
+}
+
+function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
+  const [name, setName] = useState("");
+  const [xpub, setXpub] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleCancel = useCallback(() => {
+    setName("");
+    setXpub("");
+    setError(null);
+    onCancel();
+  }, [onCancel]);
+
+  const handleImport = useCallback(() => {
+    const trimmedName = name.trim();
+    const trimmedXpub = xpub.trim();
+
+    if (!trimmedName) {
+      setError("Please enter a wallet name.");
+      return;
+    }
+
+    if (!trimmedXpub) {
+      setError("Please enter the extended public key (xpub).");
+      return;
+    }
+
+    if (!trimmedXpub.startsWith("xpub") && !trimmedXpub.startsWith("tpub")) {
+      setError("Extended public key must start with 'xpub' or 'tpub'.");
+      return;
+    }
+
+    setError(null);
+    setName("");
+    setXpub("");
+    onImport(trimmedName, trimmedXpub);
+  }, [name, xpub, onImport]);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleCancel}
+    >
+      <View className="flex-1 bg-black/70 items-center justify-center px-8">
+        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+          <Text className="text-white text-lg font-bold mb-4 text-center">
+            Watch-Only Wallet
+          </Text>
+
+          <Text className="text-fair-muted text-xs mb-1">Wallet Name</Text>
+          <TextInput
+            className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            placeholder="My Watch Wallet"
+            placeholderTextColor="#6b7280"
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            autoCorrect={false}
+          />
+
+          <Text className="text-fair-muted text-xs mb-1">
+            Extended Public Key (xpub)
+          </Text>
+          <TextInput
+            className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            placeholder="xpub..."
+            placeholderTextColor="#6b7280"
+            value={xpub}
+            onChangeText={setXpub}
+            autoCapitalize="none"
+            autoCorrect={false}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
+
+          {error ? (
+            <Text className="text-red-400 text-xs mb-3 text-center">
+              {error}
+            </Text>
+          ) : null}
+
+          <View className="gap-3">
+            <Button
+              title="Import Watch-Only"
+              onPress={handleImport}
+              variant="primary"
+            />
+            <Button title="Cancel" onPress={handleCancel} variant="secondary" />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Create wallet modal
 // ---------------------------------------------------------------------------
 
@@ -328,10 +435,12 @@ export default function WalletsScreen() {
   const switchWallet = useWalletStore((s) => s.switchWallet);
   const createNewWallet = useWalletStore((s) => s.createNewWallet);
   const importWallet = useWalletStore((s) => s.importWallet);
+  const importWatchOnly = useWalletStore((s) => s.importWatchOnly);
   const deleteWallet = useWalletStore((s) => s.deleteWallet);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showWatchOnlyModal, setShowWatchOnlyModal] = useState(false);
   const [showMnemonicModal, setShowMnemonicModal] = useState(false);
   const [newMnemonic, setNewMnemonic] = useState("");
   const [switching, setSwitching] = useState(false);
@@ -432,6 +541,33 @@ export default function WalletsScreen() {
     setShowImportModal(false);
   }, []);
 
+  const handleOpenWatchOnly = useCallback(() => {
+    setShowWatchOnlyModal(true);
+  }, []);
+
+  const handleCloseWatchOnly = useCallback(() => {
+    setShowWatchOnlyModal(false);
+  }, []);
+
+  const handleImportWatchOnly = useCallback(
+    async (name: string, xpub: string) => {
+      setShowWatchOnlyModal(false);
+      try {
+        await importWatchOnly(name, xpub);
+        Alert.alert(
+          "Watch-Only Wallet",
+          "Watch-only wallet imported. You can view balances and addresses, but sending is disabled.",
+        );
+      } catch {
+        Alert.alert(
+          "Import Failed",
+          "Could not import watch-only wallet. Check your xpub and try again.",
+        );
+      }
+    },
+    [importWatchOnly],
+  );
+
   if (switching || loading) {
     return (
       <SafeAreaView className="flex-1 bg-fair-dark items-center justify-center">
@@ -490,6 +626,11 @@ export default function WalletsScreen() {
             onPress={handleOpenImport}
             variant="outline"
           />
+          <Button
+            title="Watch Only (xpub)"
+            onPress={handleOpenWatchOnly}
+            variant="outline"
+          />
         </View>
       </ScrollView>
 
@@ -503,6 +644,11 @@ export default function WalletsScreen() {
         visible={showImportModal}
         onCancel={handleCloseImport}
         onImport={handleImportWallet}
+      />
+      <WatchOnlyModal
+        visible={showWatchOnlyModal}
+        onCancel={handleCloseWatchOnly}
+        onImport={handleImportWatchOnly}
       />
       <MnemonicModal
         visible={showMnemonicModal}

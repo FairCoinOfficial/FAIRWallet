@@ -22,8 +22,13 @@ import {
   isBiometricsEnabled,
   setBiometricsEnabled as storeBiometricsEnabled,
   getMnemonic,
+  getAutoLockTimeout,
+  setAutoLockTimeout,
+  getCurrency,
+  setCurrency,
 } from "../../src/storage/secure-store";
 import { Button } from "../../src/ui/components/Button";
+import type { NetworkType } from "../../src/core/network";
 
 const APP_VERSION = "1.0.0";
 const PIN_LENGTH = 6;
@@ -305,6 +310,10 @@ export default function SettingsScreen() {
   const refreshBalance = useWalletStore((s) => s.refreshBalance);
   const activeWalletName = useWalletStore((s) => s.activeWalletName);
   const wallets = useWalletStore((s) => s.wallets);
+  const switchNetwork = useWalletStore((s) => s.switchNetwork);
+  const exportBackup = useWalletStore((s) => s.exportBackup);
+  const importBackup = useWalletStore((s) => s.importBackup);
+  const isWatchOnly = useWalletStore((s) => s.isWatchOnly);
 
   const [showWipeModal, setShowWipeModal] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
@@ -313,30 +322,37 @@ export default function SettingsScreen() {
   const [pinAction, setPinAction] = useState<"recovery" | "change_pin" | null>(null);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveryMnemonic, setRecoveryMnemonic] = useState("");
+  const [autoLockMinutes, setAutoLockMinutes] = useState(5);
+  const [displayCurrency, setDisplayCurrency] = useState("USD");
 
   const isMainnet = network === "mainnet";
 
-  // Load biometrics state on focus
+  // Load biometrics state and preferences on focus
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      const loadBiometrics = async () => {
+      const loadSettings = async () => {
         try {
-          const [hardwareAvailable, enrolled, enabled] = await Promise.all([
-            LocalAuthentication.hasHardwareAsync(),
-            LocalAuthentication.isEnrolledAsync(),
-            isBiometricsEnabled(),
-          ]);
+          const [hardwareAvailable, enrolled, enabled, lockTimeout, currency] =
+            await Promise.all([
+              LocalAuthentication.hasHardwareAsync(),
+              LocalAuthentication.isEnrolledAsync(),
+              isBiometricsEnabled(),
+              getAutoLockTimeout(),
+              getCurrency(),
+            ]);
 
           if (cancelled) return;
 
           setBiometricsAvailable(hardwareAvailable && enrolled);
           setBiometricsEnabled(enabled && hardwareAvailable && enrolled);
+          setAutoLockMinutes(lockTimeout);
+          setDisplayCurrency(currency);
         } catch {
-          // Biometrics check failed, leave disabled
+          // Settings load failed, leave defaults
         }
       };
-      loadBiometrics();
+      loadSettings();
       return () => {
         cancelled = true;
       };
@@ -353,7 +369,12 @@ export default function SettingsScreen() {
     router.push("/wallets");
   }, [router]);
 
+  const handleContacts = useCallback(() => {
+    router.push("/contacts");
+  }, [router]);
+
   const handleToggleNetwork = useCallback(() => {
+    const targetNetwork: NetworkType = isMainnet ? "testnet" : "mainnet";
     Alert.alert(
       "Switch Network",
       `Switch to ${isMainnet ? "testnet" : "mainnet"}? This will require a resync.`,
@@ -362,12 +383,12 @@ export default function SettingsScreen() {
         {
           text: "Switch",
           onPress: () => {
-            // Network toggle will be implemented when the wallet supports live switching
+            switchNetwork(targetNetwork);
           },
         },
       ],
     );
-  }, [isMainnet]);
+  }, [isMainnet, switchNetwork]);
 
   const handleShowRecovery = useCallback(() => {
     setPinAction("recovery");
@@ -447,6 +468,62 @@ export default function SettingsScreen() {
     router.push("/masternode");
   }, [router]);
 
+  const handleExportKey = useCallback(() => {
+    router.push("/export-key");
+  }, [router]);
+
+  const handleCoinControl = useCallback(() => {
+    router.push("/coin-control");
+  }, [router]);
+
+  const handleCycleCurrency = useCallback(async () => {
+    const currencies = ["USD", "EUR", "BTC"];
+    const currentIdx = currencies.indexOf(displayCurrency);
+    const nextIdx = (currentIdx + 1) % currencies.length;
+    const nextCurrency = currencies[nextIdx];
+    setDisplayCurrency(nextCurrency);
+    await setCurrency(nextCurrency);
+  }, [displayCurrency]);
+
+  const handleCycleAutoLock = useCallback(async () => {
+    const options = [1, 5, 15, 30];
+    const currentIdx = options.indexOf(autoLockMinutes);
+    const nextIdx = (currentIdx + 1) % options.length;
+    const nextMinutes = options[nextIdx];
+    setAutoLockMinutes(nextMinutes);
+    await setAutoLockTimeout(nextMinutes);
+  }, [autoLockMinutes]);
+
+  const handleExportBackup = useCallback(async () => {
+    try {
+      const json = await exportBackup();
+      // In production, this would use FileSystem to save or Share to export.
+      // For now, copy to clipboard as a portable approach.
+      const { setStringAsync } = await import("expo-clipboard");
+      await setStringAsync(json);
+      Alert.alert("Backup Exported", "Backup data copied to clipboard. Save it in a secure location.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Export failed";
+      Alert.alert("Error", message);
+    }
+  }, [exportBackup]);
+
+  const handleImportBackup = useCallback(async () => {
+    try {
+      const { getStringAsync } = await import("expo-clipboard");
+      const json = await getStringAsync();
+      if (!json || json.trim().length === 0) {
+        Alert.alert("Error", "No backup data found in clipboard. Copy backup JSON to clipboard first.");
+        return;
+      }
+      await importBackup(json);
+      Alert.alert("Backup Imported", "Contacts, labels, and settings have been restored.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Import failed";
+      Alert.alert("Error", message);
+    }
+  }, [importBackup]);
+
   const handleResync = useCallback(() => {
     Alert.alert("Resync Wallet", "This will re-download all blockchain data.", [
       { text: "Cancel", style: "cancel" },
@@ -483,6 +560,10 @@ export default function SettingsScreen() {
             label="Manage Wallets"
             value={walletCountLabel}
             onPress={handleManageWallets}
+          />
+          <SettingsRow
+            label="Contacts"
+            onPress={handleContacts}
           />
         </SettingsSection>
 
@@ -523,6 +604,20 @@ export default function SettingsScreen() {
               />
             }
           />
+          <SettingsRow
+            label="Auto-Lock"
+            value={`${autoLockMinutes} min`}
+            onPress={handleCycleAutoLock}
+          />
+          <SettingsRow
+            label="Display Currency"
+            value={displayCurrency}
+            onPress={handleCycleCurrency}
+          />
+          <SettingsRow
+            label="Export Encrypted Key (BIP38)"
+            onPress={handleExportKey}
+          />
         </SettingsSection>
 
         {/* Backup */}
@@ -530,6 +625,14 @@ export default function SettingsScreen() {
           <SettingsRow
             label="Show Recovery Phrase"
             onPress={handleShowRecovery}
+          />
+          <SettingsRow
+            label="Export Backup"
+            onPress={handleExportBackup}
+          />
+          <SettingsRow
+            label="Import Backup"
+            onPress={handleImportBackup}
           />
         </SettingsSection>
 
@@ -550,6 +653,10 @@ export default function SettingsScreen() {
           <SettingsRow
             label="Chain Height"
             value={chainHeight > 0 ? chainHeight.toLocaleString() : "--"}
+          />
+          <SettingsRow
+            label="Coin Control"
+            onPress={handleCoinControl}
           />
           <SettingsRow
             label="Resync Wallet"

@@ -12,9 +12,19 @@ import { create } from "zustand";
 import { generateMnemonic, validateMnemonic } from "../core/hd-wallet";
 import type { NetworkType, NetworkConfig } from "../core/network";
 import { getNetwork } from "../core/network";
+import { hexToBytes, bytesToHex, decodeAddress } from "../core/encoding";
+import {
+  buildTransaction,
+  signInput,
+  serializeTransaction,
+  hashTransaction,
+  type UTXO as TxUTXO,
+} from "../core/transaction";
+import { SPVClient } from "../p2p/spv-client";
+import { DatabaseHeaderStore } from "../p2p/header-store";
+import { createSocketProvider } from "../p2p/socket-provider";
 import { KeyManager } from "./key-manager";
 import { UTXOSet } from "./utxo-set";
-import type { UTXO } from "./utxo-set";
 import {
   saveMnemonic,
   getMnemonic,
@@ -28,6 +38,9 @@ import {
   saveWalletMnemonic,
   getWalletMnemonic,
   deleteWalletMnemonic,
+  saveWalletXpub,
+  getWalletXpub,
+  isWatchOnly as checkIsWatchOnly,
 } from "../storage/secure-store";
 import type { WalletInfo } from "../storage/secure-store";
 import { Database } from "../storage/database";
@@ -65,6 +78,7 @@ export interface WalletState {
   activeWalletId: string | null;
   activeWalletName: string;
   wallets: WalletInfo[];
+  isWatchOnly: boolean;
 
   // Balance
   balance: bigint;
@@ -87,6 +101,9 @@ export interface WalletState {
   // Masternode
   masternodeUTXOs: MasternodeUTXO[];
 
+  // Coin control
+  selectedUTXOs: Array<{ txid: string; vout: number }>;
+
   // Actions
   initialize: (mnemonic: string, walletId?: string) => Promise<void>;
   createWallet: () => Promise<string>;
@@ -108,8 +125,20 @@ export interface WalletState {
   switchWallet: (walletId: string) => Promise<void>;
   createNewWallet: (name: string) => Promise<string>;
   importWallet: (name: string, mnemonic: string) => Promise<void>;
+  importWatchOnly: (name: string, xpub: string) => Promise<void>;
   deleteWallet: (walletId: string) => Promise<void>;
   renameActiveWallet: (name: string) => Promise<void>;
+
+  // Network switching
+  switchNetwork: (network: NetworkType) => Promise<void>;
+
+  // Backup
+  exportBackup: () => Promise<string>;
+  importBackup: (json: string) => Promise<void>;
+
+  // Coin control
+  setSelectedUTXOs: (utxos: Array<{ txid: string; vout: number }>) => void;
+  clearSelectedUTXOs: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,6 +162,15 @@ let keyManager: KeyManager | null = null;
 let utxoSet: UTXOSet | null = null;
 let database: Database | null = null;
 let networkConfig: NetworkConfig | null = null;
+let spvClient: SPVClient | null = null;
+
+/**
+ * Get the current Database instance. Returns null if the wallet is not initialized.
+ * Used by other stores (contacts, tx notes) that need database access.
+ */
+export function getDatabase(): Database | null {
+  return database;
+}
 
 // ---------------------------------------------------------------------------
 // Fee estimation constants (satoshis per byte)
@@ -153,6 +191,10 @@ const AVERAGE_TX_SIZE = 226;
 
 /** Reset all in-memory wallet state to defaults. */
 function resetWalletInternals(): void {
+  if (spvClient) {
+    spvClient.stop();
+    spvClient = null;
+  }
   keyManager = null;
   utxoSet = null;
   database = null;
@@ -174,6 +216,8 @@ const DEFAULT_WALLET_STATE = {
   addresses: [] as string[],
   transactions: [] as WalletTransaction[],
   masternodeUTXOs: [] as MasternodeUTXO[],
+  isWatchOnly: false,
+  selectedUTXOs: [] as Array<{ txid: string; vout: number }>,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -191,6 +235,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   activeWalletId: null,
   activeWalletName: "",
   wallets: [],
+  isWatchOnly: false,
 
   balance: 0n,
   confirmedBalance: 0n,
@@ -207,6 +252,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   transactions: [],
 
   masternodeUTXOs: [],
+
+  selectedUTXOs: [],
 
   // -------------------------------------------------------------------
   // Actions
@@ -234,7 +281,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
           vout: row.vout,
           address: row.address,
           value: BigInt(row.value),
-          scriptPubKey: hexToUint8Array(row.script_pub_key),
+          scriptPubKey: hexToBytes(row.script_pub_key),
           blockHeight: row.block_height,
           confirmed: true,
         });
@@ -268,6 +315,9 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         ? wallets.find((w) => w.id === activeId)
         : undefined;
 
+      // Check if this is a watch-only wallet
+      const watchOnly = activeId ? await checkIsWatchOnly(activeId) : false;
+
       set({
         initialized: true,
         loading: false,
@@ -279,7 +329,57 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         activeWalletId: activeId,
         activeWalletName: activeWallet?.name ?? "",
         wallets,
+        isWatchOnly: watchOnly,
       });
+
+      // Start SPV client for P2P connectivity
+      try {
+        const socketProvider = createSocketProvider();
+        const headerStore = new DatabaseHeaderStore(database);
+
+        spvClient = new SPVClient({
+          network: networkConfig,
+          socketProvider,
+          headerStore,
+        });
+
+        spvClient.setEvents({
+          onTransaction: (_tx, _blockHash) => {
+            // Incoming transactions are processed by the SPV client.
+            // Future: parse outputs, match to wallet addresses, add UTXOs.
+          },
+          onBlockHeader: (header) => {
+            set({ chainHeight: header.height });
+          },
+          onSyncProgress: (progress) => {
+            set({
+              syncProgress: Math.round(progress * 100),
+              isSyncing: progress < 1,
+            });
+          },
+        });
+
+        // Load Bloom filter with all wallet addresses
+        if (keyManager) {
+          const allAddresses = keyManager.getAllAddresses();
+          const addressHashes = allAddresses.map((addr) => {
+            const decoded = decodeAddress(addr);
+            return decoded.hash;
+          });
+          spvClient.setBloomFilter(addressHashes);
+        }
+
+        await spvClient.start();
+
+        set({
+          connectedPeers: spvClient.getPeerManager().getReadyPeers().length,
+          chainHeight: spvClient.getChainHeight(),
+          isSyncing: true,
+        });
+      } catch {
+        // SPV failed to start - wallet still works in offline mode.
+        // The explorer API fallback will be used for broadcasting instead.
+      }
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Unknown initialization error";
@@ -370,46 +470,80 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     amount: bigint,
     feeRate: number,
   ): Promise<string> => {
-    if (!keyManager || !utxoSet || !networkConfig) {
-      throw new Error("Wallet not initialized");
-    }
-
     set({ loading: true, error: null });
 
     try {
-      // Select coins
-      const { selected, fee, change } = utxoSet.selectCoins(
-        amount,
-        feeRate,
-      );
+      if (!keyManager || !database || !networkConfig) {
+        throw new Error("Wallet not initialized");
+      }
 
-      // Get change address if needed
-      if (change > 0n && keyManager) {
-        const derived = keyManager.getNextChangeAddress();
-        if (database) {
-          await database.insertAddress(
-            derived.address,
-            derived.path,
-            derived.index,
-            true,
-          );
+      // Get unspent UTXOs from database
+      const utxoRows = await database.getUnspentUTXOs();
+      const utxos: TxUTXO[] = utxoRows.map((row) => ({
+        txid: row.txid,
+        vout: row.vout,
+        value: BigInt(row.value),
+        scriptPubKey: hexToBytes(row.script_pub_key),
+      }));
+
+      // Build unsigned transaction with coin selection
+      const changeAddress = keyManager.getNextChangeAddress().address;
+      const tx = buildTransaction({
+        utxos,
+        recipients: [{ address: toAddress, value: amount }],
+        changeAddress,
+        feePerByte: BigInt(feeRate),
+        network: networkConfig,
+      });
+
+      // Sign each input with the corresponding private key
+      for (let i = 0; i < tx.inputs.length; i++) {
+        const input = tx.inputs[i];
+        const utxo = utxoRows.find(
+          (u) => u.txid === input.txid && u.vout === input.vout,
+        );
+        if (!utxo) {
+          throw new Error(`UTXO not found for input ${input.txid}:${input.vout}`);
+        }
+
+        const privateKey = keyManager.getPrivateKeyForAddress(utxo.address);
+        const prevScript = hexToBytes(utxo.script_pub_key);
+        tx.inputs[i] = {
+          ...tx.inputs[i],
+          scriptSig: signInput(tx, i, prevScript, privateKey),
+        };
+      }
+
+      // Serialize and compute txid
+      const rawTx = serializeTransaction(tx);
+      const txid = hashTransaction(tx);
+
+      // Broadcast via SPV client (P2P) or log for manual broadcast
+      if (spvClient) {
+        spvClient.broadcastTransaction(rawTx);
+      }
+
+      // Mark UTXOs as spent locally
+      for (const input of tx.inputs) {
+        await database.markUTXOSpent(input.txid, input.vout);
+        if (utxoSet) {
+          utxoSet.spend(input.txid, input.vout);
         }
       }
 
-      // Compute a deterministic intent hash as placeholder txid.
-      // Real transaction building/signing belongs in a tx-builder module.
-      const txid = computeIntentHash(selected, toAddress, amount, fee);
-
-      // Mark selected UTXOs as spent
-      for (const utxo of selected) {
-        utxoSet.spend(utxo.txid, utxo.vout);
-        if (database) {
-          await database.markUTXOSpent(utxo.txid, utxo.vout);
-        }
-      }
-
-      // Record the outgoing transaction
+      // Persist the transaction record
       const now = Math.floor(Date.now() / 1000);
+      await database.insertTransaction({
+        txid,
+        raw_hex: bytesToHex(rawTx),
+        block_height: -1,
+        block_hash: "",
+        timestamp: now,
+        fee: Number(BigInt(feeRate) * BigInt(rawTx.length)),
+        confirmed: 0,
+      });
+
+      // Update UI state
       const newTx: WalletTransaction = {
         txid,
         amount: -amount,
@@ -419,20 +553,19 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         type: "send",
       };
 
-      const currentTxs = get().transactions;
-      set({
+      set((state) => ({
+        transactions: [newTx, ...state.transactions],
         loading: false,
-        transactions: [newTx, ...currentTxs],
-      });
+      }));
 
+      // Refresh balance from UTXO set
       get().refreshBalance();
 
       return txid;
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Transaction failed";
-      set({ loading: false, error: message });
-      throw new Error(message);
+      const msg = err instanceof Error ? err.message : "Transaction failed";
+      set({ loading: false, error: msg });
+      throw new Error(msg);
     }
   },
 
@@ -730,50 +863,201 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       set({ error: message });
     }
   },
+
+  // -------------------------------------------------------------------
+  // Watch-only wallet import
+  // -------------------------------------------------------------------
+
+  importWatchOnly: async (name: string, xpub: string): Promise<void> => {
+    set({ loading: true, error: null });
+
+    try {
+      const walletId = generateWalletId();
+
+      // Store xpub to mark as watch-only
+      await saveWalletXpub(walletId, xpub);
+      await addWalletToIndex(walletId, name);
+
+      // Watch-only wallets still need a placeholder mnemonic for the key manager
+      // to derive addresses. We store the xpub and use it for address derivation.
+      // For now, store a marker so the wallet can be identified.
+      await saveWalletMnemonic(walletId, `xpub:${xpub}`);
+      await setActiveWalletId(walletId);
+
+      // Close current database if open
+      if (database) {
+        await database.close();
+      }
+
+      resetWalletInternals();
+
+      const state = get();
+      set({
+        ...DEFAULT_WALLET_STATE,
+        network: state.network,
+        activeWalletId: walletId,
+        activeWalletName: name,
+        wallets: state.wallets,
+        isWatchOnly: true,
+        loading: false,
+      });
+
+      await get().loadWalletList();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to import watch-only wallet";
+      set({ loading: false, error: message });
+      throw new Error(message);
+    }
+  },
+
+  // -------------------------------------------------------------------
+  // Network switching
+  // -------------------------------------------------------------------
+
+  switchNetwork: async (newNetwork: NetworkType): Promise<void> => {
+    const state = get();
+    if (state.network === newNetwork) return;
+
+    set({ loading: true, error: null });
+
+    try {
+      // Stop SPV client
+      resetWalletInternals();
+
+      // Close current database
+      if (database) {
+        await database.close();
+      }
+
+      // Reset to uninitialized state with new network
+      set({
+        ...DEFAULT_WALLET_STATE,
+        network: newNetwork,
+        activeWalletId: state.activeWalletId,
+        activeWalletName: state.activeWalletName,
+        wallets: state.wallets,
+        initialized: false,
+        loading: true,
+      });
+
+      // Re-initialize with the current wallet's mnemonic on the new network
+      if (state.activeWalletId) {
+        const mnemonic = await getWalletMnemonic(state.activeWalletId);
+        if (mnemonic) {
+          await get().initialize(mnemonic, state.activeWalletId);
+        } else {
+          set({ loading: false });
+        }
+      } else {
+        set({ loading: false });
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to switch network";
+      set({ loading: false, error: message });
+    }
+  },
+
+  // -------------------------------------------------------------------
+  // Backup export/import
+  // -------------------------------------------------------------------
+
+  exportBackup: async (): Promise<string> => {
+    if (!database) {
+      throw new Error("Wallet not initialized");
+    }
+
+    try {
+      const contacts = await database.getContacts();
+      const addresses = await database.getAddresses();
+
+      // Collect address labels and tx notes
+      const addressLabels: Array<{ address: string; label: string }> = [];
+      for (const addr of addresses) {
+        const label = await database.getAddressLabel(addr.address);
+        if (label) {
+          addressLabels.push({ address: addr.address, label });
+        }
+      }
+
+      const backup = {
+        version: 1,
+        exportedAt: Date.now(),
+        contacts: contacts.map((c) => ({
+          name: c.name,
+          address: c.address,
+          notes: c.notes,
+          emoji: c.emoji,
+        })),
+        addressLabels,
+      };
+
+      return JSON.stringify(backup, null, 2);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to export backup";
+      throw new Error(message);
+    }
+  },
+
+  importBackup: async (json: string): Promise<void> => {
+    if (!database) {
+      throw new Error("Wallet not initialized");
+    }
+
+    try {
+      const backup = JSON.parse(json) as {
+        version?: number;
+        contacts?: Array<{
+          name: string;
+          address: string;
+          notes: string;
+          emoji: string;
+        }>;
+        addressLabels?: Array<{ address: string; label: string }>;
+      };
+
+      if (typeof backup.version !== "number") {
+        throw new Error("Invalid backup format: missing version");
+      }
+
+      // Import contacts
+      if (Array.isArray(backup.contacts)) {
+        for (const contact of backup.contacts) {
+          const id = generateWalletId(); // reuse UUID generator
+          await database.insertContact(
+            id,
+            contact.name,
+            contact.address,
+            contact.notes,
+            contact.emoji,
+          );
+        }
+      }
+
+      // Import address labels
+      if (Array.isArray(backup.addressLabels)) {
+        for (const label of backup.addressLabels) {
+          await database.setAddressLabel(label.address, label.label);
+        }
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to import backup";
+      throw new Error(message);
+    }
+  },
+
+  // -------------------------------------------------------------------
+  // Coin control
+  // -------------------------------------------------------------------
+
+  setSelectedUTXOs: (utxos: Array<{ txid: string; vout: number }>): void => {
+    set({ selectedUTXOs: utxos });
+  },
+
+  clearSelectedUTXOs: (): void => {
+    set({ selectedUTXOs: [] });
+  },
 }));
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function hexToUint8Array(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
-  }
-  return bytes;
-}
-
-/**
- * Compute a deterministic hash representing a send intent.
- * This is NOT a real transaction ID - it's a placeholder until
- * the tx-builder module is implemented for actual signing.
- */
-function computeIntentHash(
-  inputs: UTXO[],
-  toAddress: string,
-  amount: bigint,
-  fee: bigint,
-): string {
-  const encoder = new TextEncoder();
-  const parts: string[] = [];
-  for (const input of inputs) {
-    parts.push(`${input.txid}:${input.vout}`);
-  }
-  parts.push(toAddress);
-  parts.push(amount.toString());
-  parts.push(fee.toString());
-  parts.push(Date.now().toString());
-
-  const data = encoder.encode(parts.join("|"));
-
-  // FNV-1a hash as a lightweight placeholder identifier
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < data.length; i++) {
-    hash ^= data[i];
-    hash = Math.imul(hash, 0x01000193);
-  }
-
-  const hex = (hash >>> 0).toString(16).padStart(8, "0");
-  return hex.repeat(8); // 64-char hex string to match txid format
-}

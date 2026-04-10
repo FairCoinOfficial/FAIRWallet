@@ -13,12 +13,14 @@ import {
   ActivityIndicator,
   ScrollView,
   FlatList,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
+import { t } from "../../src/i18n";
 
 function truncateAddress(address: string): string {
   if (address.length <= 16) return address;
@@ -42,6 +44,14 @@ export default function ReceiveScreen() {
     const addr = getNewAddress();
     setSelectedAddress(addr);
   }, [getNewAddress]);
+
+  const handleShare = useCallback(async () => {
+    const uri = `faircoin:${displayAddress}`;
+    await Share.share({
+      message: `Pay me with FairCoin:\n${uri}`,
+      title: "FairCoin Payment Request",
+    });
+  }, [displayAddress]);
 
   const handleSelectAddress = useCallback(
     (address: string) => {
@@ -76,7 +86,7 @@ export default function ReceiveScreen() {
       >
         {/* Title */}
         <Text className="text-white text-xl font-bold mb-1 text-center">
-          Receive FAIR
+          {t("receive.title")}
         </Text>
         <Text className="text-fair-muted text-sm mb-6 text-center">
           Share this address to receive FairCoin
@@ -110,12 +120,17 @@ export default function ReceiveScreen() {
         {/* Actions */}
         <View className="w-full gap-3 mb-8">
           <Button
-            title="Copy Address"
+            title={t("receive.copy")}
             onPress={handleCopy}
             variant="primary"
           />
           <Button
-            title="New Address"
+            title={t("receive.share")}
+            onPress={handleShare}
+            variant="outline"
+          />
+          <Button
+            title={t("receive.new_address")}
             onPress={handleNewAddress}
             variant="outline"
           />

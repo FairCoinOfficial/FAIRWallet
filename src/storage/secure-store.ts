@@ -308,6 +308,53 @@ export async function hasWallet(): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
+// Auto-lock timeout
+// ---------------------------------------------------------------------------
+
+const AUTO_LOCK_KEY = "fairwallet_auto_lock";
+
+export async function setAutoLockTimeout(minutes: number): Promise<void> {
+  await setItemAsync(AUTO_LOCK_KEY, String(minutes));
+}
+
+export async function getAutoLockTimeout(): Promise<number> {
+  const value = await getItemAsync(AUTO_LOCK_KEY);
+  return value ? Number(value) : 5; // default 5 minutes
+}
+
+// ---------------------------------------------------------------------------
+// Display currency
+// ---------------------------------------------------------------------------
+
+const CURRENCY_KEY = "fairwallet_currency";
+
+export async function setCurrency(currency: string): Promise<void> {
+  await setItemAsync(CURRENCY_KEY, currency);
+}
+
+export async function getCurrency(): Promise<string> {
+  const value = await getItemAsync(CURRENCY_KEY);
+  return value ?? "USD";
+}
+
+// ---------------------------------------------------------------------------
+// Watch-only wallet storage (xpub)
+// ---------------------------------------------------------------------------
+
+export async function saveWalletXpub(walletId: string, xpub: string): Promise<void> {
+  await setItemAsync(`fairwallet_xpub_${walletId}`, xpub);
+}
+
+export async function getWalletXpub(walletId: string): Promise<string | null> {
+  return getItemAsync(`fairwallet_xpub_${walletId}`);
+}
+
+export async function isWatchOnly(walletId: string): Promise<boolean> {
+  const xpub = await getWalletXpub(walletId);
+  return xpub !== null;
+}
+
+// ---------------------------------------------------------------------------
 // Clear all secure data
 // ---------------------------------------------------------------------------
 
@@ -317,11 +364,14 @@ export async function clearAll(): Promise<void> {
   await deleteItemAsync(WALLET_PIN_KEY);
   await deleteItemAsync(WALLET_CREATED_KEY);
   await deleteItemAsync(BIOMETRICS_ENABLED_KEY);
+  await deleteItemAsync(AUTO_LOCK_KEY);
+  await deleteItemAsync(CURRENCY_KEY);
 
   // Clear multi-wallet keys
   const wallets = await getWalletIndex();
   for (const wallet of wallets) {
     await deleteWalletMnemonic(wallet.id);
+    await deleteItemAsync(`fairwallet_xpub_${wallet.id}`);
   }
   await deleteItemAsync(WALLETS_INDEX_KEY);
   await deleteItemAsync(ACTIVE_WALLET_KEY);

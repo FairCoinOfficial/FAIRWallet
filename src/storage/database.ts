@@ -56,6 +56,34 @@ export interface PeerRow {
   services: number;
 }
 
+export interface ContactRow {
+  id: string;
+  name: string;
+  address: string;
+  notes: string;
+  emoji: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface TxNoteRow {
+  txid: string;
+  note: string;
+  updated_at: number;
+}
+
+export interface AddressLabelRow {
+  address: string;
+  label: string;
+  updated_at: number;
+}
+
+export interface RecentRecipientRow {
+  address: string;
+  last_used: number;
+  use_count: number;
+}
+
 // ---------------------------------------------------------------------------
 // SQL statements
 // ---------------------------------------------------------------------------
@@ -118,6 +146,50 @@ const CREATE_PEERS = `
   )
 `;
 
+const CREATE_CONTACTS = `
+  CREATE TABLE IF NOT EXISTS contacts (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    address TEXT NOT NULL,
+    notes TEXT DEFAULT '',
+    emoji TEXT DEFAULT '👤',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )
+`;
+
+const CREATE_CONTACTS_ADDRESS_INDEX = `
+  CREATE INDEX IF NOT EXISTS idx_contacts_address ON contacts(address)
+`;
+
+const CREATE_CONTACTS_NAME_INDEX = `
+  CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(name)
+`;
+
+const CREATE_TX_NOTES = `
+  CREATE TABLE IF NOT EXISTS tx_notes (
+    txid TEXT PRIMARY KEY,
+    note TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )
+`;
+
+const CREATE_ADDRESS_LABELS = `
+  CREATE TABLE IF NOT EXISTS address_labels (
+    address TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )
+`;
+
+const CREATE_RECENT_RECIPIENTS = `
+  CREATE TABLE IF NOT EXISTS recent_recipients (
+    address TEXT PRIMARY KEY,
+    last_used INTEGER NOT NULL,
+    use_count INTEGER DEFAULT 1
+  )
+`;
+
 // Index for common queries
 const CREATE_UTXO_ADDRESS_INDEX = `
   CREATE INDEX IF NOT EXISTS idx_utxos_address ON utxos (address)
@@ -175,6 +247,12 @@ export class Database {
     await this.db.execAsync(CREATE_UTXO_SPENT_INDEX);
     await this.db.execAsync(CREATE_TX_BLOCK_HEIGHT_INDEX);
     await this.db.execAsync(CREATE_ADDRESSES_CHANGE_INDEX);
+    await this.db.execAsync(CREATE_CONTACTS);
+    await this.db.execAsync(CREATE_CONTACTS_ADDRESS_INDEX);
+    await this.db.execAsync(CREATE_CONTACTS_NAME_INDEX);
+    await this.db.execAsync(CREATE_TX_NOTES);
+    await this.db.execAsync(CREATE_ADDRESS_LABELS);
+    await this.db.execAsync(CREATE_RECENT_RECIPIENTS);
   }
 
   async close(): Promise<void> {
@@ -379,6 +457,149 @@ export class Database {
   async getKnownPeers(limit: number): Promise<PeerRow[]> {
     return this.db.getAllAsync<PeerRow>(
       "SELECT * FROM peers ORDER BY last_success DESC LIMIT ?",
+      limit,
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // Contacts
+  // -----------------------------------------------------------------------
+
+  async insertContact(
+    id: string,
+    name: string,
+    address: string,
+    notes: string,
+    emoji: string,
+  ): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    await this.db.runAsync(
+      `INSERT INTO contacts (id, name, address, notes, emoji, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      id,
+      name,
+      address,
+      notes,
+      emoji,
+      now,
+      now,
+    );
+  }
+
+  async updateContact(
+    id: string,
+    name: string,
+    address: string,
+    notes: string,
+    emoji: string,
+  ): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    await this.db.runAsync(
+      `UPDATE contacts SET name = ?, address = ?, notes = ?, emoji = ?, updated_at = ?
+       WHERE id = ?`,
+      name,
+      address,
+      notes,
+      emoji,
+      now,
+      id,
+    );
+  }
+
+  async deleteContact(id: string): Promise<void> {
+    await this.db.runAsync("DELETE FROM contacts WHERE id = ?", id);
+  }
+
+  async getContacts(): Promise<ContactRow[]> {
+    return this.db.getAllAsync<ContactRow>(
+      "SELECT * FROM contacts ORDER BY name ASC",
+    );
+  }
+
+  async getContactByAddress(address: string): Promise<ContactRow | null> {
+    const row = await this.db.getFirstAsync<ContactRow>(
+      "SELECT * FROM contacts WHERE address = ? LIMIT 1",
+      address,
+    );
+    return row ?? null;
+  }
+
+  async searchContacts(query: string): Promise<ContactRow[]> {
+    const pattern = `%${query}%`;
+    return this.db.getAllAsync<ContactRow>(
+      "SELECT * FROM contacts WHERE name LIKE ? OR address LIKE ? ORDER BY name ASC",
+      pattern,
+      pattern,
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // Transaction notes
+  // -----------------------------------------------------------------------
+
+  async setTxNote(txid: string, note: string): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    await this.db.runAsync(
+      `INSERT OR REPLACE INTO tx_notes (txid, note, updated_at)
+       VALUES (?, ?, ?)`,
+      txid,
+      note,
+      now,
+    );
+  }
+
+  async getTxNote(txid: string): Promise<string | null> {
+    const row = await this.db.getFirstAsync<TxNoteRow>(
+      "SELECT * FROM tx_notes WHERE txid = ?",
+      txid,
+    );
+    return row?.note ?? null;
+  }
+
+  // -----------------------------------------------------------------------
+  // Address labels
+  // -----------------------------------------------------------------------
+
+  async setAddressLabel(address: string, label: string): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    await this.db.runAsync(
+      `INSERT OR REPLACE INTO address_labels (address, label, updated_at)
+       VALUES (?, ?, ?)`,
+      address,
+      label,
+      now,
+    );
+  }
+
+  async getAddressLabel(address: string): Promise<string | null> {
+    const row = await this.db.getFirstAsync<AddressLabelRow>(
+      "SELECT * FROM address_labels WHERE address = ?",
+      address,
+    );
+    return row?.label ?? null;
+  }
+
+  // -----------------------------------------------------------------------
+  // Recent recipients
+  // -----------------------------------------------------------------------
+
+  async addRecentRecipient(address: string): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    await this.db.runAsync(
+      `INSERT INTO recent_recipients (address, last_used, use_count)
+       VALUES (?, ?, 1)
+       ON CONFLICT(address) DO UPDATE SET
+         last_used = ?,
+         use_count = use_count + 1`,
+      address,
+      now,
+      now,
+    );
+  }
+
+  async getRecentRecipients(limit: number): Promise<RecentRecipientRow[]> {
+    return this.db.getAllAsync<RecentRecipientRow>(
+      "SELECT * FROM recent_recipients ORDER BY last_used DESC LIMIT ?",
       limit,
     );
   }

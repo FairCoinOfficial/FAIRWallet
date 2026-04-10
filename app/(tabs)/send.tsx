@@ -11,16 +11,22 @@ import {
   ScrollView,
   Pressable,
   Modal,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import {
   useWalletStore,
+  getDatabase,
   type FeeLevel,
 } from "../../src/wallet/wallet-store";
+import { useContactsStore } from "../../src/wallet/contacts-store";
 import { Button } from "../../src/ui/components/Button";
 import { QRScanner } from "../../src/ui/components/QRScanner";
+import { ContactPicker } from "../../src/ui/components/ContactPicker";
+import { getCachedPrice } from "../../src/services/price";
+import type { RecentRecipientRow } from "../../src/storage/database";
 
 const FEE_LEVELS: FeeLevel[] = ["low", "medium", "high"];
 
@@ -64,10 +70,31 @@ function parseFairToSats(input: string): bigint | null {
 }
 
 export default function SendScreen() {
+  const router = useRouter();
   const balance = useWalletStore((s) => s.balance);
   const sendTransaction = useWalletStore((s) => s.sendTransaction);
   const estimateFee = useWalletStore((s) => s.estimateFee);
   const loading = useWalletStore((s) => s.loading);
+  const isWatchOnly = useWalletStore((s) => s.isWatchOnly);
+  const getContactByAddress = useContactsStore((s) => s.getContactByAddress);
+
+  // Watch-only wallets cannot send transactions
+  if (isWatchOnly) {
+    return (
+      <SafeAreaView className="flex-1 bg-fair-dark" edges={["top", "left", "right"]}>
+        <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-fair-muted text-4xl mb-4">{"\uD83D\uDD12"}</Text>
+          <Text className="text-white text-xl font-bold mb-2 text-center">
+            Watch-Only Wallet
+          </Text>
+          <Text className="text-fair-muted text-sm text-center">
+            Sending is disabled for watch-only wallets. Import the full wallet
+            with a recovery phrase to enable sending.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Read deep link params (from faircoin: URI or QR scan navigation)
   const params = useLocalSearchParams<{ address?: string; amount?: string }>();
@@ -77,8 +104,10 @@ export default function SendScreen() {
   const [feeLevel, setFeeLevel] = useState<FeeLevel>("medium");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [recentRecipients, setRecentRecipients] = useState<RecentRecipientRow[]>([]);
 
   const fee = useMemo(() => estimateFee(feeLevel), [estimateFee, feeLevel]);
 
@@ -138,6 +167,29 @@ export default function SendScreen() {
     setShowQRScanner(false);
   }, []);
 
+  const handleOpenContactPicker = useCallback(() => {
+    setShowContactPicker(true);
+  }, []);
+
+  const handleCloseContactPicker = useCallback(() => {
+    setShowContactPicker(false);
+  }, []);
+
+  const handleContactSelect = useCallback((address: string) => {
+    setToAddress(address);
+  }, []);
+
+  const loadRecentRecipients = useCallback(() => {
+    const db = getDatabase();
+    if (db) {
+      db.getRecentRecipients(5).then(setRecentRecipients);
+    }
+  }, []);
+
+  const handleRecentRecipientPress = useCallback((address: string) => {
+    setToAddress(address);
+  }, []);
+
   const handleMax = useCallback(() => {
     const maxSats = balance > fee ? balance - fee : 0n;
     setAmount(formatSats(maxSats));
@@ -159,28 +211,86 @@ export default function SendScreen() {
         return;
       }
       const feeRate = feeLevel === "high" ? 10 : feeLevel === "medium" ? 5 : 1;
-      const txid = await sendTransaction(toAddress, amountSats, feeRate);
+      const sentAddress = toAddress;
+      const txid = await sendTransaction(sentAddress, amountSats, feeRate);
       setSuccess(`Transaction sent: ${txid}`);
       setToAddress("");
       setAmount("");
+
+      // Record recent recipient
+      const db = getDatabase();
+      if (db) {
+        db.addRecentRecipient(sentAddress);
+        loadRecentRecipients();
+
+        // Prompt to save as contact if not already saved
+        const existingContact = await getContactByAddress(db, sentAddress);
+        if (!existingContact) {
+          const truncated =
+            sentAddress.length > 16
+              ? `${sentAddress.slice(0, 8)}...${sentAddress.slice(-8)}`
+              : sentAddress;
+          Alert.alert(
+            "Save Contact?",
+            `Save ${truncated} to contacts?`,
+            [
+              { text: "No", style: "cancel" },
+              {
+                text: "Save",
+                onPress: () => {
+                  router.push("/contacts");
+                },
+              },
+            ],
+          );
+        }
+      }
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : "Failed to send transaction";
       setError(msg);
     }
-  }, [toAddress, amount, feeLevel, sendTransaction]);
+  }, [toAddress, amount, feeLevel, sendTransaction, getContactByAddress, loadRecentRecipients, router]);
 
   const handleCancelSend = useCallback(() => {
     setShowConfirmModal(false);
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark" edges={["top", "left", "right"]}>
+    <SafeAreaView className="flex-1 bg-fair-dark" edges={["top", "left", "right"]}
+      onLayout={loadRecentRecipients}
+    >
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pt-4 pb-8"
         keyboardShouldPersistTaps="handled"
       >
+        {/* Recent recipients */}
+        {recentRecipients.length > 0 ? (
+          <View className="mb-4">
+            <Text className="text-fair-muted text-xs font-semibold uppercase tracking-wider mb-2">
+              Recent Recipients
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2">
+                {recentRecipients.map((r) => (
+                  <Pressable
+                    key={r.address}
+                    className="bg-fair-dark-light border border-fair-border rounded-xl px-3 py-2"
+                    onPress={() => handleRecentRecipientPress(r.address)}
+                  >
+                    <Text className="text-white text-xs">
+                      {r.address.length > 16
+                        ? `${r.address.slice(0, 6)}...${r.address.slice(-6)}`
+                        : r.address}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        ) : null}
+
         {/* To Address */}
         <Text className="text-white text-sm font-medium mb-2">To Address</Text>
         <View className="bg-fair-dark-light border border-fair-border rounded-xl p-3 mb-1">
@@ -199,6 +309,12 @@ export default function SendScreen() {
               onPress={handlePaste}
             >
               <Text className="text-fair-green text-xs">Paste</Text>
+            </Pressable>
+            <Pressable
+              className="bg-fair-dark border border-fair-border rounded-lg px-3 py-1.5 mr-2"
+              onPress={handleOpenContactPicker}
+            >
+              <Text className="text-fair-green text-xs">{"\uD83D\uDCC7"}</Text>
             </Pressable>
             <Pressable
               className="bg-fair-dark border border-fair-border rounded-lg px-3 py-1.5"
@@ -220,7 +336,7 @@ export default function SendScreen() {
         <Text className="text-white text-sm font-medium mb-2">
           Amount (FAIR)
         </Text>
-        <View className="bg-fair-dark-light border border-fair-border rounded-xl p-3 mb-4">
+        <View className="bg-fair-dark-light border border-fair-border rounded-xl p-3 mb-2">
           <View className="flex-row items-center">
             <TextInput
               className="flex-1 text-white text-base mr-2"
@@ -238,6 +354,22 @@ export default function SendScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* USD equivalent of amount */}
+        {(() => {
+          const price = getCachedPrice();
+          const sats = parseFairToSats(amount);
+          if (price && sats !== null && sats > 0n) {
+            const fair = Number(sats) / 100_000_000;
+            const usd = (fair * price.usd).toFixed(2);
+            return (
+              <Text className="text-fair-muted text-xs mb-4">
+                {"\u2248"} ${usd} USD
+              </Text>
+            );
+          }
+          return <View className="mb-4" />;
+        })()}
 
         {/* Available balance */}
         <Text className="text-fair-muted text-xs mb-6">
@@ -370,6 +502,13 @@ export default function SendScreen() {
           visible={showQRScanner}
           onScan={handleQRScan}
           onClose={handleCloseScanner}
+        />
+
+        {/* Contact Picker */}
+        <ContactPicker
+          visible={showContactPicker}
+          onSelect={handleContactSelect}
+          onClose={handleCloseContactPicker}
         />
       </ScrollView>
     </SafeAreaView>

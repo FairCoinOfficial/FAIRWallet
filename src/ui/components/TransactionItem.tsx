@@ -1,13 +1,16 @@
 /**
  * Transaction list item component.
+ * Tappable to navigate to transaction details.
  */
 
 import { useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 
 type TransactionType = "send" | "receive" | "stake" | "masternode_reward";
 
 interface TransactionItemProps {
+  txid: string;
   type: TransactionType;
   amount: string;
   address: string;
@@ -60,12 +63,14 @@ function getConfirmationColor(confirmations: number): string {
 }
 
 export function TransactionItem({
+  txid,
   type,
   amount,
   address,
   timestamp,
   confirmations,
 }: TransactionItemProps) {
+  const router = useRouter();
   const config = TYPE_CONFIG[type];
   const timeAgo = useMemo(() => formatTimeAgo(timestamp), [timestamp]);
   const truncated = useMemo(() => truncateAddress(address), [address]);
@@ -77,7 +82,10 @@ export function TransactionItem({
   const amountPrefix = type === "send" ? "-" : "+";
 
   return (
-    <View className="flex-row items-center py-3 px-4 border-b border-fair-border">
+    <Pressable
+      className="flex-row items-center py-3 px-4 border-b border-fair-border active:bg-fair-dark"
+      onPress={() => router.push(`/transaction/${txid}`)}
+    >
       {/* Icon */}
       <View className="w-10 h-10 rounded-full bg-fair-dark-light items-center justify-center mr-3">
         <Text className="text-lg text-white">{config.icon}</Text>
@@ -104,6 +112,6 @@ export function TransactionItem({
           </View>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
