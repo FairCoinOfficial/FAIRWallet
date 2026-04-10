@@ -7,6 +7,11 @@ export type {
   PeerRow,
 } from "./database";
 export {
+  getItemAsync,
+  setItemAsync,
+  deleteItemAsync,
+} from "./kv-store";
+export {
   saveMnemonic,
   getMnemonic,
   deleteMnemonic,

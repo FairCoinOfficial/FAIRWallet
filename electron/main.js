@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, safeStorage, protocol } = require('electron');
 const path = require('path');
 const net = require('net');
 const dns = require('dns');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 let mainWindow = null;
 const peerConnections = new Map();
@@ -20,6 +21,43 @@ function getDistPath() {
     }
   }
   return path.join(__dirname, '..', 'dist');
+}
+
+/**
+ * Register a custom app:// protocol to serve the Expo web export.
+ *
+ * Expo Router expects to be served from a root URL (e.g. http://host/).
+ * Loading via file:// gives a path like file:///C:/Users/.../dist/index.html
+ * which breaks route matching. A custom protocol maps app://. to the dist
+ * directory so the router sees clean paths starting from /.
+ */
+function registerAppProtocol() {
+  const distPath = getDistPath();
+
+  protocol.registerFileProtocol('app', (request, callback) => {
+    // app://./path -> dist/path
+    let url = request.url.replace('app://./', '').replace('app://.', '');
+
+    // Remove query string and hash
+    url = url.split('?')[0].split('#')[0];
+
+    // Decode URI components
+    url = decodeURIComponent(url);
+
+    // Default to index.html for root or empty path
+    if (!url || url === '/' || url === '') {
+      url = 'index.html';
+    }
+
+    const filePath = path.join(distPath, url);
+
+    // If the file doesn't exist, serve index.html (SPA fallback)
+    if (fs.existsSync(filePath)) {
+      callback({ path: filePath });
+    } else {
+      callback({ path: path.join(distPath, 'index.html') });
+    }
+  });
 }
 
 function createWindow() {
@@ -43,8 +81,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:8081');
     mainWindow.webContents.openDevTools();
   } else {
-    const distPath = getDistPath();
-    mainWindow.loadFile(path.join(distPath, 'index.html'));
+    mainWindow.loadURL('app://./index.html');
   }
 
   mainWindow.on('closed', () => {
@@ -56,7 +93,10 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  registerAppProtocol();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

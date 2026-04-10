@@ -1,12 +1,15 @@
 /**
  * Secure storage abstraction for sensitive wallet data.
- * Uses expo-secure-store (Keychain on iOS, EncryptedSharedPreferences on Android).
+ *
+ * Uses a platform-agnostic key-value adapter:
+ * - iOS/Android: expo-secure-store (Keychain / EncryptedSharedPreferences)
+ * - Web/Electron: localStorage (isolated per origin)
  *
  * Supports multi-wallet storage: each wallet is identified by a UUID.
  * Legacy single-wallet data is migrated on first read.
  */
 
-import * as SecureStore from "expo-secure-store";
+import { getItemAsync, setItemAsync, deleteItemAsync } from "./kv-store";
 import { sha256 } from "@noble/hashes/sha256";
 import { bytesToHex } from "../core/encoding";
 
@@ -41,7 +44,7 @@ export interface WalletInfo {
 
 /** Get the list of all wallets */
 export async function getWalletIndex(): Promise<WalletInfo[]> {
-  const raw = await SecureStore.getItemAsync(WALLETS_INDEX_KEY);
+  const raw = await getItemAsync(WALLETS_INDEX_KEY);
   if (!raw) return [];
   try {
     return JSON.parse(raw) as WalletInfo[];
@@ -52,7 +55,7 @@ export async function getWalletIndex(): Promise<WalletInfo[]> {
 
 /** Save the wallet index */
 async function saveWalletIndex(wallets: WalletInfo[]): Promise<void> {
-  await SecureStore.setItemAsync(WALLETS_INDEX_KEY, JSON.stringify(wallets));
+  await setItemAsync(WALLETS_INDEX_KEY, JSON.stringify(wallets));
 }
 
 /** Add a wallet to the index */
@@ -85,12 +88,12 @@ export async function renameWallet(id: string, name: string): Promise<void> {
 
 /** Get the active wallet ID */
 export async function getActiveWalletId(): Promise<string | null> {
-  return SecureStore.getItemAsync(ACTIVE_WALLET_KEY);
+  return getItemAsync(ACTIVE_WALLET_KEY);
 }
 
 /** Set the active wallet ID */
 export async function setActiveWalletId(id: string): Promise<void> {
-  await SecureStore.setItemAsync(ACTIVE_WALLET_KEY, id);
+  await setItemAsync(ACTIVE_WALLET_KEY, id);
 }
 
 // ---------------------------------------------------------------------------
@@ -99,17 +102,17 @@ export async function setActiveWalletId(id: string): Promise<void> {
 
 /** Save mnemonic for a specific wallet */
 export async function saveWalletMnemonic(walletId: string, mnemonic: string): Promise<void> {
-  await SecureStore.setItemAsync(`fairwallet_mnemonic_${walletId}`, mnemonic);
+  await setItemAsync(`fairwallet_mnemonic_${walletId}`, mnemonic);
 }
 
 /** Get mnemonic for a specific wallet */
 export async function getWalletMnemonic(walletId: string): Promise<string | null> {
-  return SecureStore.getItemAsync(`fairwallet_mnemonic_${walletId}`);
+  return getItemAsync(`fairwallet_mnemonic_${walletId}`);
 }
 
 /** Delete mnemonic for a specific wallet */
 export async function deleteWalletMnemonic(walletId: string): Promise<void> {
-  await SecureStore.deleteItemAsync(`fairwallet_mnemonic_${walletId}`);
+  await deleteItemAsync(`fairwallet_mnemonic_${walletId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -122,20 +125,20 @@ export async function deleteWalletMnemonic(walletId: string): Promise<void> {
  * or null if no legacy data exists.
  */
 async function migrateLegacyMnemonic(): Promise<string | null> {
-  const legacyMnemonic = await SecureStore.getItemAsync(MNEMONIC_KEY);
+  const legacyMnemonic = await getItemAsync(MNEMONIC_KEY);
   if (!legacyMnemonic) return null;
 
   // Check if already migrated (index exists with entries)
   const existingIndex = await getWalletIndex();
   if (existingIndex.length > 0) {
     // Already migrated - clean up legacy key
-    await SecureStore.deleteItemAsync(MNEMONIC_KEY);
+    await deleteItemAsync(MNEMONIC_KEY);
     return null;
   }
 
   // Migrate: create a wallet entry for the legacy mnemonic
   const walletId = generateMigrationWalletId();
-  const createdTimestamp = await SecureStore.getItemAsync(WALLET_CREATED_KEY);
+  const createdTimestamp = await getItemAsync(WALLET_CREATED_KEY);
   const createdAt = createdTimestamp ? Number(createdTimestamp) : Date.now();
 
   await saveWalletMnemonic(walletId, legacyMnemonic);
@@ -152,7 +155,7 @@ async function migrateLegacyMnemonic(): Promise<string | null> {
   await setActiveWalletId(walletId);
 
   // Remove legacy key
-  await SecureStore.deleteItemAsync(MNEMONIC_KEY);
+  await deleteItemAsync(MNEMONIC_KEY);
 
   return walletId;
 }
@@ -184,9 +187,9 @@ export async function saveMnemonic(mnemonic: string): Promise<void> {
     await saveWalletMnemonic(activeId, mnemonic);
   } else {
     // Fallback for legacy callers (should not happen in multi-wallet mode)
-    await SecureStore.setItemAsync(MNEMONIC_KEY, mnemonic);
+    await setItemAsync(MNEMONIC_KEY, mnemonic);
   }
-  await SecureStore.setItemAsync(WALLET_CREATED_KEY, String(Date.now()));
+  await setItemAsync(WALLET_CREATED_KEY, String(Date.now()));
 }
 
 /**
@@ -213,7 +216,7 @@ export async function deleteMnemonic(): Promise<void> {
   if (activeId) {
     await deleteWalletMnemonic(activeId);
   }
-  await SecureStore.deleteItemAsync(MNEMONIC_KEY);
+  await deleteItemAsync(MNEMONIC_KEY);
 }
 
 // ---------------------------------------------------------------------------
@@ -232,11 +235,11 @@ function hashPin(pin: string): string {
 
 export async function savePin(pin: string): Promise<void> {
   const hashed = hashPin(pin);
-  await SecureStore.setItemAsync(WALLET_PIN_KEY, hashed);
+  await setItemAsync(WALLET_PIN_KEY, hashed);
 }
 
 export async function verifyPin(pin: string): Promise<boolean> {
-  const stored = await SecureStore.getItemAsync(WALLET_PIN_KEY);
+  const stored = await getItemAsync(WALLET_PIN_KEY);
   if (stored === null) {
     return false;
   }
@@ -263,7 +266,7 @@ function constantTimeEqual(a: string, b: string): boolean {
 // ---------------------------------------------------------------------------
 
 export async function hasPin(): Promise<boolean> {
-  const stored = await SecureStore.getItemAsync(WALLET_PIN_KEY);
+  const stored = await getItemAsync(WALLET_PIN_KEY);
   return stored !== null;
 }
 
@@ -274,11 +277,11 @@ export async function hasPin(): Promise<boolean> {
 const BIOMETRICS_ENABLED_KEY = "fairwallet_biometrics";
 
 export async function setBiometricsEnabled(enabled: boolean): Promise<void> {
-  await SecureStore.setItemAsync(BIOMETRICS_ENABLED_KEY, enabled ? "1" : "0");
+  await setItemAsync(BIOMETRICS_ENABLED_KEY, enabled ? "1" : "0");
 }
 
 export async function isBiometricsEnabled(): Promise<boolean> {
-  const value = await SecureStore.getItemAsync(BIOMETRICS_ENABLED_KEY);
+  const value = await getItemAsync(BIOMETRICS_ENABLED_KEY);
   return value === "1";
 }
 
@@ -296,11 +299,11 @@ export async function hasWallet(): Promise<boolean> {
   if (wallets.length > 0) return true;
 
   // Check legacy mnemonic
-  const legacyMnemonic = await SecureStore.getItemAsync(MNEMONIC_KEY);
+  const legacyMnemonic = await getItemAsync(MNEMONIC_KEY);
   if (legacyMnemonic !== null && legacyMnemonic.length > 0) return true;
 
   // Check legacy created flag
-  const created = await SecureStore.getItemAsync(WALLET_CREATED_KEY);
+  const created = await getItemAsync(WALLET_CREATED_KEY);
   return created !== null;
 }
 
@@ -310,16 +313,16 @@ export async function hasWallet(): Promise<boolean> {
 
 export async function clearAll(): Promise<void> {
   // Clear legacy keys
-  await SecureStore.deleteItemAsync(MNEMONIC_KEY);
-  await SecureStore.deleteItemAsync(WALLET_PIN_KEY);
-  await SecureStore.deleteItemAsync(WALLET_CREATED_KEY);
-  await SecureStore.deleteItemAsync(BIOMETRICS_ENABLED_KEY);
+  await deleteItemAsync(MNEMONIC_KEY);
+  await deleteItemAsync(WALLET_PIN_KEY);
+  await deleteItemAsync(WALLET_CREATED_KEY);
+  await deleteItemAsync(BIOMETRICS_ENABLED_KEY);
 
   // Clear multi-wallet keys
   const wallets = await getWalletIndex();
   for (const wallet of wallets) {
     await deleteWalletMnemonic(wallet.id);
   }
-  await SecureStore.deleteItemAsync(WALLETS_INDEX_KEY);
-  await SecureStore.deleteItemAsync(ACTIVE_WALLET_KEY);
+  await deleteItemAsync(WALLETS_INDEX_KEY);
+  await deleteItemAsync(ACTIVE_WALLET_KEY);
 }
