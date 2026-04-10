@@ -21,4 +21,10 @@ config.serializer = {
   },
 };
 
+// Support .wasm files as assets (needed for expo-sqlite web support)
+config.resolver = {
+  ...config.resolver,
+  assetExts: [...(config.resolver?.assetExts ?? []), "wasm"],
+};
+
 module.exports = withNativeWind(config, { input: "./global.css" });
