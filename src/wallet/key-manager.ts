@@ -1,0 +1,291 @@
+/**
+ * HD key derivation and address management for FairCoin wallet.
+ * Uses BIP44 derivation path: m/44'/119'/0'/change/index
+ * Manages address gap limits for external (20) and internal/change (10) addresses.
+ */
+
+import { HDKey } from "@scure/bip32";
+import { mnemonicToSeedSync } from "@scure/bip39";
+import { sha256 } from "@noble/hashes/sha256";
+import { ripemd160 } from "@noble/hashes/ripemd160";
+import { encodeAddress } from "../core/encoding";
+import type { NetworkConfig } from "../core/network";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface DerivedAddress {
+  address: string;
+  path: string;
+  index: number;
+}
+
+interface DerivedKeyEntry {
+  address: string;
+  path: string;
+  index: number;
+  isChange: boolean;
+  privateKey: Uint8Array;
+  publicKey: Uint8Array;
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const EXTERNAL_GAP_LIMIT = 20;
+const CHANGE_GAP_LIMIT = 10;
+
+// ---------------------------------------------------------------------------
+// Key Manager
+// ---------------------------------------------------------------------------
+
+export class KeyManager {
+  private readonly accountKey: HDKey;
+  private readonly network: NetworkConfig;
+  private readonly externalKeys: Map<string, DerivedKeyEntry> = new Map();
+  private readonly changeKeys: Map<string, DerivedKeyEntry> = new Map();
+  private nextExternalIndex = 0;
+  private nextChangeIndex = 0;
+
+  private constructor(accountKey: HDKey, network: NetworkConfig) {
+    this.accountKey = accountKey;
+    this.network = network;
+  }
+
+  /**
+   * Create a KeyManager from a BIP39 mnemonic.
+   * Derives the BIP44 account key: m/44'/coinType'/0'
+   */
+  static fromMnemonic(
+    mnemonic: string,
+    network: NetworkConfig,
+  ): KeyManager {
+    const seed = mnemonicToSeedSync(mnemonic);
+    const root = HDKey.fromMasterSeed(seed, {
+      public: network.bip32.public,
+      private: network.bip32.private,
+    });
+    const accountPath = `m/44'/${network.bip44CoinType}'/0'`;
+    const accountKey = root.derive(accountPath);
+    const manager = new KeyManager(accountKey, network);
+
+    // Pre-generate initial batch of addresses up to the gap limit
+    for (let i = 0; i < EXTERNAL_GAP_LIMIT; i++) {
+      manager.deriveExternal(i);
+    }
+    for (let i = 0; i < CHANGE_GAP_LIMIT; i++) {
+      manager.deriveChange(i);
+    }
+
+    return manager;
+  }
+
+  /**
+   * Get the next unused external (receive) address.
+   */
+  getNextAddress(): DerivedAddress {
+    const index = this.nextExternalIndex;
+    const entry = this.deriveExternal(index);
+    this.nextExternalIndex = index + 1;
+
+    // Extend the lookahead window if needed
+    const targetEnd = this.nextExternalIndex + EXTERNAL_GAP_LIMIT;
+    for (let i = this.externalKeys.size; i < targetEnd; i++) {
+      this.deriveExternal(i);
+    }
+
+    return {
+      address: entry.address,
+      path: entry.path,
+      index: entry.index,
+    };
+  }
+
+  /**
+   * Get the next unused change address.
+   */
+  getNextChangeAddress(): DerivedAddress {
+    const index = this.nextChangeIndex;
+    const entry = this.deriveChange(index);
+    this.nextChangeIndex = index + 1;
+
+    // Extend the lookahead window if needed
+    const targetEnd = this.nextChangeIndex + CHANGE_GAP_LIMIT;
+    for (let i = this.changeKeys.size; i < targetEnd; i++) {
+      this.deriveChange(i);
+    }
+
+    return {
+      address: entry.address,
+      path: entry.path,
+      index: entry.index,
+    };
+  }
+
+  /**
+   * Get the private key bytes for a derived address.
+   * Throws if the address is not managed by this KeyManager.
+   */
+  getPrivateKeyForAddress(address: string): Uint8Array {
+    const externalEntry = this.externalKeys.get(address);
+    if (externalEntry) {
+      return externalEntry.privateKey;
+    }
+
+    const changeEntry = this.changeKeys.get(address);
+    if (changeEntry) {
+      return changeEntry.privateKey;
+    }
+
+    throw new Error(
+      `Address not found in key manager: ${address}`,
+    );
+  }
+
+  /**
+   * Get all derived addresses (external + change).
+   */
+  getAllAddresses(): string[] {
+    return [
+      ...this.getExternalAddresses(),
+      ...this.getChangeAddresses(),
+    ];
+  }
+
+  /**
+   * Get all external (receive) addresses.
+   */
+  getExternalAddresses(): string[] {
+    return Array.from(this.externalKeys.values())
+      .sort((a, b) => a.index - b.index)
+      .map((entry) => entry.address);
+  }
+
+  /**
+   * Get all change addresses.
+   */
+  getChangeAddresses(): string[] {
+    return Array.from(this.changeKeys.values())
+      .sort((a, b) => a.index - b.index)
+      .map((entry) => entry.address);
+  }
+
+  /**
+   * Scan for used addresses by checking each one with the provided callback.
+   * Extends derivation beyond the gap limit when used addresses are found.
+   *
+   * @param checkFn - Returns true if the address has been used (has history).
+   */
+  async scanForUsedAddresses(
+    checkFn: (address: string) => Promise<boolean>,
+  ): Promise<void> {
+    await this.scanChain(false, checkFn);
+    await this.scanChain(true, checkFn);
+  }
+
+  // -----------------------------------------------------------------------
+  // Private helpers
+  // -----------------------------------------------------------------------
+
+  private async scanChain(
+    isChange: boolean,
+    checkFn: (address: string) => Promise<boolean>,
+  ): Promise<void> {
+    const gapLimit = isChange ? CHANGE_GAP_LIMIT : EXTERNAL_GAP_LIMIT;
+    let consecutiveUnused = 0;
+    let index = 0;
+
+    while (consecutiveUnused < gapLimit) {
+      const entry = isChange
+        ? this.deriveChange(index)
+        : this.deriveExternal(index);
+
+      const used = await checkFn(entry.address);
+
+      if (used) {
+        consecutiveUnused = 0;
+        // Advance the next index past all used addresses
+        if (isChange) {
+          if (index >= this.nextChangeIndex) {
+            this.nextChangeIndex = index + 1;
+          }
+        } else {
+          if (index >= this.nextExternalIndex) {
+            this.nextExternalIndex = index + 1;
+          }
+        }
+      } else {
+        consecutiveUnused += 1;
+      }
+
+      index += 1;
+    }
+  }
+
+  private deriveExternal(index: number): DerivedKeyEntry {
+    // Return cached entry if it exists
+    for (const entry of this.externalKeys.values()) {
+      if (entry.index === index && !entry.isChange) {
+        return entry;
+      }
+    }
+    return this.deriveAndStore(0, index);
+  }
+
+  private deriveChange(index: number): DerivedKeyEntry {
+    // Return cached entry if it exists
+    for (const entry of this.changeKeys.values()) {
+      if (entry.index === index && entry.isChange) {
+        return entry;
+      }
+    }
+    return this.deriveAndStore(1, index);
+  }
+
+  private deriveAndStore(
+    chain: 0 | 1,
+    index: number,
+  ): DerivedKeyEntry {
+    const childKey = this.accountKey.deriveChild(chain).deriveChild(index);
+    const privateKey = childKey.privateKey;
+    const publicKey = childKey.publicKey;
+
+    if (!privateKey || !publicKey) {
+      throw new Error(
+        `Failed to derive key at chain=${chain} index=${index}`,
+      );
+    }
+
+    const hash = hash160(publicKey);
+    const address = encodeAddress(hash, this.network.pubKeyHash);
+    const isChange = chain === 1;
+    const path = `m/44'/${this.network.bip44CoinType}'/0'/${chain}/${index}`;
+
+    const entry: DerivedKeyEntry = {
+      address,
+      path,
+      index,
+      isChange,
+      privateKey: new Uint8Array(privateKey),
+      publicKey: new Uint8Array(publicKey),
+    };
+
+    if (isChange) {
+      this.changeKeys.set(address, entry);
+    } else {
+      this.externalKeys.set(address, entry);
+    }
+
+    return entry;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Hash helpers
+// ---------------------------------------------------------------------------
+
+function hash160(data: Uint8Array): Uint8Array {
+  return ripemd160(sha256(data));
+}

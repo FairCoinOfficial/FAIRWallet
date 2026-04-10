@@ -1,0 +1,308 @@
+/**
+ * Multi-peer connection manager for the FairCoin P2P network.
+ *
+ * Maintains a pool of connected peers, handles discovery via DNS seeds,
+ * rotation, reconnection, and dispatches incoming messages.
+ */
+
+import type { NetworkConfig } from "../core/network";
+import { resolveDNSSeeds, type NativeDnsResolver } from "./dns-seeds";
+import { Peer, type PeerConfig, type PeerEvents, type SocketProvider } from "./peer";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface PeerManagerConfig {
+  network: NetworkConfig;
+  socketProvider: SocketProvider;
+  nativeDnsResolver?: NativeDnsResolver;
+  targetPeers?: number;
+  maxPeers?: number;
+}
+
+export type MessageHandler = (peer: Peer, command: string, payload: Uint8Array) => void;
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const DEFAULT_TARGET_PEERS = 8;
+const DEFAULT_MAX_PEERS = 12;
+const RECONNECT_INTERVAL_MS = 30_000; // 30 seconds
+const PEER_DISCOVERY_INTERVAL_MS = 300_000; // 5 minutes
+
+// ---------------------------------------------------------------------------
+// PeerManager
+// ---------------------------------------------------------------------------
+
+export class PeerManager {
+  private readonly network: NetworkConfig;
+  private readonly socketProvider: SocketProvider;
+  private readonly nativeDnsResolver: NativeDnsResolver | undefined;
+  private readonly targetPeers: number;
+  private readonly maxPeers: number;
+
+  private readonly peers: Map<string, Peer> = new Map();
+  private readonly knownAddresses: Set<string> = new Set();
+  private readonly failedAddresses: Map<string, number> = new Map(); // address -> fail count
+
+  private messageHandlers: MessageHandler[] = [];
+  private reconnectTimer: ReturnType<typeof setInterval> | undefined;
+  private discoveryTimer: ReturnType<typeof setInterval> | undefined;
+  private running = false;
+
+  constructor(config: PeerManagerConfig) {
+    this.network = config.network;
+    this.socketProvider = config.socketProvider;
+    this.nativeDnsResolver = config.nativeDnsResolver;
+    this.targetPeers = config.targetPeers ?? DEFAULT_TARGET_PEERS;
+    this.maxPeers = config.maxPeers ?? DEFAULT_MAX_PEERS;
+  }
+
+  // -----------------------------------------------------------------------
+  // Public API
+  // -----------------------------------------------------------------------
+
+  /**
+   * Start the peer manager: discover peers, connect, and begin reconnection loop.
+   */
+  async start(): Promise<void> {
+    if (this.running) {
+      return;
+    }
+    this.running = true;
+
+    // Initial peer discovery
+    await this.discoverPeers();
+
+    // Connect to initial peers
+    this.fillConnections();
+
+    // Periodic reconnection
+    this.reconnectTimer = setInterval(() => {
+      if (this.running) {
+        this.fillConnections();
+      }
+    }, RECONNECT_INTERVAL_MS);
+
+    // Periodic discovery
+    this.discoveryTimer = setInterval(() => {
+      if (this.running) {
+        void this.discoverPeers();
+      }
+    }, PEER_DISCOVERY_INTERVAL_MS);
+  }
+
+  /**
+   * Stop the peer manager and disconnect all peers.
+   */
+  stop(): void {
+    this.running = false;
+
+    if (this.reconnectTimer !== undefined) {
+      clearInterval(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
+
+    if (this.discoveryTimer !== undefined) {
+      clearInterval(this.discoveryTimer);
+      this.discoveryTimer = undefined;
+    }
+
+    for (const peer of this.peers.values()) {
+      peer.disconnect();
+    }
+    this.peers.clear();
+  }
+
+  /**
+   * Broadcast a message to all ready peers.
+   */
+  broadcast(command: string, payload: Uint8Array): void {
+    for (const peer of this.peers.values()) {
+      if (peer.state === "ready") {
+        peer.sendMessage(command, payload);
+      }
+    }
+  }
+
+  /**
+   * Send a message to a single ready peer.
+   * Returns true if a peer was available and the message was sent.
+   */
+  sendToOne(command: string, payload: Uint8Array): boolean {
+    for (const peer of this.peers.values()) {
+      if (peer.state === "ready") {
+        peer.sendMessage(command, payload);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Get all currently connected/ready peers.
+   */
+  getPeers(): Peer[] {
+    return Array.from(this.peers.values());
+  }
+
+  /**
+   * Get all ready peers.
+   */
+  getReadyPeers(): Peer[] {
+    return Array.from(this.peers.values()).filter((p) => p.state === "ready");
+  }
+
+  /**
+   * Get the best known chain height across all connected peers.
+   */
+  getBestHeight(): number {
+    let best = 0;
+    for (const peer of this.peers.values()) {
+      if (peer.bestHeight > best) {
+        best = peer.bestHeight;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Register a handler for incoming messages from any peer.
+   */
+  onMessage(handler: MessageHandler): void {
+    this.messageHandlers.push(handler);
+  }
+
+  /**
+   * Remove a previously registered message handler.
+   */
+  removeMessageHandler(handler: MessageHandler): void {
+    const idx = this.messageHandlers.indexOf(handler);
+    if (idx >= 0) {
+      this.messageHandlers.splice(idx, 1);
+    }
+  }
+
+  /**
+   * Manually add a peer address to the known set.
+   */
+  addKnownAddress(address: string): void {
+    this.knownAddresses.add(address);
+  }
+
+  // -----------------------------------------------------------------------
+  // Peer discovery
+  // -----------------------------------------------------------------------
+
+  private async discoverPeers(): Promise<void> {
+    try {
+      const addresses = await resolveDNSSeeds(
+        this.network.dnsSeeds,
+        this.nativeDnsResolver,
+      );
+      for (const addr of addresses) {
+        this.knownAddresses.add(addr);
+      }
+    } catch {
+      // DNS resolution failed entirely — known addresses and fallbacks are
+      // already populated by resolveDNSSeeds.
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Connection management
+  // -----------------------------------------------------------------------
+
+  private fillConnections(): void {
+    const currentCount = this.peers.size;
+    const needed = this.targetPeers - currentCount;
+
+    if (needed <= 0) {
+      return;
+    }
+
+    // Build candidate list: known addresses not currently connected and not
+    // excessively failed
+    const candidates: string[] = [];
+    for (const addr of this.knownAddresses) {
+      const peerKey = `${addr}:${this.network.p2pPort}`;
+      if (this.peers.has(peerKey)) {
+        continue;
+      }
+
+      const failCount = this.failedAddresses.get(addr) ?? 0;
+      // Back off: skip addresses that have failed many times recently
+      if (failCount > 5) {
+        continue;
+      }
+
+      candidates.push(addr);
+    }
+
+    // Shuffle candidates for randomised peer selection
+    shuffleArray(candidates);
+
+    const toConnect = Math.min(needed, candidates.length, this.maxPeers - currentCount);
+    for (let i = 0; i < toConnect; i++) {
+      this.connectToPeer(candidates[i]);
+    }
+  }
+
+  private connectToPeer(host: string): void {
+    const config: PeerConfig = {
+      host,
+      port: this.network.p2pPort,
+      network: this.network,
+    };
+
+    const events: PeerEvents = {
+      onReady: (peer: Peer) => {
+        // Reset fail count on successful connection
+        this.failedAddresses.delete(peer.host);
+      },
+      onMessage: (peer: Peer, command: string, payload: Uint8Array) => {
+        this.dispatchMessage(peer, command, payload);
+      },
+      onDisconnect: (peer: Peer, _reason: string) => {
+        this.peers.delete(peer.id);
+        // Schedule reconnection attempt
+        const fails = (this.failedAddresses.get(peer.host) ?? 0) + 1;
+        this.failedAddresses.set(peer.host, fails);
+      },
+      onError: (_peer: Peer, _error: Error) => {
+        // Error logging is intentionally omitted in production code.
+        // The disconnect handler manages fail tracking.
+      },
+    };
+
+    const peer = new Peer(config, events, this.socketProvider);
+    this.peers.set(peer.id, peer);
+    peer.connect();
+  }
+
+  // -----------------------------------------------------------------------
+  // Message dispatch
+  // -----------------------------------------------------------------------
+
+  private dispatchMessage(peer: Peer, command: string, payload: Uint8Array): void {
+    for (const handler of this.messageHandlers) {
+      handler(peer, command, payload);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Utility
+// ---------------------------------------------------------------------------
+
+/** Fisher-Yates shuffle (in-place). */
+function shuffleArray<T>(arr: T[]): void {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+}
