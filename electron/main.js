@@ -2,9 +2,25 @@ const { app, BrowserWindow, ipcMain, safeStorage } = require('electron');
 const path = require('path');
 const net = require('net');
 const dns = require('dns');
+const fs = require('fs');
 
 let mainWindow = null;
 const peerConnections = new Map();
+
+/**
+ * Resolve the dist directory path.
+ * In production (electron-builder), files are in extraResources/dist.
+ * In development, they are in the project root dist/.
+ */
+function getDistPath() {
+  if (process.resourcesPath) {
+    const resourceDist = path.join(process.resourcesPath, 'dist');
+    if (fs.existsSync(resourceDist)) {
+      return resourceDist;
+    }
+  }
+  return path.join(__dirname, '..', 'dist');
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -22,27 +38,18 @@ function createWindow() {
     },
   });
 
-  // In development, load the Expo web dev server
-  // In production, load the exported web build
   const isDev = process.argv.includes('--dev');
   if (isDev) {
     mainWindow.loadURL('http://localhost:8081');
     mainWindow.webContents.openDevTools();
   } else {
-    // In production, try extraResources first (electron-builder), then local dist
-    const resourcePath = process.resourcesPath
-      ? path.join(process.resourcesPath, 'dist', 'index.html')
-      : null;
-    const localPath = path.join(__dirname, '..', 'dist', 'index.html');
-    const fs = require('fs');
-    const distPath = resourcePath && fs.existsSync(resourcePath) ? resourcePath : localPath;
-    mainWindow.loadFile(distPath);
+    const distPath = getDistPath();
+    mainWindow.loadFile(path.join(distPath, 'index.html'));
   }
 
   mainWindow.on('closed', () => {
     mainWindow = null;
-    // Close all peer connections on window close
-    for (const [id, socket] of peerConnections) {
+    for (const [, socket] of peerConnections) {
       socket.destroy();
     }
     peerConnections.clear();
