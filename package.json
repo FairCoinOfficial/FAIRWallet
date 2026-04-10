@@ -2,6 +2,9 @@
   "name": "fairwallet",
   "version": "1.0.0",
   "private": true,
+  "description": "Lightweight SPV wallet for FairCoin",
+  "author": "FairCoin <dev@fairco.in>",
+  "license": "MIT",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
