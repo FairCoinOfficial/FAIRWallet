@@ -11,7 +11,7 @@ import {
   type GestureResponderEvent,
   type ViewStyle,
 } from "react-native";
-import { useColorScheme } from "../../theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "outline" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
@@ -70,17 +70,17 @@ export function Button({
   style,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const spinnerColors: Record<ButtonVariant, string> = useMemo(
     () => ({
-      primary: colors.background,
-      secondary: colors.foreground,
-      danger: colors.foreground,
-      outline: colors.primary,
-      ghost: colors.primary,
+      primary: theme.colors.background,
+      secondary: theme.colors.text,
+      danger: theme.colors.text,
+      outline: theme.colors.primary,
+      ghost: theme.colors.primary,
     }),
-    [colors],
+    [theme],
   );
 
   const containerClassName = useMemo(() => {

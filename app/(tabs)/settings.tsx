@@ -37,11 +37,8 @@ import {
   PinPad,
 } from "../../src/ui/components";
 import type { NetworkType } from "../../src/core/network";
-import { useColorScheme } from "../../src/theme/useColorScheme";
-import { useThemeStore } from "../../src/theme/store";
-import type { ColorMode } from "../../src/theme/store";
-import { getAllPresets } from "../../src/theme/presets";
-import type { PresetName } from "../../src/theme/presets";
+import { useBloomTheme, APP_COLOR_NAMES, APP_COLOR_PRESETS } from "@oxyhq/bloom";
+import type { ThemeMode, AppColorName } from "@oxyhq/bloom";
 
 const APP_VERSION = "1.0.0";
 const PIN_LENGTH = 6;
@@ -210,14 +207,9 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
 // ---------------------------------------------------------------------------
 
 function AppearancePicker() {
-  const currentPreset = useThemeStore((s) => s.preset);
-  const currentMode = useThemeStore((s) => s.mode);
-  const setPreset = useThemeStore((s) => s.setPreset);
-  const setMode = useThemeStore((s) => s.setMode);
-  const { isDark, colors } = useColorScheme();
-  const presets = useMemo(() => getAllPresets(), []);
+  const { theme, mode, colorPreset, setMode, setColorPreset } = useBloomTheme();
 
-  const modes: Array<{ value: ColorMode; label: string; icon: string }> = [
+  const modes: Array<{ value: ThemeMode; label: string; icon: string }> = [
     { value: "light", label: "Light", icon: "white-balance-sunny" },
     { value: "dark", label: "Dark", icon: "moon-waning-crescent" },
     { value: "system", label: "System", icon: "cellphone" },
@@ -229,7 +221,7 @@ function AppearancePicker() {
       <Text className="text-muted-foreground text-xs mb-2">Appearance</Text>
       <View className="flex-row gap-2 mb-4">
         {modes.map((m) => {
-          const isActive = currentMode === m.value;
+          const isActive = mode === m.value;
           return (
             <Pressable
               key={m.value}
@@ -243,7 +235,7 @@ function AppearancePicker() {
               <MaterialCommunityIcons
                 name={m.icon as React.ComponentProps<typeof MaterialCommunityIcons>["name"]}
                 size={16}
-                color={isActive ? colors.primary : colors.mutedForeground}
+                color={isActive ? theme.colors.primary : theme.colors.textSecondary}
               />
               <Text
                 className={`text-xs ml-1.5 font-medium ${
@@ -260,26 +252,27 @@ function AppearancePicker() {
       {/* Color preset picker */}
       <Text className="text-muted-foreground text-xs mb-2">Accent Color</Text>
       <View className="flex-row gap-3">
-        {presets.map((preset) => {
-          const isActive = preset.name === currentPreset;
+        {APP_COLOR_NAMES.map((name) => {
+          const preset = APP_COLOR_PRESETS[name];
+          const isActive = name === colorPreset;
           return (
             <Pressable
-              key={preset.name}
-              onPress={() => setPreset(preset.name)}
+              key={name}
+              onPress={() => setColorPreset(name)}
               className="items-center"
             >
               <View
                 className={`w-10 h-10 rounded-full items-center justify-center ${
                   isActive ? "border-2 border-foreground" : "border border-border"
                 }`}
-                style={{ backgroundColor: preset.swatch }}
+                style={{ backgroundColor: preset.hex }}
               />
               <Text
                 className={`text-xs mt-1 ${
                   isActive ? "text-foreground font-semibold" : "text-muted-foreground"
                 }`}
               >
-                {preset.label}
+                {name.charAt(0).toUpperCase() + name.slice(1)}
               </Text>
             </Pressable>
           );
@@ -296,7 +289,7 @@ function AppearancePicker() {
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { colors: themeColors } = useColorScheme();
+  const { theme: { colors: themeColors } } = useBloomTheme();
   const network = useWalletStore((s) => s.network);
   const connectedPeers = useWalletStore((s) => s.connectedPeers);
   const wipeWallet = useWalletStore((s) => s.wipeWallet);
@@ -599,9 +592,9 @@ export default function SettingsScreen() {
                 onValueChange={handleToggleBiometrics}
                 trackColor={{
                   false: themeColors.border,
-                  true: themeColors.accent,
+                  true: themeColors.primaryLight,
                 }}
-                thumbColor={themeColors.foreground}
+                thumbColor={themeColors.text}
               />
             }
             showChevron={false}

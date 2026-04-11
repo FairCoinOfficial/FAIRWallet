@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useColorScheme } from "../../theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 type TransactionType = "send" | "receive" | "stake" | "masternode_reward";
 
@@ -92,9 +92,9 @@ export function TransactionItem({
   confirmations,
 }: TransactionItemProps) {
   const router = useRouter();
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const staticConfig = STATIC_TYPE_CONFIG[type];
-  const iconColor = type === "receive" ? colors.primary : staticConfig.iconColor;
+  const iconColor = type === "receive" ? theme.colors.primary : staticConfig.iconColor;
   const timeAgo = useMemo(() => formatTimeAgo(timestamp), [timestamp]);
   const truncated = useMemo(() => truncateAddress(address), [address]);
 

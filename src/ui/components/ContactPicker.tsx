@@ -8,7 +8,7 @@ import { View, Text, TextInput, Pressable, Modal, FlatList } from "react-native"
 import { useContactsStore } from "../../wallet/contacts-store";
 import { getDatabase } from "../../wallet/wallet-store";
 import type { ContactRow } from "../../storage/database";
-import { useColorScheme } from "../../theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 interface ContactPickerProps {
   visible: boolean;
@@ -57,7 +57,7 @@ export function ContactPicker({
 }: ContactPickerProps) {
   const contacts = useContactsStore((s) => s.contacts);
   const loadContacts = useContactsStore((s) => s.loadContacts);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ContactRow[] | null>(null);
 
@@ -137,7 +137,7 @@ export function ContactPicker({
             <TextInput
               className="text-white text-sm"
               placeholder="Search contacts..."
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.textSecondary}
               value={searchQuery}
               onChangeText={handleSearch}
               autoCapitalize="none"

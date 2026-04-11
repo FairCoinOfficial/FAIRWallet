@@ -6,7 +6,7 @@
 import { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useColorScheme } from "../../theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -37,8 +37,8 @@ export function ListItem({
   showChevron,
   isLast = false,
 }: ListItemProps) {
-  const { colors } = useColorScheme();
-  const resolvedIconColor = iconColor ?? colors.primary;
+  const theme = useTheme();
+  const resolvedIconColor = iconColor ?? theme.colors.primary;
   const shouldShowChevron = showChevron ?? (onPress !== undefined);
 
   const titleColor = useMemo(() => {
@@ -80,7 +80,7 @@ export function ListItem({
         <MaterialCommunityIcons
           name="chevron-right"
           size={20}
-          color={colors.mutedForeground}
+          color={theme.colors.textSecondary}
         />
       ) : null}
     </View>

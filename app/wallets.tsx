@@ -27,7 +27,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
-import { useColorScheme } from "../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -53,7 +53,7 @@ interface ImportModalProps {
 }
 
 function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [name, setName] = useState("");
   const [mnemonic, setMnemonic] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +108,7 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="My Wallet"
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={theme.colors.textSecondary}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -119,7 +119,7 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="Enter 12 or 24 word recovery phrase"
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={theme.colors.textSecondary}
             value={mnemonic}
             onChangeText={setMnemonic}
             autoCapitalize="none"
@@ -156,7 +156,7 @@ interface WatchOnlyModalProps {
 }
 
 function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [name, setName] = useState("");
   const [xpub, setXpub] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -210,7 +210,7 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="My Watch Wallet"
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={theme.colors.textSecondary}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -223,7 +223,7 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="xpub..."
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={theme.colors.textSecondary}
             value={xpub}
             onChangeText={setXpub}
             autoCapitalize="none"
@@ -264,7 +264,7 @@ interface CreateModalProps {
 }
 
 function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -303,7 +303,7 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="My Wallet"
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={theme.colors.textSecondary}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -387,7 +387,7 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
 
 export default function WalletsScreen() {
   const router = useRouter();
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const wallets = useWalletStore((s) => s.wallets);
   const activeWalletId = useWalletStore((s) => s.activeWalletId);
   const loading = useWalletStore((s) => s.loading);
@@ -534,7 +534,7 @@ export default function WalletsScreen() {
         className="flex-1 bg-background items-center justify-center"
         edges={["top", "bottom", "left", "right"]}
       >
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text className="text-muted-foreground text-sm mt-4">
           {switching ? "Switching wallet..." : "Loading..."}
         </Text>
@@ -573,7 +573,7 @@ export default function WalletsScreen() {
                   key={wallet.id}
                   icon="wallet"
                   iconBg={isActive ? "bg-green-500/15" : "bg-primary/10"}
-                  iconColor={isActive ? "#22c55e" : colors.primary}
+                  iconColor={isActive ? "#22c55e" : theme.colors.primary}
                   title={wallet.name}
                   subtitle={`Created ${formatDate(wallet.createdAt)}`}
                   isLast={idx === wallets.length - 1}

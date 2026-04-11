@@ -5,7 +5,7 @@
 
 import { View, Text } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useColorScheme } from "../../theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -16,12 +16,12 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ icon, title, subtitle }: EmptyStateProps) {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   return (
     <View className="items-center justify-center py-12 px-6">
       <View className="w-16 h-16 rounded-full bg-surface items-center justify-center mb-4">
-        <MaterialCommunityIcons name={icon} size={28} color={colors.mutedForeground} />
+        <MaterialCommunityIcons name={icon} size={28} color={theme.colors.textSecondary} />
       </View>
       <Text className="text-white text-base font-medium text-center">
         {title}

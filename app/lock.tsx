@@ -12,7 +12,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { verifyPin, isBiometricsEnabled } from "../src/storage/secure-store";
 import { PinPad } from "../src/ui/components/PinPad";
 import { PinDots } from "../src/ui/components/PinDots";
-import { useColorScheme } from "../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 const PIN_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
@@ -20,7 +20,7 @@ const LOCKOUT_SECONDS = 30;
 
 export default function LockScreen() {
   const router = useRouter();
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(0);
@@ -195,7 +195,7 @@ export default function LockScreen() {
       <MaterialCommunityIcons
         name="fingerprint"
         size={28}
-        color={isLockedOut ? colors.surface : colors.primary}
+        color={isLockedOut ? theme.colors.card : theme.colors.primary}
       />
     </Pressable>
   ) : undefined;
@@ -239,8 +239,8 @@ export default function LockScreen() {
             onBackspace={handleBackspace}
             disabled={isLockedOut || verifying}
             biometricButton={biometricButton}
-            tintColor={colors.foreground}
-            disabledColor={colors.surface}
+            tintColor={theme.colors.text}
+            disabledColor={theme.colors.card}
           />
         </View>
       </View>

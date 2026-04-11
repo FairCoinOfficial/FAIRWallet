@@ -25,7 +25,7 @@ import {
 } from "../src/ui/components";
 import { PinDots } from "../src/ui/components/PinDots";
 import { PinPad } from "../src/ui/components/PinPad";
-import { useColorScheme } from "../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 const PIN_LENGTH = 6;
 
@@ -42,7 +42,7 @@ type ExportStep = "pin" | "select" | "passphrase" | "result";
 export default function ExportKeyScreen() {
   const addresses = useWalletStore((s) => s.addresses);
   const network = useWalletStore((s) => s.network);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [step, setStep] = useState<ExportStep>("pin");
   const [pin, setPin] = useState("");
@@ -215,8 +215,8 @@ export default function ExportKeyScreen() {
             onDigit={handlePinDigit}
             onBackspace={handlePinBackspace}
             disabled={pinVerifying}
-            tintColor={colors.foreground}
-            disabledColor={colors.surface}
+            tintColor={theme.colors.text}
+            disabledColor={theme.colors.card}
           />
         </View>
       </SafeAreaView>
@@ -284,7 +284,7 @@ export default function ExportKeyScreen() {
             <TextInput
               className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
               placeholder="Enter passphrase (min 8 characters)"
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.textSecondary}
               value={passphrase}
               onChangeText={setPassphrase}
               secureTextEntry
@@ -298,7 +298,7 @@ export default function ExportKeyScreen() {
             <TextInput
               className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base"
               placeholder="Confirm passphrase"
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.textSecondary}
               value={confirmPassphrase}
               onChangeText={setConfirmPassphrase}
               secureTextEntry
@@ -360,7 +360,7 @@ export default function ExportKeyScreen() {
             <MaterialCommunityIcons
               name="content-copy"
               size={18}
-              color={colors.background}
+              color={theme.colors.background}
             />
           }
         />

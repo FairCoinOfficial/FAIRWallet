@@ -17,7 +17,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
 import { Card } from "../../src/ui/components/Card";
-import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 type Step = "generating" | "display" | "verify" | "complete";
 
@@ -75,7 +75,7 @@ function StepIndicator({ total, current }: { total: number; current: number }) {
 export default function CreateWalletScreen() {
   const router = useRouter();
   const createWallet = useWalletStore((s) => s.createWallet);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [step, setStep] = useState<Step>("generating");
   const [words, setWords] = useState<string[]>([]);
@@ -296,7 +296,7 @@ export default function CreateWalletScreen() {
   // -- Complete (briefly shown before redirect) --
   return (
     <View className="flex-1 bg-background items-center justify-center">
-      <ActivityIndicator size="large" color={colors.primary} />
+      <ActivityIndicator size="large" color={theme.colors.primary} />
       <Text className="text-white text-base mt-4">Setting up wallet...</Text>
     </View>
   );

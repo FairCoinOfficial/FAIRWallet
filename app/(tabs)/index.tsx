@@ -22,7 +22,7 @@ import {
   getCachedPrice,
   type PriceData,
 } from "../../src/services/price";
-import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -42,7 +42,7 @@ function formatBalance(sats: bigint): string {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const balance = useWalletStore((s) => s.balance);
   const isSyncing = useWalletStore((s) => s.isSyncing);
@@ -87,7 +87,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={loading}
             onRefresh={handleRefresh}
-            tintColor={colors.primary}
+            tintColor={theme.colors.primary}
           />
         }
       >
@@ -104,7 +104,7 @@ export default function HomeScreen() {
             <MaterialCommunityIcons
               name="chevron-down"
               size={18}
-              color={colors.mutedForeground}
+              color={theme.colors.textSecondary}
             />
           </Pressable>
 

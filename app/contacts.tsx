@@ -28,7 +28,7 @@ import {
   ScreenHeader,
 } from "../src/ui/components";
 import { QRScanner } from "../src/ui/components/QRScanner";
-import { useColorScheme } from "../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -88,7 +88,7 @@ function ContactForm({
   onSave,
   onClose,
 }: ContactFormProps) {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
@@ -179,7 +179,7 @@ function ContactForm({
             <TextInput
               className="text-white text-sm"
               placeholder="Contact name"
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.textSecondary}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -193,7 +193,7 @@ function ContactForm({
               <TextInput
                 className="flex-1 text-white text-sm mr-2"
                 placeholder="FairCoin address"
-                placeholderTextColor={colors.mutedForeground}
+                placeholderTextColor={theme.colors.textSecondary}
                 value={address}
                 onChangeText={setAddress}
                 autoCapitalize="none"
@@ -220,7 +220,7 @@ function ContactForm({
             <TextInput
               className="text-white text-sm"
               placeholder="Optional notes"
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.textSecondary}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -258,7 +258,7 @@ export default function ContactsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isPickMode = params.mode === "pick";
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const contacts = useContactsStore((s) => s.contacts);
   const loadContacts = useContactsStore((s) => s.loadContacts);
@@ -414,7 +414,7 @@ export default function ContactsScreen() {
             <MaterialCommunityIcons
               name="arrow-left"
               size={22}
-              color={colors.primary}
+              color={theme.colors.primary}
             />
           </Pressable>
         }
@@ -423,7 +423,7 @@ export default function ContactsScreen() {
             <MaterialCommunityIcons
               name="plus"
               size={24}
-              color={colors.primary}
+              color={theme.colors.primary}
             />
           </Pressable>
         }
@@ -435,7 +435,7 @@ export default function ContactsScreen() {
           <TextInput
             className="text-white text-sm"
             placeholder="Search by name or address..."
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={handleSearch}
             autoCapitalize="none"

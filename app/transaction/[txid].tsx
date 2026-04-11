@@ -25,7 +25,7 @@ import {
   ScreenHeader,
 } from "../../src/ui/components";
 import type { ContactRow } from "../../src/storage/database";
-import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -78,7 +78,7 @@ export default function TransactionDetailScreen() {
   const { txid } = useLocalSearchParams<{ txid: string }>();
   const transactions = useWalletStore((s) => s.transactions);
   const chainHeight = useWalletStore((s) => s.chainHeight);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [note, setNote] = useState("");
   const [noteLoaded, setNoteLoaded] = useState(false);
@@ -251,7 +251,7 @@ export default function TransactionDetailScreen() {
             <TextInput
               className="text-white text-sm"
               placeholder="Add a note for this transaction..."
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.textSecondary}
               value={note}
               onChangeText={setNote}
               multiline
@@ -278,7 +278,7 @@ export default function TransactionDetailScreen() {
               <MaterialCommunityIcons
                 name="open-in-new"
                 size={18}
-                color={colors.foreground}
+                color={theme.colors.text}
               />
             }
           />
@@ -291,7 +291,7 @@ export default function TransactionDetailScreen() {
               <MaterialCommunityIcons
                 name="content-copy"
                 size={16}
-                color={colors.primary}
+                color={theme.colors.primary}
               />
             }
           />
@@ -304,7 +304,7 @@ export default function TransactionDetailScreen() {
                 <MaterialCommunityIcons
                   name="account-plus"
                   size={18}
-                  color={colors.primary}
+                  color={theme.colors.primary}
                 />
               }
             />

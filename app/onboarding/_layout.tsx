@@ -5,21 +5,21 @@
 
 import { useMemo } from "react";
 import { Stack } from "expo-router";
-import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 export default function OnboardingLayout() {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const screenOptions = useMemo(
     () => ({
       headerStyle: { backgroundColor: "transparent" },
-      headerTintColor: colors.primary,
-      headerTitleStyle: { color: colors.foreground },
+      headerTintColor: theme.colors.primary,
+      headerTitleStyle: { color: theme.colors.text },
       headerTransparent: true,
-      contentStyle: { backgroundColor: colors.background },
+      contentStyle: { backgroundColor: theme.colors.background },
       headerShadowVisible: false,
     }),
-    [colors],
+    [theme],
   );
 
   return (

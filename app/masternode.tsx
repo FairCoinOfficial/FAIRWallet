@@ -19,7 +19,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
-import { useColorScheme } from "../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 function truncateTxid(txid: string): string {
   if (txid.length <= 20) return txid;
@@ -68,7 +68,7 @@ export default function MasternodeScreen() {
   const refreshMasternodeUTXOs = useWalletStore(
     (s) => s.refreshMasternodeUTXOs,
   );
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [showIpModal, setShowIpModal] = useState(false);
   const [ipPortInput, setIpPortInput] = useState("");
@@ -196,7 +196,7 @@ export default function MasternodeScreen() {
                   key={`${utxo.txid}-${utxo.vout}`}
                   icon="server"
                   iconBg={confirmOk ? "bg-primary/10" : "bg-yellow-500/10"}
-                  iconColor={confirmOk ? colors.primary : "#facc15"}
+                  iconColor={confirmOk ? theme.colors.primary : "#facc15"}
                   title={truncateTxid(utxo.txid)}
                   subtitle={`${utxo.address.slice(0, 8)}...${utxo.address.slice(-6)}`}
                   value="5,000 FAIR"
@@ -250,7 +250,7 @@ export default function MasternodeScreen() {
             <TextInput
               className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
               placeholder="203.0.113.50:46372"
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.textSecondary}
               value={ipPortInput}
               onChangeText={setIpPortInput}
               autoCapitalize="none"

@@ -19,7 +19,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
-import { useColorScheme } from "../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -128,7 +128,7 @@ export default function PeersScreen() {
   const isSyncing = useWalletStore((s) => s.isSyncing);
   const syncProgress = useWalletStore((s) => s.syncProgress);
   const network = useWalletStore((s) => s.network);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const { peers, loadPeers, addPeer } = usePeers();
 
@@ -261,7 +261,7 @@ export default function PeersScreen() {
             <TextInput
               className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
               placeholder="192.168.1.1"
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.textSecondary}
               value={ipInput}
               onChangeText={(text) => {
                 setIpInput(text);
@@ -276,7 +276,7 @@ export default function PeersScreen() {
             <TextInput
               className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
               placeholder={DEFAULT_PORT}
-              placeholderTextColor={colors.mutedForeground}
+              placeholderTextColor={theme.colors.textSecondary}
               value={portInput}
               onChangeText={(text) => {
                 setPortInput(text);

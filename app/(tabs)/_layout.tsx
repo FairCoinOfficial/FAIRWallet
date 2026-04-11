@@ -10,29 +10,29 @@ import {
 } from "@react-navigation/native";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useMemo } from "react";
-import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 export default function TabLayout() {
-  const { colors, isDark } = useColorScheme();
+  const theme = useTheme();
 
   const navTheme = useMemo(
     () => ({
-      ...(isDark ? DarkTheme : DefaultTheme),
+      ...(theme.isDark ? DarkTheme : DefaultTheme),
       colors: {
-        ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
-        background: colors.background,
-        card: colors.background,
-        border: colors.border,
-        primary: colors.primary,
-        text: colors.foreground,
+        ...(theme.isDark ? DarkTheme.colors : DefaultTheme.colors),
+        background: theme.colors.background,
+        card: theme.colors.card,
+        border: theme.colors.border,
+        primary: theme.colors.primary,
+        text: theme.colors.text,
       },
     }),
-    [colors, isDark],
+    [theme],
   );
 
   return (
     <ThemeProvider value={navTheme}>
-      <NativeTabs tintColor={colors.primary}>
+      <NativeTabs tintColor={theme.colors.primary}>
         <NativeTabs.Trigger name="index">
           <NativeTabs.Trigger.Icon
             sf={{ default: "creditcard", selected: "creditcard.fill" }}

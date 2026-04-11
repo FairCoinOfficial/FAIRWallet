@@ -9,7 +9,7 @@ import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
 import { View, Text, StyleSheet } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { t } from "../../src/i18n";
-import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 interface WebTabProps {
   name: string;
@@ -29,10 +29,10 @@ function WebTab({ name, href, icon, label, tintColor }: WebTabProps) {
 }
 
 export default function TabLayout() {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Tabs>
         <View style={styles.content}>
           <TabSlot />
@@ -41,15 +41,15 @@ export default function TabLayout() {
           style={[
             styles.tabList,
             {
-              backgroundColor: colors.background,
-              borderTopColor: colors.border,
+              backgroundColor: theme.colors.background,
+              borderTopColor: theme.colors.border,
             },
           ]}
         >
-          <WebTab name="index" href="/(tabs)" icon="wallet" label={t("wallet.title")} tintColor={colors.primary} />
-          <WebTab name="send" href="/(tabs)/send" icon="arrow-up-bold" label={t("wallet.send")} tintColor={colors.primary} />
-          <WebTab name="receive" href="/(tabs)/receive" icon="arrow-down-bold" label={t("wallet.receive")} tintColor={colors.primary} />
-          <WebTab name="settings" href="/(tabs)/settings" icon="cog" label={t("wallet.settings")} tintColor={colors.primary} />
+          <WebTab name="index" href="/(tabs)" icon="wallet" label={t("wallet.title")} tintColor={theme.colors.primary} />
+          <WebTab name="send" href="/(tabs)/send" icon="arrow-up-bold" label={t("wallet.send")} tintColor={theme.colors.primary} />
+          <WebTab name="receive" href="/(tabs)/receive" icon="arrow-down-bold" label={t("wallet.receive")} tintColor={theme.colors.primary} />
+          <WebTab name="settings" href="/(tabs)/settings" icon="cog" label={t("wallet.settings")} tintColor={theme.colors.primary} />
         </TabList>
       </Tabs>
     </View>

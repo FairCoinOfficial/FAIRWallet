@@ -35,7 +35,7 @@ import { QRScanner } from "../../src/ui/components/QRScanner";
 import { ContactPicker } from "../../src/ui/components/ContactPicker";
 import { getCachedPrice } from "../../src/services/price";
 import type { RecentRecipientRow } from "../../src/storage/database";
-import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 const FEE_LEVELS: FeeLevel[] = ["low", "medium", "high"];
 
@@ -87,7 +87,7 @@ export default function SendScreen() {
   const loading = useWalletStore((s) => s.loading);
   const isWatchOnly = useWalletStore((s) => s.isWatchOnly);
   const getContactByAddress = useContactsStore((s) => s.getContactByAddress);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   // Watch-only wallets cannot send transactions
   if (isWatchOnly) {
@@ -324,8 +324,7 @@ export default function SendScreen() {
               <TextInput
                 className="flex-1 text-white text-base mr-2"
                 placeholder="FairCoin address"
-                placeholderTextColor={colors.mutedForeground}
-                value={toAddress}
+                placeholderTextColor={theme.colors.textSecondary}
                 onChangeText={setToAddress}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -339,7 +338,7 @@ export default function SendScreen() {
                 <MaterialCommunityIcons
                   name="content-paste"
                   size={14}
-                  color={colors.primary}
+                  color={theme.colors.primary}
                 />
                 <Text className="text-primary text-xs ml-1.5">Paste</Text>
               </Pressable>
@@ -350,7 +349,7 @@ export default function SendScreen() {
                 <MaterialCommunityIcons
                   name="qrcode-scan"
                   size={14}
-                  color={colors.primary}
+                  color={theme.colors.primary}
                 />
                 <Text className="text-primary text-xs ml-1.5">QR</Text>
               </Pressable>
@@ -361,7 +360,7 @@ export default function SendScreen() {
                 <MaterialCommunityIcons
                   name="account-box"
                   size={14}
-                  color={colors.primary}
+                  color={theme.colors.primary}
                 />
                 <Text className="text-primary text-xs ml-1.5">
                   Contacts
@@ -386,7 +385,7 @@ export default function SendScreen() {
               <TextInput
                 className="flex-1 text-white text-base mr-2"
                 placeholder="0.00000000"
-                placeholderTextColor={colors.mutedForeground}
+                placeholderTextColor={theme.colors.textSecondary}
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="decimal-pad"

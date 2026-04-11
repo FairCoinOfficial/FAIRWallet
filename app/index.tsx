@@ -9,7 +9,7 @@ import { View, Text, ActivityIndicator } from "react-native";
 import { Redirect, useFocusEffect } from "expo-router";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { getMnemonic, hasPin } from "../src/storage/secure-store";
-import { useColorScheme } from "../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 type AppState = "checking" | "onboarding" | "locked" | "ready" | "error";
 
@@ -19,7 +19,7 @@ export default function IndexScreen() {
   const hasWallet = useWalletStore((s) => s.hasWallet);
   const initialize = useWalletStore((s) => s.initialize);
   const initialized = useWalletStore((s) => s.initialized);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   useFocusEffect(
     useCallback(() => {
@@ -94,7 +94,7 @@ export default function IndexScreen() {
   // "checking" state
   return (
     <View className="flex-1 bg-background items-center justify-center">
-      <ActivityIndicator size="large" color={colors.primary} />
+      <ActivityIndicator size="large" color={theme.colors.primary} />
       <Text className="text-muted-foreground text-sm mt-4">Loading wallet...</Text>
     </View>
   );

@@ -10,13 +10,13 @@ import * as Clipboard from "expo-clipboard";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
-import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 export default function RestoreWalletScreen() {
   const router = useRouter();
   const restoreWallet = useWalletStore((s) => s.restoreWallet);
   const loading = useWalletStore((s) => s.loading);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [mnemonicInput, setMnemonicInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +79,7 @@ export default function RestoreWalletScreen() {
           <TextInput
             className="text-white text-base leading-6 min-h-[140px] font-mono"
             placeholder="word1 word2 word3 ..."
-            placeholderTextColor={colors.mutedForeground}
+            placeholderTextColor={theme.colors.textSecondary}
             value={mnemonicInput}
             onChangeText={setMnemonicInput}
             multiline
@@ -102,7 +102,7 @@ export default function RestoreWalletScreen() {
             <MaterialCommunityIcons
               name="content-paste"
               size={16}
-              color={colors.primary}
+              color={theme.colors.primary}
             />
             <Text className="text-primary text-sm font-medium">Paste</Text>
           </Pressable>

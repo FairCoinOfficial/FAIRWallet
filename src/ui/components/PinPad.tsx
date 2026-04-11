@@ -6,7 +6,7 @@
 import { useCallback } from "react";
 import { View, Text, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useColorScheme } from "../../theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 interface PinPadProps {
   onDigit: (digit: string) => void;
@@ -32,9 +32,9 @@ export function PinPad({
   tintColor,
   disabledColor,
 }: PinPadProps) {
-  const { colors } = useColorScheme();
-  const activeColor = tintColor ?? colors.foreground;
-  const inactiveColor = disabledColor ?? colors.surface;
+  const theme = useTheme();
+  const activeColor = tintColor ?? theme.colors.text;
+  const inactiveColor = disabledColor ?? theme.colors.card;
 
   const handleDigit = useCallback(
     (digit: string) => {
@@ -78,7 +78,7 @@ export function PinPad({
                   <MaterialCommunityIcons
                     name="backspace-outline"
                     size={26}
-                    color={disabled ? inactiveColor : colors.mutedForeground}
+                    color={disabled ? inactiveColor : theme.colors.textSecondary}
                   />
                 </Pressable>
               );
@@ -94,7 +94,7 @@ export function PinPad({
                 disabled={disabled}
               >
                 <Text
-                  style={{ color: disabled ? colors.mutedForeground : activeColor }}
+                  style={{ color: disabled ? theme.colors.textSecondary : activeColor }}
                   className="text-3xl font-light"
                 >
                   {key}

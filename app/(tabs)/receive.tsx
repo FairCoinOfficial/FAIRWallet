@@ -21,7 +21,7 @@ import QRCode from "react-native-qrcode-svg";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Section, Card, ListItem, ActionButton } from "../../src/ui/components";
 import { t } from "../../src/i18n";
-import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 function truncateAddress(address: string): string {
   if (address.length <= 16) return address;
@@ -33,7 +33,7 @@ export default function ReceiveScreen() {
   const receiveAddress = useWalletStore((s) => s.currentReceiveAddress);
   const addresses = useWalletStore((s) => s.addresses);
   const getNewAddress = useWalletStore((s) => s.getNewAddress);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const displayAddress = selectedAddress ?? receiveAddress;
@@ -81,7 +81,7 @@ export default function ReceiveScreen() {
     return (
       <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
         <View className="flex-1 items-center justify-center px-6">
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text className="text-muted-foreground text-sm mt-4">
             Generating receive address...
           </Text>
@@ -114,7 +114,7 @@ export default function ReceiveScreen() {
               <QRCode
                 value={`faircoin:${displayAddress}`}
                 size={200}
-                color={colors.primary}
+                color={theme.colors.primary}
                 backgroundColor="transparent"
               />
             </View>
@@ -160,7 +160,7 @@ export default function ReceiveScreen() {
                 title={item.label}
                 subtitle={`#${item.index + 1}`}
                 icon={item.isActive ? "radiobox-marked" : "radiobox-blank"}
-                iconColor={item.isActive ? colors.primary : colors.mutedForeground}
+                iconColor={item.isActive ? theme.colors.primary : theme.colors.textSecondary}
                 iconBg={
                   item.isActive ? "bg-primary/10" : "bg-background"
                 }
@@ -173,7 +173,7 @@ export default function ReceiveScreen() {
                     <MaterialCommunityIcons
                       name="content-copy"
                       size={16}
-                      color={colors.primary}
+                      color={theme.colors.primary}
                     />
                   </Pressable>
                 }

@@ -19,7 +19,7 @@ import {
   ScreenHeader,
 } from "../src/ui/components";
 import { ScrollView } from "react-native";
-import { useColorScheme } from "../src/theme/useColorScheme";
+import { useTheme } from "@oxyhq/bloom";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,7 +60,7 @@ export default function CoinControlScreen() {
   const existingSelection = useWalletStore((s) => s.selectedUTXOs);
   const setSelectedUTXOs = useWalletStore((s) => s.setSelectedUTXOs);
   const clearSelectedUTXOs = useWalletStore((s) => s.clearSelectedUTXOs);
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const [utxos, setUtxos] = useState<UTXOItem[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -212,7 +212,7 @@ export default function CoinControlScreen() {
                          <MaterialCommunityIcons
                           name="check"
                           size={14}
-                          color={colors.background}
+                          color={theme.colors.background}
                         />
                       ) : null}
                     </View>
