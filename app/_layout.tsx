@@ -153,7 +153,7 @@ export default function RootLayout() {
   useDeepLinkHandler();
   useAutoLock();
 
-  const [mode, setMode] = useState<ThemeMode>("dark");
+  const [mode, setMode] = useState<ThemeMode | null>(null);
 
   const hydrated = useRef(false);
   if (!hydrated.current) {
@@ -165,6 +165,8 @@ export default function RootLayout() {
         storedMode === "system"
       ) {
         setMode(storedMode);
+      } else {
+        setMode("dark");
       }
     });
   }
@@ -173,6 +175,14 @@ export default function RootLayout() {
     setMode(newMode);
     setItemAsync(THEME_MODE_KEY, newMode);
   }, []);
+
+  // Don't render until the stored theme mode is loaded.
+  // This prevents a flash of wrong colors on the native bottom bar.
+  if (mode === null) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "hsl(69, 54%, 8%)" }} />
+    );
+  }
 
   return (
     <SafeAreaProvider>
