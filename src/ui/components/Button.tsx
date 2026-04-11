@@ -11,6 +11,7 @@ import {
   type GestureResponderEvent,
   type ViewStyle,
 } from "react-native";
+import { useColorScheme } from "../../theme/useColorScheme";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "outline" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
@@ -29,19 +30,19 @@ interface ButtonProps {
 }
 
 const VARIANT_CONTAINER_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-fair-green",
-  secondary: "bg-fair-dark-light",
+  primary: "bg-primary",
+  secondary: "bg-surface",
   danger: "bg-red-600",
-  outline: "border border-fair-green bg-transparent",
+  outline: "border border-primary bg-transparent",
   ghost: "bg-transparent",
 };
 
 const VARIANT_TEXT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "text-fair-dark",
+  primary: "text-primary-foreground",
   secondary: "text-white",
   danger: "text-white",
-  outline: "text-fair-green",
-  ghost: "text-fair-green",
+  outline: "text-primary",
+  ghost: "text-primary",
 };
 
 const SIZE_CONTAINER_CLASSES: Record<ButtonSize, string> = {
@@ -54,14 +55,6 @@ const SIZE_TEXT_CLASSES: Record<ButtonSize, string> = {
   sm: "text-sm",
   md: "text-base",
   lg: "text-lg",
-};
-
-const SPINNER_COLORS: Record<ButtonVariant, string> = {
-  primary: "#1b1e09",
-  secondary: "#ffffff",
-  danger: "#ffffff",
-  outline: "#9ffb50",
-  ghost: "#9ffb50",
 };
 
 export function Button({
@@ -77,6 +70,18 @@ export function Button({
   style,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const { colors } = useColorScheme();
+
+  const spinnerColors: Record<ButtonVariant, string> = useMemo(
+    () => ({
+      primary: colors.background,
+      secondary: colors.foreground,
+      danger: colors.foreground,
+      outline: colors.primary,
+      ghost: colors.primary,
+    }),
+    [colors],
+  );
 
   const containerClassName = useMemo(() => {
     const base = "rounded-full items-center justify-center flex-row";
@@ -103,7 +108,7 @@ export function Button({
     [isDisabled, onPress],
   );
 
-  const spinnerColor = SPINNER_COLORS[variant];
+  const spinnerColor = spinnerColors[variant];
 
   return (
     <Pressable

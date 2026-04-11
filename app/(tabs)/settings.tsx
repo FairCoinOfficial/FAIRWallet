@@ -16,6 +16,7 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import {
   verifyPin,
@@ -38,6 +39,7 @@ import {
 import type { NetworkType } from "../../src/core/network";
 import { useColorScheme } from "../../src/theme/useColorScheme";
 import { useThemeStore } from "../../src/theme/store";
+import type { ColorMode } from "../../src/theme/store";
 import { getAllPresets } from "../../src/theme/presets";
 import type { PresetName } from "../../src/theme/presets";
 
@@ -116,11 +118,11 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
       onRequestClose={handleCancel}
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <Card className="p-6 w-full max-w-sm border border-fair-border">
+        <Card className="p-6 w-full max-w-sm border border-border">
           <Text className="text-white text-lg font-bold mb-2 text-center">
             {title}
           </Text>
-          <Text className="text-fair-muted text-sm mb-4 text-center">
+          <Text className="text-muted-foreground text-sm mb-4 text-center">
             Enter your 6-digit PIN
           </Text>
 
@@ -174,11 +176,11 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
       onRequestClose={onDismiss}
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <Card className="p-6 w-full max-w-sm border border-fair-border">
+        <Card className="p-6 w-full max-w-sm border border-border">
           <Text className="text-white text-lg font-bold mb-2 text-center">
             Recovery Phrase
           </Text>
-          <Text className="text-fair-muted text-xs mb-4 text-center">
+          <Text className="text-muted-foreground text-xs mb-4 text-center">
             Keep these words safe and never share them.
           </Text>
 
@@ -186,10 +188,10 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
             {words.map((word, idx) => (
               <View
                 key={`recovery-word-${idx}`}
-                className="bg-fair-dark rounded-lg px-3 py-1.5"
+                className="bg-background rounded-lg px-3 py-1.5"
               >
                 <Text className="text-white text-sm">
-                  <Text className="text-fair-muted">{idx + 1}. </Text>
+                  <Text className="text-muted-foreground">{idx + 1}. </Text>
                   {word}
                 </Text>
               </View>
@@ -207,36 +209,75 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
 // Theme color preset picker
 // ---------------------------------------------------------------------------
 
-function ThemePresetPicker() {
+function AppearancePicker() {
   const currentPreset = useThemeStore((s) => s.preset);
+  const currentMode = useThemeStore((s) => s.mode);
   const setPreset = useThemeStore((s) => s.setPreset);
+  const setMode = useThemeStore((s) => s.setMode);
+  const { isDark, colors } = useColorScheme();
   const presets = useMemo(() => getAllPresets(), []);
 
-  const handleSelect = useCallback(
-    (name: PresetName) => {
-      setPreset(name);
-    },
-    [setPreset],
-  );
+  const modes: Array<{ value: ColorMode; label: string; icon: string }> = [
+    { value: "light", label: "Light", icon: "white-balance-sunny" },
+    { value: "dark", label: "Dark", icon: "moon-waning-crescent" },
+    { value: "system", label: "System", icon: "cellphone" },
+  ];
 
   return (
-    <View className="px-4 py-3 border-t border-fair-border">
-      <Text className="text-fair-muted text-xs mb-2">Color Theme</Text>
+    <View className="px-4 py-3">
+      {/* Mode picker */}
+      <Text className="text-muted-foreground text-xs mb-2">Appearance</Text>
+      <View className="flex-row gap-2 mb-4">
+        {modes.map((m) => {
+          const isActive = currentMode === m.value;
+          return (
+            <Pressable
+              key={m.value}
+              onPress={() => setMode(m.value)}
+              className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl ${
+                isActive
+                  ? "bg-primary/15 border border-primary/30"
+                  : "bg-surface border border-border"
+              }`}
+            >
+              <MaterialCommunityIcons
+                name={m.icon as React.ComponentProps<typeof MaterialCommunityIcons>["name"]}
+                size={16}
+                color={isActive ? colors.primary : colors.mutedForeground}
+              />
+              <Text
+                className={`text-xs ml-1.5 font-medium ${
+                  isActive ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {m.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Color preset picker */}
+      <Text className="text-muted-foreground text-xs mb-2">Accent Color</Text>
       <View className="flex-row gap-3">
         {presets.map((preset) => {
           const isActive = preset.name === currentPreset;
           return (
             <Pressable
               key={preset.name}
-              onPress={() => handleSelect(preset.name)}
+              onPress={() => setPreset(preset.name)}
               className="items-center"
             >
               <View
-                className={`w-10 h-10 rounded-full items-center justify-center ${isActive ? "border-2 border-white" : "border border-fair-border"}`}
+                className={`w-10 h-10 rounded-full items-center justify-center ${
+                  isActive ? "border-2 border-foreground" : "border border-border"
+                }`}
                 style={{ backgroundColor: preset.swatch }}
               />
               <Text
-                className={`text-xs mt-1 ${isActive ? "text-white font-semibold" : "text-fair-muted"}`}
+                className={`text-xs mt-1 ${
+                  isActive ? "text-foreground font-semibold" : "text-muted-foreground"
+                }`}
               >
                 {preset.label}
               </Text>
@@ -512,7 +553,7 @@ export default function SettingsScreen() {
   }, []);
 
   return (
-    <View className="flex-1 bg-fair-dark">
+    <View className="flex-1 bg-background">
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pt-4 pb-8 gap-6"
@@ -550,8 +591,8 @@ export default function SettingsScreen() {
           <ListItem
             title="Biometric Unlock"
             icon="fingerprint"
-            iconBg="bg-fair-green/10"
-            iconColor="#9ffb50"
+            iconBg="bg-primary/10"
+            iconColor={themeColors.primary}
             trailing={
               <Switch
                 value={biometricsEnabled}
@@ -583,8 +624,8 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        {/* Display */}
-        <Section title="Display">
+        {/* Appearance */}
+        <Section title="Appearance">
           <ListItem
             title="Display Currency"
             value={displayCurrency}
@@ -593,7 +634,7 @@ export default function SettingsScreen() {
             iconColor="#34d399"
             onPress={handleCycleCurrency}
           />
-          <ThemePresetPicker />
+          <AppearancePicker />
         </Section>
 
         {/* Network */}
@@ -636,8 +677,8 @@ export default function SettingsScreen() {
           <ListItem
             title="Export Backup"
             icon="download"
-            iconBg="bg-fair-green/10"
-            iconColor="#9ffb50"
+            iconBg="bg-primary/10"
+            iconColor={themeColors.primary}
             onPress={handleExportBackup}
           />
           <ListItem
@@ -702,11 +743,11 @@ export default function SettingsScreen() {
           onRequestClose={handleCancelWipe}
         >
           <View className="flex-1 bg-black/70 items-center justify-center px-8">
-            <Card className="p-6 w-full max-w-sm border border-fair-border">
+            <Card className="p-6 w-full max-w-sm border border-border">
               <Text className="text-white text-lg font-bold mb-2 text-center">
                 Wipe Wallet?
               </Text>
-              <Text className="text-fair-muted text-sm mb-6 text-center">
+              <Text className="text-muted-foreground text-sm mb-6 text-center">
                 This will permanently delete all wallets from this device. Make
                 sure you have your recovery phrases backed up. This action cannot
                 be undone.

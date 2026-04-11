@@ -25,7 +25,7 @@ const VARIANT_STYLES: Record<BadgeVariant, VariantStyle> = {
   warning: { bg: "bg-yellow-500/15", text: "text-yellow-400" },
   error: { bg: "bg-red-500/15", text: "text-red-400" },
   info: { bg: "bg-blue-500/15", text: "text-blue-400" },
-  neutral: { bg: "bg-fair-muted/15", text: "text-fair-muted" },
+  neutral: { bg: "bg-muted-foreground/15", text: "text-muted-foreground" },
 };
 
 const SIZE_CLASSES: Record<BadgeSize, string> = {

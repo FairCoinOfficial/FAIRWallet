@@ -6,6 +6,7 @@
 import { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useColorScheme } from "../../theme/useColorScheme";
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -28,14 +29,16 @@ export function ListItem({
   subtitle,
   value,
   icon,
-  iconColor = "#9ffb50",
-  iconBg = "bg-fair-green/10",
+  iconColor,
+  iconBg = "bg-primary/10",
   onPress,
   trailing,
   destructive = false,
   showChevron,
   isLast = false,
 }: ListItemProps) {
+  const { colors } = useColorScheme();
+  const resolvedIconColor = iconColor ?? colors.primary;
   const shouldShowChevron = showChevron ?? (onPress !== undefined);
 
   const titleColor = useMemo(() => {
@@ -43,7 +46,7 @@ export function ListItem({
     return "text-white";
   }, [destructive]);
 
-  const borderClass = isLast ? "" : "border-b border-fair-border";
+  const borderClass = isLast ? "" : "border-b border-border";
 
   const content = (
     <View className={`flex-row items-center px-4 py-3.5 ${borderClass}`}>
@@ -52,7 +55,7 @@ export function ListItem({
         <View
           className={`w-9 h-9 rounded-full items-center justify-center mr-3 ${iconBg}`}
         >
-          <MaterialCommunityIcons name={icon} size={18} color={iconColor} />
+          <MaterialCommunityIcons name={icon} size={18} color={resolvedIconColor} />
         </View>
       ) : null}
 
@@ -62,7 +65,7 @@ export function ListItem({
           {title}
         </Text>
         {subtitle ? (
-          <Text className="text-fair-muted text-xs mt-0.5" numberOfLines={1}>
+          <Text className="text-muted-foreground text-xs mt-0.5" numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
@@ -70,14 +73,14 @@ export function ListItem({
 
       {/* Right: value + trailing + chevron */}
       {value ? (
-        <Text className="text-fair-muted text-sm mr-2">{value}</Text>
+        <Text className="text-muted-foreground text-sm mr-2">{value}</Text>
       ) : null}
       {trailing}
       {shouldShowChevron ? (
         <MaterialCommunityIcons
           name="chevron-right"
           size={20}
-          color="#6b7280"
+          color={colors.mutedForeground}
         />
       ) : null}
     </View>
@@ -85,7 +88,7 @@ export function ListItem({
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} className="active:bg-fair-dark/50">
+      <Pressable onPress={onPress} className="active:bg-background/50">
         {content}
       </Pressable>
     );

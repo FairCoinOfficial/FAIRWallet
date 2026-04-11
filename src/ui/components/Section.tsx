@@ -16,7 +16,7 @@ export function Section({ title, children, className = "" }: SectionProps) {
   return (
     <View className={className}>
       {title ? (
-        <Text className="text-fair-muted text-xs font-semibold uppercase tracking-wider mb-2 px-1">
+        <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-2 px-1">
           {title}
         </Text>
       ) : null}

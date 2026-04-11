@@ -85,16 +85,16 @@ export default function PinSetupScreen() {
   }, [saving]);
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark">
+    <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1 items-center justify-between px-6 pt-16 pb-8">
         {/* Header + dots */}
         <View className="items-center flex-1 justify-center">
-          <Text className="text-fair-green text-5xl mb-8">{"\u229C"}</Text>
+          <Text className="text-primary text-5xl mb-8">{"\u229C"}</Text>
 
           <Text className="text-white text-xl font-semibold mb-2">
             {title}
           </Text>
-          <Text className="text-fair-muted text-sm text-center mb-10">
+          <Text className="text-muted-foreground text-sm text-center mb-10">
             {subtitle}
           </Text>
 

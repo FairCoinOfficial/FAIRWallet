@@ -25,6 +25,7 @@ import {
   ScreenHeader,
 } from "../../src/ui/components";
 import type { ContactRow } from "../../src/storage/database";
+import { useColorScheme } from "../../src/theme/useColorScheme";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,6 +78,7 @@ export default function TransactionDetailScreen() {
   const { txid } = useLocalSearchParams<{ txid: string }>();
   const transactions = useWalletStore((s) => s.transactions);
   const chainHeight = useWalletStore((s) => s.chainHeight);
+  const { colors } = useColorScheme();
 
   const [note, setNote] = useState("");
   const [noteLoaded, setNoteLoaded] = useState(false);
@@ -143,7 +145,7 @@ export default function TransactionDetailScreen() {
   if (!transaction) {
     return (
       <SafeAreaView
-        className="flex-1 bg-fair-dark"
+        className="flex-1 bg-background"
         edges={["top", "bottom", "left", "right"]}
       >
         <View className="flex-1 items-center justify-center px-8">
@@ -168,12 +170,12 @@ export default function TransactionDetailScreen() {
   const isPositive = transaction.amount >= 0n;
   const amountSign = isPositive ? "+" : "-";
   const amountDisplay = formatSats(transaction.amount);
-  const amountColor = isPositive ? "text-fair-green" : "text-red-400";
+  const amountColor = isPositive ? "text-primary" : "text-red-400";
   const isConfirmed = transaction.confirmations >= 6;
 
   return (
     <SafeAreaView
-      className="flex-1 bg-fair-dark"
+      className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
@@ -196,7 +198,7 @@ export default function TransactionDetailScreen() {
             {amountSign}
             {amountDisplay}
           </Text>
-          <Text className="text-fair-muted text-base mt-1">FAIR</Text>
+          <Text className="text-muted-foreground text-base mt-1">FAIR</Text>
         </View>
 
         {/* Details */}
@@ -249,7 +251,7 @@ export default function TransactionDetailScreen() {
             <TextInput
               className="text-white text-sm"
               placeholder="Add a note for this transaction..."
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={colors.mutedForeground}
               value={note}
               onChangeText={setNote}
               multiline
@@ -276,7 +278,7 @@ export default function TransactionDetailScreen() {
               <MaterialCommunityIcons
                 name="open-in-new"
                 size={18}
-                color="#ffffff"
+                color={colors.foreground}
               />
             }
           />
@@ -289,7 +291,7 @@ export default function TransactionDetailScreen() {
               <MaterialCommunityIcons
                 name="content-copy"
                 size={16}
-                color="#9ffb50"
+                color={colors.primary}
               />
             }
           />
@@ -302,7 +304,7 @@ export default function TransactionDetailScreen() {
                 <MaterialCommunityIcons
                   name="account-plus"
                   size={18}
-                  color="#9ffb50"
+                  color={colors.primary}
                 />
               }
             />

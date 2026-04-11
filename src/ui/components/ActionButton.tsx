@@ -6,6 +6,7 @@
 import { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useColorScheme } from "../../theme/useColorScheme";
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 type ActionButtonSize = "sm" | "md" | "lg";
@@ -36,15 +37,16 @@ export function ActionButton({
   size = "md",
 }: ActionButtonProps) {
   const config = useMemo(() => SIZE_CONFIG[size], [size]);
+  const { colors } = useColorScheme();
 
   return (
     <Pressable onPress={onPress} className="items-center active:opacity-70">
       <View
-        className={`${config.circle} rounded-full bg-fair-green/10 items-center justify-center`}
+        className={`${config.circle} rounded-full bg-primary/10 items-center justify-center`}
       >
-        <MaterialCommunityIcons name={icon} size={config.iconSize} color="#9ffb50" />
+        <MaterialCommunityIcons name={icon} size={config.iconSize} color={colors.primary} />
       </View>
-      <Text className={`text-fair-muted ${config.textClass} mt-1.5 font-medium`}>
+      <Text className={`text-muted-foreground ${config.textClass} mt-1.5 font-medium`}>
         {label}
       </Text>
     </Pressable>

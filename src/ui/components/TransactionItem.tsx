@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useColorScheme } from "../../theme/useColorScheme";
 
 type TransactionType = "send" | "receive" | "stake" | "masternode_reward";
 
@@ -19,17 +20,15 @@ interface TransactionItemProps {
   confirmations: number;
 }
 
-const TYPE_CONFIG: Record<
-  TransactionType,
-  {
-    icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-    iconBg: string;
-    iconColor: string;
-    amountColor: string;
-    label: string;
-    prefix: string;
-  }
-> = {
+interface TypeConfig {
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  iconBg: string;
+  amountColor: string;
+  label: string;
+  prefix: string;
+}
+
+const STATIC_TYPE_CONFIG: Record<TransactionType, TypeConfig & { iconColor: string }> = {
   send: {
     icon: "arrow-up",
     iconBg: "bg-red-500/10",
@@ -40,9 +39,9 @@ const TYPE_CONFIG: Record<
   },
   receive: {
     icon: "arrow-down",
-    iconBg: "bg-fair-green/10",
-    iconColor: "#9ffb50",
-    amountColor: "text-fair-green",
+    iconBg: "bg-primary/10",
+    iconColor: "", // resolved from theme
+    amountColor: "text-primary",
     label: "Received",
     prefix: "+",
   },
@@ -93,7 +92,9 @@ export function TransactionItem({
   confirmations,
 }: TransactionItemProps) {
   const router = useRouter();
-  const config = TYPE_CONFIG[type];
+  const { colors } = useColorScheme();
+  const staticConfig = STATIC_TYPE_CONFIG[type];
+  const iconColor = type === "receive" ? colors.primary : staticConfig.iconColor;
   const timeAgo = useMemo(() => formatTimeAgo(timestamp), [timestamp]);
   const truncated = useMemo(() => truncateAddress(address), [address]);
 
@@ -101,27 +102,27 @@ export function TransactionItem({
 
   return (
     <Pressable
-      className="flex-row items-center py-3.5 px-4 active:bg-fair-dark/50"
+      className="flex-row items-center py-3.5 px-4 active:bg-background/50"
       onPress={() => router.push(`/transaction/${txid}`)}
     >
       {/* Icon */}
       <View
-        className={`w-11 h-11 rounded-full ${config.iconBg} items-center justify-center mr-3`}
+        className={`w-11 h-11 rounded-full ${staticConfig.iconBg} items-center justify-center mr-3`}
       >
         <MaterialCommunityIcons
-          name={config.icon}
+          name={staticConfig.icon}
           size={20}
-          color={config.iconColor}
+          color={iconColor}
         />
       </View>
 
       {/* Label + address */}
       <View className="flex-1 mr-3">
         <Text className="text-white text-sm font-medium" numberOfLines={1}>
-          {config.label}
+          {staticConfig.label}
         </Text>
         <View className="flex-row items-center mt-0.5">
-          <Text className="text-fair-muted text-xs" numberOfLines={1}>
+          <Text className="text-muted-foreground text-xs" numberOfLines={1}>
             {truncated}
           </Text>
           {isPending ? (
@@ -136,10 +137,10 @@ export function TransactionItem({
 
       {/* Amount + time */}
       <View className="items-end">
-        <Text className={`text-sm font-semibold ${config.amountColor}`}>
-          {config.prefix}{amount}
+        <Text className={`text-sm font-semibold ${staticConfig.amountColor}`}>
+          {staticConfig.prefix}{amount}
         </Text>
-        <Text className="text-fair-muted text-xs mt-0.5">{timeAgo}</Text>
+        <Text className="text-muted-foreground text-xs mt-0.5">{timeAgo}</Text>
       </View>
     </Pressable>
   );

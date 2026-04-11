@@ -13,7 +13,7 @@ interface PinDotsProps {
 }
 
 export function PinDots({ length, filled, error = false }: PinDotsProps) {
-  const filledColor = error ? "bg-red-400" : "bg-fair-green";
+  const filledColor = error ? "bg-red-400" : "bg-primary";
 
   return (
     <View className="flex-row gap-5">
@@ -21,7 +21,7 @@ export function PinDots({ length, filled, error = false }: PinDotsProps) {
         <View
           key={`pin-dot-${i}`}
           className={`w-3.5 h-3.5 rounded-full ${
-            i < filled ? filledColor : "border-2 border-fair-border"
+            i < filled ? filledColor : "border-2 border-border"
           }`}
         />
       ))}

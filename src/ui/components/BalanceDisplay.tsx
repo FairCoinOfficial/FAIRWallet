@@ -126,7 +126,7 @@ export function BalanceDisplay({
       <View className="items-center">
         {/* Primary: $X,XXX.XX */}
         <View className="flex-row items-baseline">
-          <Text className={`text-fair-muted ${symbolClass} font-light mr-0.5`}>
+          <Text className={`text-muted-foreground ${symbolClass} font-light mr-0.5`}>
             $
           </Text>
           <Text className={`text-white ${primaryClass} font-bold tracking-tight`}>
@@ -135,7 +135,7 @@ export function BalanceDisplay({
         </View>
 
         {/* Secondary: ⊜ X,XXX.XX FAIR */}
-        <Text className={`text-fair-muted ${secondaryClass} mt-1`}>
+        <Text className={`text-muted-foreground ${secondaryClass} mt-1`}>
           {FAIR_SYMBOL} {fairFormatted}
         </Text>
 
@@ -154,7 +154,7 @@ export function BalanceDisplay({
     <View className="items-center">
       {/* Primary: ⊜ X,XXX.XX */}
       <View className="flex-row items-baseline">
-        <Text className={`text-fair-green ${symbolClass} font-light mr-1`}>
+        <Text className={`text-primary ${symbolClass} font-light mr-1`}>
           {FAIR_SYMBOL}
         </Text>
         <Text className={`text-white ${primaryClass} font-bold tracking-tight`}>
@@ -164,7 +164,7 @@ export function BalanceDisplay({
 
       {/* Secondary: ≈ $X.XX USD */}
       {usdFormatted !== null ? (
-        <Text className={`text-fair-muted ${secondaryClass} mt-1`}>
+        <Text className={`text-muted-foreground ${secondaryClass} mt-1`}>
           {"\u2248"} ${usdFormatted} USD
         </Text>
       ) : null}

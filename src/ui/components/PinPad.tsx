@@ -6,12 +6,15 @@
 import { useCallback } from "react";
 import { View, Text, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useColorScheme } from "../../theme/useColorScheme";
 
 interface PinPadProps {
   onDigit: (digit: string) => void;
   onBackspace: () => void;
   disabled?: boolean;
   biometricButton?: React.ReactNode;
+  tintColor?: string;
+  disabledColor?: string;
 }
 
 const ROWS: ReadonlyArray<ReadonlyArray<string>> = [
@@ -26,7 +29,13 @@ export function PinPad({
   onBackspace,
   disabled = false,
   biometricButton,
+  tintColor,
+  disabledColor,
 }: PinPadProps) {
+  const { colors } = useColorScheme();
+  const activeColor = tintColor ?? colors.foreground;
+  const inactiveColor = disabledColor ?? colors.surface;
+
   const handleDigit = useCallback(
     (digit: string) => {
       if (!disabled) {
@@ -62,14 +71,14 @@ export function PinPad({
               return (
                 <Pressable
                   key="backspace"
-                  className="w-18 h-18 rounded-full items-center justify-center active:bg-fair-dark-light"
+                  className="w-18 h-18 rounded-full items-center justify-center active:bg-surface"
                   onPress={handleBack}
                   disabled={disabled}
                 >
                   <MaterialCommunityIcons
                     name="backspace-outline"
                     size={26}
-                    color={disabled ? "#2a2e14" : "#6b7280"}
+                    color={disabled ? inactiveColor : colors.mutedForeground}
                   />
                 </Pressable>
               );
@@ -79,15 +88,14 @@ export function PinPad({
               <Pressable
                 key={`key-${key}`}
                 className={`w-18 h-18 rounded-full items-center justify-center ${
-                  disabled ? "opacity-30" : "active:bg-fair-green/10"
+                  disabled ? "opacity-30" : "active:bg-primary/10"
                 }`}
                 onPress={() => handleDigit(key)}
                 disabled={disabled}
               >
                 <Text
-                  className={`text-3xl font-light ${
-                    disabled ? "text-fair-muted/50" : "text-white"
-                  }`}
+                  style={{ color: disabled ? colors.mutedForeground : activeColor }}
+                  className="text-3xl font-light"
                 >
                   {key}
                 </Text>

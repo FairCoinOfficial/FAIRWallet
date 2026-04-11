@@ -30,7 +30,7 @@ export function ScreenHeader({
           {title}
         </Text>
         {subtitle ? (
-          <Text className="text-fair-muted text-xs mt-0.5" numberOfLines={1}>
+          <Text className="text-muted-foreground text-xs mt-0.5" numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}

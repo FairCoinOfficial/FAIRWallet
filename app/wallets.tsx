@@ -27,6 +27,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
+import { useColorScheme } from "../src/theme/useColorScheme";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,6 +53,7 @@ interface ImportModalProps {
 }
 
 function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
+  const { colors } = useColorScheme();
   const [name, setName] = useState("");
   const [mnemonic, setMnemonic] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -102,22 +104,22 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
             Import Wallet
           </Text>
 
-          <Text className="text-fair-muted text-xs mb-1">Wallet Name</Text>
+          <Text className="text-muted-foreground text-xs mb-1">Wallet Name</Text>
           <TextInput
-            className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="My Wallet"
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={colors.mutedForeground}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
             autoCorrect={false}
           />
 
-          <Text className="text-fair-muted text-xs mb-1">Recovery Phrase</Text>
+          <Text className="text-muted-foreground text-xs mb-1">Recovery Phrase</Text>
           <TextInput
-            className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="Enter 12 or 24 word recovery phrase"
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={colors.mutedForeground}
             value={mnemonic}
             onChangeText={setMnemonic}
             autoCapitalize="none"
@@ -154,6 +156,7 @@ interface WatchOnlyModalProps {
 }
 
 function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
+  const { colors } = useColorScheme();
   const [name, setName] = useState("");
   const [xpub, setXpub] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -203,24 +206,24 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
             Watch-Only Wallet
           </Text>
 
-          <Text className="text-fair-muted text-xs mb-1">Wallet Name</Text>
+          <Text className="text-muted-foreground text-xs mb-1">Wallet Name</Text>
           <TextInput
-            className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="My Watch Wallet"
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={colors.mutedForeground}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
             autoCorrect={false}
           />
 
-          <Text className="text-fair-muted text-xs mb-1">
+          <Text className="text-muted-foreground text-xs mb-1">
             Extended Public Key (xpub)
           </Text>
           <TextInput
-            className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="xpub..."
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={colors.mutedForeground}
             value={xpub}
             onChangeText={setXpub}
             autoCapitalize="none"
@@ -261,6 +264,7 @@ interface CreateModalProps {
 }
 
 function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
+  const { colors } = useColorScheme();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -295,11 +299,11 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
             Create New Wallet
           </Text>
 
-          <Text className="text-fair-muted text-xs mb-1">Wallet Name</Text>
+          <Text className="text-muted-foreground text-xs mb-1">Wallet Name</Text>
           <TextInput
-            className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
             placeholder="My Wallet"
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={colors.mutedForeground}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
@@ -347,7 +351,7 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
           <Text className="text-white text-lg font-bold mb-2 text-center">
             Recovery Phrase
           </Text>
-          <Text className="text-fair-muted text-xs mb-4 text-center">
+          <Text className="text-muted-foreground text-xs mb-4 text-center">
             Write down these words in order. They are the only way to recover
             this wallet.
           </Text>
@@ -356,10 +360,10 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
             {words.map((word, idx) => (
               <View
                 key={`word-${idx}`}
-                className="bg-fair-dark rounded-lg px-3 py-1.5"
+                className="bg-background rounded-lg px-3 py-1.5"
               >
                 <Text className="text-white text-sm">
-                  <Text className="text-fair-muted">{idx + 1}. </Text>
+                  <Text className="text-muted-foreground">{idx + 1}. </Text>
                   {word}
                 </Text>
               </View>
@@ -383,6 +387,7 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
 
 export default function WalletsScreen() {
   const router = useRouter();
+  const { colors } = useColorScheme();
   const wallets = useWalletStore((s) => s.wallets);
   const activeWalletId = useWalletStore((s) => s.activeWalletId);
   const loading = useWalletStore((s) => s.loading);
@@ -526,11 +531,11 @@ export default function WalletsScreen() {
   if (switching || loading) {
     return (
       <SafeAreaView
-        className="flex-1 bg-fair-dark items-center justify-center"
+        className="flex-1 bg-background items-center justify-center"
         edges={["top", "bottom", "left", "right"]}
       >
-        <ActivityIndicator size="large" color="#9ffb50" />
-        <Text className="text-fair-muted text-sm mt-4">
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text className="text-muted-foreground text-sm mt-4">
           {switching ? "Switching wallet..." : "Loading..."}
         </Text>
       </SafeAreaView>
@@ -539,7 +544,7 @@ export default function WalletsScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-fair-dark"
+      className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
     >
       <ScrollView
@@ -567,8 +572,8 @@ export default function WalletsScreen() {
                 <ListItem
                   key={wallet.id}
                   icon="wallet"
-                  iconBg={isActive ? "bg-green-500/15" : "bg-fair-green/10"}
-                  iconColor={isActive ? "#22c55e" : "#9ffb50"}
+                  iconBg={isActive ? "bg-green-500/15" : "bg-primary/10"}
+                  iconColor={isActive ? "#22c55e" : colors.primary}
                   title={wallet.name}
                   subtitle={`Created ${formatDate(wallet.createdAt)}`}
                   isLast={idx === wallets.length - 1}

@@ -1,35 +1,3 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/*
- * Default CSS custom properties from @oxyhq/bloom faircoin preset (dark mode).
- * These are overridden at runtime by the theme system via NativeWind vars(),
- * but serve as the initial fallback for first-paint and web SSR.
- */
-@layer base {
-  :root {
-    --background: 69 54% 8%;
-    --foreground: 0 0% 93%;
-    --surface: 69 30% 13%;
-    --surface-foreground: 0 0% 93%;
-    --popover: 69 30% 13%;
-    --popover-foreground: 0 0% 93%;
-    --primary: 92 96% 65%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 69 20% 15%;
-    --secondary-foreground: 0 0% 93%;
-    --muted: 69 18% 16%;
-    --muted-foreground: 0 0% 46%;
-    --accent: 69 18% 16%;
-    --accent-foreground: 0 0% 93%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 69 20% 18%;
-    --input: 69 15% 20%;
-    --ring: 92 96% 65%;
-    --sidebar: 69 40% 6%;
-    --success: 92 96% 65%;
-    --warning: 45 93% 47%;
-  }
-}

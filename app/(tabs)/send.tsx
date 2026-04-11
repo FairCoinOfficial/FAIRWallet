@@ -35,6 +35,7 @@ import { QRScanner } from "../../src/ui/components/QRScanner";
 import { ContactPicker } from "../../src/ui/components/ContactPicker";
 import { getCachedPrice } from "../../src/services/price";
 import type { RecentRecipientRow } from "../../src/storage/database";
+import { useColorScheme } from "../../src/theme/useColorScheme";
 
 const FEE_LEVELS: FeeLevel[] = ["low", "medium", "high"];
 
@@ -86,11 +87,12 @@ export default function SendScreen() {
   const loading = useWalletStore((s) => s.loading);
   const isWatchOnly = useWalletStore((s) => s.isWatchOnly);
   const getContactByAddress = useContactsStore((s) => s.getContactByAddress);
+  const { colors } = useColorScheme();
 
   // Watch-only wallets cannot send transactions
   if (isWatchOnly) {
     return (
-      <View className="flex-1 bg-fair-dark" style={{ paddingTop: insets.top }}>
+      <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
         <EmptyState
           icon="lock"
           title="Watch-Only Wallet"
@@ -281,7 +283,7 @@ export default function SendScreen() {
   }, []);
 
   return (
-    <View className="flex-1 bg-fair-dark" onLayout={loadRecentRecipients}>
+    <View className="flex-1 bg-background" onLayout={loadRecentRecipients}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pt-4 pb-8 gap-4"
@@ -291,7 +293,7 @@ export default function SendScreen() {
         {/* Recent recipients */}
         {recentRecipients.length > 0 ? (
           <View>
-            <Text className="text-fair-muted text-xs font-semibold uppercase tracking-wider mb-2 px-1">
+            <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-2 px-1">
               Recent Recipients
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -322,7 +324,7 @@ export default function SendScreen() {
               <TextInput
                 className="flex-1 text-white text-base mr-2"
                 placeholder="FairCoin address"
-                placeholderTextColor="#6b7280"
+                placeholderTextColor={colors.mutedForeground}
                 value={toAddress}
                 onChangeText={setToAddress}
                 autoCapitalize="none"
@@ -331,37 +333,37 @@ export default function SendScreen() {
             </View>
             <View className="flex-row gap-2 mt-3">
               <Pressable
-                className="flex-row items-center bg-fair-dark rounded-lg px-3 py-2"
+                className="flex-row items-center bg-background rounded-lg px-3 py-2"
                 onPress={handlePaste}
               >
                 <MaterialCommunityIcons
                   name="content-paste"
                   size={14}
-                  color="#9ffb50"
+                  color={colors.primary}
                 />
-                <Text className="text-fair-green text-xs ml-1.5">Paste</Text>
+                <Text className="text-primary text-xs ml-1.5">Paste</Text>
               </Pressable>
               <Pressable
-                className="flex-row items-center bg-fair-dark rounded-lg px-3 py-2"
+                className="flex-row items-center bg-background rounded-lg px-3 py-2"
                 onPress={handleOpenScanner}
               >
                 <MaterialCommunityIcons
                   name="qrcode-scan"
                   size={14}
-                  color="#9ffb50"
+                  color={colors.primary}
                 />
-                <Text className="text-fair-green text-xs ml-1.5">QR</Text>
+                <Text className="text-primary text-xs ml-1.5">QR</Text>
               </Pressable>
               <Pressable
-                className="flex-row items-center bg-fair-dark rounded-lg px-3 py-2"
+                className="flex-row items-center bg-background rounded-lg px-3 py-2"
                 onPress={handleOpenContactPicker}
               >
                 <MaterialCommunityIcons
                   name="account-box"
                   size={14}
-                  color="#9ffb50"
+                  color={colors.primary}
                 />
-                <Text className="text-fair-green text-xs ml-1.5">
+                <Text className="text-primary text-xs ml-1.5">
                   Contacts
                 </Text>
               </Pressable>
@@ -378,30 +380,30 @@ export default function SendScreen() {
         <Section title="Amount (FAIR)">
           <View className="px-4 py-3">
             <View className="flex-row items-center">
-              <Text className="text-fair-green text-lg font-bold mr-2">
+              <Text className="text-primary text-lg font-bold mr-2">
                 {"\u29BE"}
               </Text>
               <TextInput
                 className="flex-1 text-white text-base mr-2"
                 placeholder="0.00000000"
-                placeholderTextColor="#6b7280"
+                placeholderTextColor={colors.mutedForeground}
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="decimal-pad"
               />
               <Pressable
-                className="bg-fair-dark rounded-lg px-3 py-2"
+                className="bg-background rounded-lg px-3 py-2"
                 onPress={handleMax}
               >
-                <Text className="text-fair-green text-xs font-medium">Max</Text>
+                <Text className="text-primary text-xs font-medium">Max</Text>
               </Pressable>
             </View>
             {usdEquivalent ? (
-              <Text className="text-fair-muted text-xs mt-2">
+              <Text className="text-muted-foreground text-xs mt-2">
                 {"\u2248"} ${usdEquivalent} USD
               </Text>
             ) : null}
-            <Text className="text-fair-muted text-xs mt-1">
+            <Text className="text-muted-foreground text-xs mt-1">
               Available: {formatSats(balance)} FAIR
             </Text>
           </View>
@@ -417,19 +419,19 @@ export default function SendScreen() {
                   key={level}
                   className={`flex-1 rounded-xl py-3 items-center border ${
                     isSelected
-                      ? "bg-fair-green/10 border-fair-green"
-                      : "bg-fair-dark border-fair-border"
+                      ? "bg-primary/10 border-primary"
+                      : "bg-background border-border"
                   }`}
                   onPress={() => setFeeLevel(level)}
                 >
                   <Text
                     className={`text-sm font-medium ${
-                      isSelected ? "text-fair-green" : "text-fair-muted"
+                      isSelected ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
                     {FEE_LABELS[level]}
                   </Text>
-                  <Text className="text-fair-muted text-xs mt-1">
+                  <Text className="text-muted-foreground text-xs mt-1">
                     {estimateFee(level).toString()} sats
                   </Text>
                 </Pressable>
@@ -467,7 +469,7 @@ export default function SendScreen() {
         ) : null}
         {success ? (
           <Card className="border border-green-600/50 p-4">
-            <Text className="text-fair-green text-sm text-center">
+            <Text className="text-primary text-sm text-center">
               {success}
             </Text>
           </Card>
@@ -490,7 +492,7 @@ export default function SendScreen() {
           onRequestClose={handleCancelSend}
         >
           <View className="flex-1 bg-black/70 items-center justify-center px-8">
-            <Card className="p-6 w-full max-w-sm border border-fair-border">
+            <Card className="p-6 w-full max-w-sm border border-border">
               <Text className="text-white text-lg font-bold mb-4 text-center">
                 Confirm Transaction
               </Text>

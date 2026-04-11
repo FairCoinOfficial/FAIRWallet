@@ -19,6 +19,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
+import { useColorScheme } from "../src/theme/useColorScheme";
 
 function truncateTxid(txid: string): string {
   if (txid.length <= 20) return txid;
@@ -67,6 +68,7 @@ export default function MasternodeScreen() {
   const refreshMasternodeUTXOs = useWalletStore(
     (s) => s.refreshMasternodeUTXOs,
   );
+  const { colors } = useColorScheme();
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [showIpModal, setShowIpModal] = useState(false);
   const [ipPortInput, setIpPortInput] = useState("");
@@ -158,7 +160,7 @@ export default function MasternodeScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-fair-dark"
+      className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
     >
       <ScrollView
@@ -170,7 +172,7 @@ export default function MasternodeScreen() {
           <Text className="text-white text-base font-semibold mb-2">
             Masternode Requirements
           </Text>
-          <Text className="text-fair-muted text-sm leading-5">
+          <Text className="text-muted-foreground text-sm leading-5">
             A FairCoin masternode requires exactly 5,000 FAIR as collateral in a
             single UTXO. The collateral must have at least 15 confirmations.
             Running a masternode earns you additional rewards for supporting the
@@ -193,8 +195,8 @@ export default function MasternodeScreen() {
                 <ListItem
                   key={`${utxo.txid}-${utxo.vout}`}
                   icon="server"
-                  iconBg={confirmOk ? "bg-fair-green/10" : "bg-yellow-500/10"}
-                  iconColor={confirmOk ? "#9ffb50" : "#facc15"}
+                  iconBg={confirmOk ? "bg-primary/10" : "bg-yellow-500/10"}
+                  iconColor={confirmOk ? colors.primary : "#facc15"}
                   title={truncateTxid(utxo.txid)}
                   subtitle={`${utxo.address.slice(0, 8)}...${utxo.address.slice(-6)}`}
                   value="5,000 FAIR"
@@ -240,15 +242,15 @@ export default function MasternodeScreen() {
             <Text className="text-white text-lg font-bold mb-2 text-center">
               Masternode IP Address
             </Text>
-            <Text className="text-fair-muted text-sm mb-4 text-center">
+            <Text className="text-muted-foreground text-sm mb-4 text-center">
               Enter the IP:port of your masternode server (e.g.
               203.0.113.50:46372)
             </Text>
 
             <TextInput
-              className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
               placeholder="203.0.113.50:46372"
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={colors.mutedForeground}
               value={ipPortInput}
               onChangeText={setIpPortInput}
               autoCapitalize="none"

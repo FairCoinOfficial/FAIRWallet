@@ -9,6 +9,7 @@ import { View, Text, ActivityIndicator } from "react-native";
 import { Redirect, useFocusEffect } from "expo-router";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { getMnemonic, hasPin } from "../src/storage/secure-store";
+import { useColorScheme } from "../src/theme/useColorScheme";
 
 type AppState = "checking" | "onboarding" | "locked" | "ready" | "error";
 
@@ -18,6 +19,7 @@ export default function IndexScreen() {
   const hasWallet = useWalletStore((s) => s.hasWallet);
   const initialize = useWalletStore((s) => s.initialize);
   const initialized = useWalletStore((s) => s.initialized);
+  const { colors } = useColorScheme();
 
   useFocusEffect(
     useCallback(() => {
@@ -78,11 +80,11 @@ export default function IndexScreen() {
 
   if (appState === "error") {
     return (
-      <View className="flex-1 bg-fair-dark items-center justify-center px-6">
+      <View className="flex-1 bg-background items-center justify-center px-6">
         <Text className="text-red-400 text-base text-center mb-4">
           {errorMsg}
         </Text>
-        <Text className="text-fair-muted text-sm text-center">
+        <Text className="text-muted-foreground text-sm text-center">
           Try restarting the app or wiping and restoring your wallet.
         </Text>
       </View>
@@ -91,9 +93,9 @@ export default function IndexScreen() {
 
   // "checking" state
   return (
-    <View className="flex-1 bg-fair-dark items-center justify-center">
-      <ActivityIndicator size="large" color="#9ffb50" />
-      <Text className="text-fair-muted text-sm mt-4">Loading wallet...</Text>
+    <View className="flex-1 bg-background items-center justify-center">
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text className="text-muted-foreground text-sm mt-4">Loading wallet...</Text>
     </View>
   );
 }

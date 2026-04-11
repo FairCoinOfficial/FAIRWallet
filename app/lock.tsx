@@ -12,6 +12,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { verifyPin, isBiometricsEnabled } from "../src/storage/secure-store";
 import { PinPad } from "../src/ui/components/PinPad";
 import { PinDots } from "../src/ui/components/PinDots";
+import { useColorScheme } from "../src/theme/useColorScheme";
 
 const PIN_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
@@ -19,6 +20,7 @@ const LOCKOUT_SECONDS = 30;
 
 export default function LockScreen() {
   const router = useRouter();
+  const { colors } = useColorScheme();
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(0);
@@ -186,24 +188,24 @@ export default function LockScreen() {
 
   const biometricButton = biometricsAvailable ? (
     <Pressable
-      className="w-18 h-18 rounded-full items-center justify-center active:bg-fair-green/10"
+      className="w-18 h-18 rounded-full items-center justify-center active:bg-primary/10"
       onPress={tryBiometricAuth}
       disabled={isLockedOut}
     >
       <MaterialCommunityIcons
         name="fingerprint"
         size={28}
-        color={isLockedOut ? "#2a2e14" : "#9ffb50"}
+        color={isLockedOut ? colors.surface : colors.primary}
       />
     </Pressable>
   ) : undefined;
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark">
+    <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1 items-center justify-between px-6 pt-16 pb-8">
         {/* Brand + prompt */}
         <View className="items-center flex-1 justify-center">
-          <Text className="text-fair-green text-5xl mb-8">{"\u229C"}</Text>
+          <Text className="text-primary text-5xl mb-8">{"\u229C"}</Text>
 
           <Text className="text-white text-xl font-semibold mb-8">
             Enter your passcode
@@ -223,7 +225,7 @@ export default function LockScreen() {
               </Text>
             ) : null}
             {isLockedOut && lockoutRemaining > 0 ? (
-              <Text className="text-fair-muted text-sm text-center">
+              <Text className="text-muted-foreground text-sm text-center">
                 Locked for {lockoutRemaining}s
               </Text>
             ) : null}
@@ -237,6 +239,8 @@ export default function LockScreen() {
             onBackspace={handleBackspace}
             disabled={isLockedOut || verifying}
             biometricButton={biometricButton}
+            tintColor={colors.foreground}
+            disabledColor={colors.surface}
           />
         </View>
       </View>

@@ -86,7 +86,7 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
         <View className="pt-14 pb-4 px-6 flex-row items-center justify-between bg-black/80 z-10">
           <Text className="text-white text-lg font-bold">Scan QR Code</Text>
           <Pressable onPress={handleClose} className="p-2">
-            <Text className="text-fair-green text-base font-semibold">
+            <Text className="text-primary text-base font-semibold">
               Close
             </Text>
           </Pressable>
@@ -95,7 +95,7 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
         {/* Camera or permission request */}
         {permission === null ? (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-fair-muted text-base">
+            <Text className="text-muted-foreground text-base">
               Checking camera permission...
             </Text>
           </View>
@@ -133,7 +133,7 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
               <View className="absolute top-1/4 right-0 w-1/6 bottom-1/4 bg-black/50" />
 
               {/* Scanning frame */}
-              <View className="w-64 h-64 border-2 border-fair-green rounded-2xl" />
+              <View className="w-64 h-64 border-2 border-primary rounded-2xl" />
 
               <Text className="text-white text-sm mt-6">
                 Point camera at a FairCoin QR code

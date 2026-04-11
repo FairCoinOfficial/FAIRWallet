@@ -10,11 +10,13 @@ import * as Clipboard from "expo-clipboard";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
+import { useColorScheme } from "../../src/theme/useColorScheme";
 
 export default function RestoreWalletScreen() {
   const router = useRouter();
   const restoreWallet = useWalletStore((s) => s.restoreWallet);
   const loading = useWalletStore((s) => s.loading);
+  const { colors } = useColorScheme();
 
   const [mnemonicInput, setMnemonicInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -52,13 +54,13 @@ export default function RestoreWalletScreen() {
   }, [mnemonicInput, restoreWallet, router]);
 
   const wordCountColor = useMemo(() => {
-    if (wordCount === 0) return "text-fair-muted";
-    if (isValidCount) return "text-fair-green";
-    return "text-fair-muted";
+    if (wordCount === 0) return "text-muted-foreground";
+    if (isValidCount) return "text-primary";
+    return "text-muted-foreground";
   }, [wordCount, isValidCount]);
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark">
+    <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pt-24 pb-10"
@@ -68,16 +70,16 @@ export default function RestoreWalletScreen() {
         <Text className="text-white text-xl font-bold mb-2 text-center">
           Restore Your Wallet
         </Text>
-        <Text className="text-fair-muted text-sm mb-8 text-center leading-5">
+        <Text className="text-muted-foreground text-sm mb-8 text-center leading-5">
           Enter your 24-word recovery phrase to restore access to your wallet.
         </Text>
 
         {/* Mnemonic input area */}
-        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-5 mb-4">
+        <View className="bg-surface border border-border rounded-2xl p-5 mb-4">
           <TextInput
             className="text-white text-base leading-6 min-h-[140px] font-mono"
             placeholder="word1 word2 word3 ..."
-            placeholderTextColor="#4b5563"
+            placeholderTextColor={colors.mutedForeground}
             value={mnemonicInput}
             onChangeText={setMnemonicInput}
             multiline
@@ -94,15 +96,15 @@ export default function RestoreWalletScreen() {
             {wordCount}/24 words
           </Text>
           <Pressable
-            className="flex-row items-center gap-2 bg-fair-dark-light border border-fair-border rounded-full px-4 py-2 active:bg-fair-green/10"
+            className="flex-row items-center gap-2 bg-surface border border-border rounded-full px-4 py-2 active:bg-primary/10"
             onPress={handlePaste}
           >
             <MaterialCommunityIcons
               name="content-paste"
               size={16}
-              color="#9ffb50"
+              color={colors.primary}
             />
-            <Text className="text-fair-green text-sm font-medium">Paste</Text>
+            <Text className="text-primary text-sm font-medium">Paste</Text>
           </Pressable>
         </View>
 

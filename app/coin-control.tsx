@@ -19,6 +19,7 @@ import {
   ScreenHeader,
 } from "../src/ui/components";
 import { ScrollView } from "react-native";
+import { useColorScheme } from "../src/theme/useColorScheme";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,6 +60,7 @@ export default function CoinControlScreen() {
   const existingSelection = useWalletStore((s) => s.selectedUTXOs);
   const setSelectedUTXOs = useWalletStore((s) => s.setSelectedUTXOs);
   const clearSelectedUTXOs = useWalletStore((s) => s.clearSelectedUTXOs);
+  const { colors } = useColorScheme();
 
   const [utxos, setUtxos] = useState<UTXOItem[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -150,7 +152,7 @@ export default function CoinControlScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-fair-dark"
+      className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
@@ -164,16 +166,16 @@ export default function CoinControlScreen() {
         {/* Selection actions */}
         <View className="flex-row gap-3 mb-4">
           <Pressable
-            className="bg-fair-dark-light border border-fair-border rounded-lg px-3 py-1.5"
+            className="bg-surface border border-border rounded-lg px-3 py-1.5"
             onPress={handleSelectAll}
           >
-            <Text className="text-fair-green text-xs">Select All</Text>
+            <Text className="text-primary text-xs">Select All</Text>
           </Pressable>
           <Pressable
-            className="bg-fair-dark-light border border-fair-border rounded-lg px-3 py-1.5"
+            className="bg-surface border border-border rounded-lg px-3 py-1.5"
             onPress={handleClear}
           >
-            <Text className="text-fair-muted text-xs">Clear</Text>
+            <Text className="text-muted-foreground text-xs">Clear</Text>
           </Pressable>
         </View>
 
@@ -202,15 +204,15 @@ export default function CoinControlScreen() {
                     <View
                       className={`w-5 h-5 rounded border items-center justify-center ${
                         isSelected
-                          ? "bg-fair-green border-fair-green"
-                          : "bg-transparent border-fair-muted"
+                          ? "bg-primary border-primary"
+                          : "bg-transparent border-muted-foreground"
                       }`}
                     >
                       {isSelected ? (
-                        <MaterialCommunityIcons
+                         <MaterialCommunityIcons
                           name="check"
                           size={14}
-                          color="#1b1e09"
+                          color={colors.background}
                         />
                       ) : null}
                     </View>
@@ -225,11 +227,11 @@ export default function CoinControlScreen() {
         {selectedCount > 0 ? (
           <Card className="p-4 mb-4">
             <View className="flex-row items-center justify-between">
-              <Text className="text-fair-muted text-sm">
+              <Text className="text-muted-foreground text-sm">
                 Selected: {selectedCount} UTXO
                 {selectedCount !== 1 ? "s" : ""}
               </Text>
-              <Text className="text-fair-green text-sm font-semibold">
+              <Text className="text-primary text-sm font-semibold">
                 {formatSats(selectedTotal)} FAIR
               </Text>
             </View>
@@ -238,7 +240,7 @@ export default function CoinControlScreen() {
       </ScrollView>
 
       {/* Bottom action bar */}
-      <View className="px-5 py-4 border-t border-fair-border">
+      <View className="px-5 py-4 border-t border-border">
         <Button
           title={
             selectedCount > 0

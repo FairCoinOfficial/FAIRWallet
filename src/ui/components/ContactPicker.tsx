@@ -8,6 +8,7 @@ import { View, Text, TextInput, Pressable, Modal, FlatList } from "react-native"
 import { useContactsStore } from "../../wallet/contacts-store";
 import { getDatabase } from "../../wallet/wallet-store";
 import type { ContactRow } from "../../storage/database";
+import { useColorScheme } from "../../theme/useColorScheme";
 
 interface ContactPickerProps {
   visible: boolean;
@@ -33,15 +34,15 @@ function ContactPickerItem({
 
   return (
     <Pressable
-      className="flex-row items-center px-4 py-3 border-b border-fair-border active:bg-fair-dark"
+      className="flex-row items-center px-4 py-3 border-b border-border active:bg-background"
       onPress={handlePress}
     >
-      <View className="w-10 h-10 rounded-full bg-fair-dark items-center justify-center mr-3">
+      <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
         <Text className="text-lg">{contact.emoji}</Text>
       </View>
       <View className="flex-1">
         <Text className="text-white text-sm font-medium">{contact.name}</Text>
-        <Text className="text-fair-muted text-xs mt-0.5">
+        <Text className="text-muted-foreground text-xs mt-0.5">
           {truncateAddress(contact.address)}
         </Text>
       </View>
@@ -56,6 +57,7 @@ export function ContactPicker({
 }: ContactPickerProps) {
   const contacts = useContactsStore((s) => s.contacts);
   const loadContacts = useContactsStore((s) => s.loadContacts);
+  const { colors } = useColorScheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ContactRow[] | null>(null);
 
@@ -118,12 +120,12 @@ export function ContactPicker({
       onRequestClose={handleClose}
       onShow={handleOpen}
     >
-      <View className="flex-1 bg-fair-dark">
+      <View className="flex-1 bg-background">
         {/* Header */}
-        <View className="pt-14 pb-3 px-6 flex-row items-center justify-between bg-fair-dark border-b border-fair-border">
+        <View className="pt-14 pb-3 px-6 flex-row items-center justify-between bg-background border-b border-border">
           <Text className="text-white text-lg font-bold">Pick Contact</Text>
           <Pressable onPress={handleClose} className="p-2">
-            <Text className="text-fair-green text-base font-semibold">
+            <Text className="text-primary text-base font-semibold">
               Close
             </Text>
           </Pressable>
@@ -131,11 +133,11 @@ export function ContactPicker({
 
         {/* Search */}
         <View className="px-4 py-3">
-          <View className="bg-fair-dark-light border border-fair-border rounded-xl px-4 py-2.5">
+          <View className="bg-surface border border-border rounded-xl px-4 py-2.5">
             <TextInput
               className="text-white text-sm"
               placeholder="Search contacts..."
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={colors.mutedForeground}
               value={searchQuery}
               onChangeText={handleSearch}
               autoCapitalize="none"
@@ -147,7 +149,7 @@ export function ContactPicker({
         {/* Contact list */}
         {displayContacts.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
-            <Text className="text-fair-muted text-base text-center">
+            <Text className="text-muted-foreground text-base text-center">
               {searchQuery
                 ? "No contacts match your search"
                 : "No contacts yet. Add one to get started."}

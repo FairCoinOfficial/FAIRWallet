@@ -28,6 +28,7 @@ import {
   ScreenHeader,
 } from "../src/ui/components";
 import { QRScanner } from "../src/ui/components/QRScanner";
+import { useColorScheme } from "../src/theme/useColorScheme";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -87,6 +88,7 @@ function ContactForm({
   onSave,
   onClose,
 }: ContactFormProps) {
+  const { colors } = useColorScheme();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
@@ -152,7 +154,7 @@ function ContactForm({
           </Text>
 
           {/* Emoji picker */}
-          <Text className="text-fair-muted text-xs mb-2">Avatar</Text>
+          <Text className="text-muted-foreground text-xs mb-2">Avatar</Text>
           <Card className="p-3 mb-4">
             <View className="flex-row flex-wrap gap-2">
               {EMOJI_OPTIONS.map((e) => (
@@ -160,8 +162,8 @@ function ContactForm({
                   key={e}
                   className={`w-9 h-9 rounded-lg items-center justify-center ${
                     emoji === e
-                      ? "bg-fair-green/20 border border-fair-green"
-                      : "bg-fair-dark"
+                      ? "bg-primary/20 border border-primary"
+                      : "bg-background"
                   }`}
                   onPress={() => setEmoji(e)}
                 >
@@ -172,12 +174,12 @@ function ContactForm({
           </Card>
 
           {/* Name input */}
-          <Text className="text-fair-muted text-xs mb-1">Name</Text>
+          <Text className="text-muted-foreground text-xs mb-1">Name</Text>
           <Card className="px-3 py-2.5 mb-3">
             <TextInput
               className="text-white text-sm"
               placeholder="Contact name"
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={colors.mutedForeground}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -185,40 +187,40 @@ function ContactForm({
           </Card>
 
           {/* Address input */}
-          <Text className="text-fair-muted text-xs mb-1">Address</Text>
+          <Text className="text-muted-foreground text-xs mb-1">Address</Text>
           <Card className="px-3 py-2.5 mb-3">
             <View className="flex-row items-center">
               <TextInput
                 className="flex-1 text-white text-sm mr-2"
                 placeholder="FairCoin address"
-                placeholderTextColor="#6b7280"
+                placeholderTextColor={colors.mutedForeground}
                 value={address}
                 onChangeText={setAddress}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
               <Pressable
-                className="bg-fair-dark border border-fair-border rounded-lg px-2 py-1 mr-1"
+                className="bg-background border border-border rounded-lg px-2 py-1 mr-1"
                 onPress={handlePaste}
               >
-                <Text className="text-fair-green text-xs">Paste</Text>
+                <Text className="text-primary text-xs">Paste</Text>
               </Pressable>
               <Pressable
-                className="bg-fair-dark border border-fair-border rounded-lg px-2 py-1"
+                className="bg-background border border-border rounded-lg px-2 py-1"
                 onPress={() => setShowQRScanner(true)}
               >
-                <Text className="text-fair-green text-xs">QR</Text>
+                <Text className="text-primary text-xs">QR</Text>
               </Pressable>
             </View>
           </Card>
 
           {/* Notes input */}
-          <Text className="text-fair-muted text-xs mb-1">Notes</Text>
+          <Text className="text-muted-foreground text-xs mb-1">Notes</Text>
           <Card className="px-3 py-2.5 mb-4">
             <TextInput
               className="text-white text-sm"
               placeholder="Optional notes"
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={colors.mutedForeground}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -256,6 +258,7 @@ export default function ContactsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isPickMode = params.mode === "pick";
+  const { colors } = useColorScheme();
 
   const contacts = useContactsStore((s) => s.contacts);
   const loadContacts = useContactsStore((s) => s.loadContacts);
@@ -386,7 +389,7 @@ export default function ContactsScreen() {
         isLast={index === displayContacts.length - 1}
         onPress={() => handleContactPress(item)}
         trailing={
-          <View className="w-10 h-10 rounded-full bg-fair-dark items-center justify-center">
+          <View className="w-10 h-10 rounded-full bg-background items-center justify-center">
             <Text className="text-lg">{item.emoji}</Text>
           </View>
         }
@@ -399,7 +402,7 @@ export default function ContactsScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-fair-dark"
+      className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
@@ -411,7 +414,7 @@ export default function ContactsScreen() {
             <MaterialCommunityIcons
               name="arrow-left"
               size={22}
-              color="#9ffb50"
+              color={colors.primary}
             />
           </Pressable>
         }
@@ -420,7 +423,7 @@ export default function ContactsScreen() {
             <MaterialCommunityIcons
               name="plus"
               size={24}
-              color="#9ffb50"
+              color={colors.primary}
             />
           </Pressable>
         }
@@ -432,7 +435,7 @@ export default function ContactsScreen() {
           <TextInput
             className="text-white text-sm"
             placeholder="Search by name or address..."
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={colors.mutedForeground}
             value={searchQuery}
             onChangeText={handleSearch}
             autoCapitalize="none"

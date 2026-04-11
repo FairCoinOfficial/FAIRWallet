@@ -22,7 +22,7 @@ function getSyncState(isSyncing: boolean, connectedPeers: number): SyncState {
 }
 
 const DOT_COLORS: Record<SyncState, string> = {
-  synced: "bg-fair-green",
+  synced: "bg-primary",
   syncing: "bg-yellow-400",
   disconnected: "bg-red-400",
 };
@@ -52,7 +52,7 @@ export function SyncStatus({
   }, [syncState, progress, networkStatus]);
 
   return (
-    <View className="bg-fair-dark-light rounded-xl px-4 py-3">
+    <View className="bg-surface rounded-xl px-4 py-3">
       <View className="flex-row items-center justify-between">
         {/* Status dot + text */}
         <View className="flex-row items-center flex-1 mr-2">
@@ -63,16 +63,16 @@ export function SyncStatus({
         </View>
 
         {/* Peers */}
-        <Text className="text-fair-muted text-xs">
+        <Text className="text-muted-foreground text-xs">
           {connectedPeers} {connectedPeers === 1 ? "peer" : "peers"}
         </Text>
       </View>
 
       {/* Progress bar */}
       {isSyncing ? (
-        <View className="mt-2 h-1.5 bg-fair-dark rounded-full overflow-hidden">
+        <View className="mt-2 h-1.5 bg-background rounded-full overflow-hidden">
           <View
-            className="h-full bg-fair-green rounded-full"
+            className="h-full bg-primary rounded-full"
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
           />
         </View>
@@ -80,7 +80,7 @@ export function SyncStatus({
 
       {/* Chain height */}
       {chainHeight > 0 ? (
-        <Text className="text-fair-muted text-xs mt-1">
+        <Text className="text-muted-foreground text-xs mt-1">
           Block #{chainHeight.toLocaleString()}
         </Text>
       ) : null}

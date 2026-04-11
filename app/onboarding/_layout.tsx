@@ -3,20 +3,27 @@
  * Dark theme with green back button, transparent headers.
  */
 
+import { useMemo } from "react";
 import { Stack } from "expo-router";
-
-const SCREEN_OPTIONS = {
-  headerStyle: { backgroundColor: "transparent" },
-  headerTintColor: "#9ffb50",
-  headerTitleStyle: { color: "#ffffff" },
-  headerTransparent: true,
-  contentStyle: { backgroundColor: "#1b1e09" },
-  headerShadowVisible: false,
-} as const;
+import { useColorScheme } from "../../src/theme/useColorScheme";
 
 export default function OnboardingLayout() {
+  const { colors } = useColorScheme();
+
+  const screenOptions = useMemo(
+    () => ({
+      headerStyle: { backgroundColor: "transparent" },
+      headerTintColor: colors.primary,
+      headerTitleStyle: { color: colors.foreground },
+      headerTransparent: true,
+      contentStyle: { backgroundColor: colors.background },
+      headerShadowVisible: false,
+    }),
+    [colors],
+  );
+
   return (
-    <Stack screenOptions={SCREEN_OPTIONS}>
+    <Stack screenOptions={screenOptions}>
       <Stack.Screen
         name="welcome"
         options={{ headerShown: false }}

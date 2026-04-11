@@ -22,6 +22,7 @@ import {
   getCachedPrice,
   type PriceData,
 } from "../../src/services/price";
+import { useColorScheme } from "../../src/theme/useColorScheme";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -41,6 +42,7 @@ function formatBalance(sats: bigint): string {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useColorScheme();
 
   const balance = useWalletStore((s) => s.balance);
   const isSyncing = useWalletStore((s) => s.isSyncing);
@@ -71,11 +73,11 @@ export default function HomeScreen() {
   const syncState = useMemo(() => {
     if (connectedPeers === 0) return { dot: "bg-red-400", label: "Offline" };
     if (isSyncing) return { dot: "bg-yellow-400", label: `Syncing ${Math.round(syncProgress)}%` };
-    return { dot: "bg-fair-green", label: "Synced" };
+    return { dot: "bg-primary", label: "Synced" };
   }, [connectedPeers, isSyncing, syncProgress]);
 
   return (
-    <View className="flex-1 bg-fair-dark">
+    <View className="flex-1 bg-background">
       <ScrollView
         className="flex-1"
         contentContainerClassName="pb-6"
@@ -85,7 +87,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={loading}
             onRefresh={handleRefresh}
-            tintColor="#9ffb50"
+            tintColor={colors.primary}
           />
         }
       >
@@ -102,7 +104,7 @@ export default function HomeScreen() {
             <MaterialCommunityIcons
               name="chevron-down"
               size={18}
-              color="#6b7280"
+              color={colors.mutedForeground}
             />
           </Pressable>
 
@@ -116,7 +118,7 @@ export default function HomeScreen() {
               onPress={() => router.push("/peers")}
             >
               <View className={`w-1.5 h-1.5 rounded-full ${syncState.dot} mr-1`} />
-              <Text className="text-fair-muted text-[11px]">{syncState.label}</Text>
+              <Text className="text-muted-foreground text-[11px]">{syncState.label}</Text>
             </Pressable>
           </View>
         </View>
@@ -158,18 +160,18 @@ export default function HomeScreen() {
         {/* ---- Sync progress (only visible while syncing) ---- */}
         {isSyncing ? (
           <View className="mx-5 mb-4">
-            <View className="h-0.5 bg-fair-border rounded-full overflow-hidden">
+            <View className="h-0.5 bg-border rounded-full overflow-hidden">
               <View
-                className="h-full bg-fair-green rounded-full"
+                className="h-full bg-primary rounded-full"
                 style={{ width: `${Math.min(100, Math.max(0, syncProgress))}%` }}
               />
             </View>
             <View className="flex-row justify-between mt-1">
-              <Text className="text-fair-muted text-[10px]">
+              <Text className="text-muted-foreground text-[10px]">
                 {connectedPeers} {connectedPeers === 1 ? "peer" : "peers"}
               </Text>
               {chainHeight > 0 ? (
-                <Text className="text-fair-muted text-[10px]">
+                <Text className="text-muted-foreground text-[10px]">
                   Block {chainHeight.toLocaleString()}
                 </Text>
               ) : null}
@@ -184,7 +186,7 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-white text-lg font-semibold">Activity</Text>
             {transactions.length > 0 ? (
-              <Text className="text-fair-muted text-xs">
+              <Text className="text-muted-foreground text-xs">
                 {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
               </Text>
             ) : null}
@@ -197,7 +199,7 @@ export default function HomeScreen() {
               subtitle="Your transactions will appear here"
             />
           ) : (
-            <View className="bg-fair-dark-light rounded-2xl overflow-hidden">
+            <View className="bg-surface rounded-2xl overflow-hidden">
               {recentTransactions.map((tx, idx) => (
                 <View key={tx.txid}>
                   <TransactionItem
@@ -211,7 +213,7 @@ export default function HomeScreen() {
                     confirmations={tx.confirmations}
                   />
                   {idx < recentTransactions.length - 1 ? (
-                    <View className="h-px bg-fair-border ml-16" />
+                    <View className="h-px bg-border ml-16" />
                   ) : null}
                 </View>
               ))}

@@ -13,7 +13,7 @@ interface CardProps {
 export function Card({ children, className = "" }: CardProps) {
   return (
     <View
-      className={`bg-fair-dark-light rounded-2xl overflow-hidden ${className}`.trim()}
+      className={`bg-surface rounded-2xl overflow-hidden ${className}`.trim()}
     >
       {children}
     </View>

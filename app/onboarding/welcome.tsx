@@ -20,15 +20,15 @@ export default function WelcomeScreen() {
   }, [router]);
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark">
+    <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1 items-center justify-between px-8 pt-20 pb-10">
         {/* Brand */}
         <View className="flex-1 items-center justify-center">
-          <Text className="text-fair-green text-7xl mb-6">{"\u229C"}</Text>
+          <Text className="text-primary text-7xl mb-6">{"\u229C"}</Text>
           <Text className="text-white text-3xl font-bold tracking-wider mb-3">
             FAIRWallet
           </Text>
-          <Text className="text-fair-muted text-base tracking-widest">
+          <Text className="text-muted-foreground text-base tracking-widest">
             Secure. Private. Yours.
           </Text>
         </View>

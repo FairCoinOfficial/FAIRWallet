@@ -25,6 +25,7 @@ import {
 } from "../src/ui/components";
 import { PinDots } from "../src/ui/components/PinDots";
 import { PinPad } from "../src/ui/components/PinPad";
+import { useColorScheme } from "../src/theme/useColorScheme";
 
 const PIN_LENGTH = 6;
 
@@ -41,6 +42,7 @@ type ExportStep = "pin" | "select" | "passphrase" | "result";
 export default function ExportKeyScreen() {
   const addresses = useWalletStore((s) => s.addresses);
   const network = useWalletStore((s) => s.network);
+  const { colors } = useColorScheme();
 
   const [step, setStep] = useState<ExportStep>("pin");
   const [pin, setPin] = useState("");
@@ -186,12 +188,12 @@ export default function ExportKeyScreen() {
   if (step === "pin") {
     return (
       <SafeAreaView
-        className="flex-1 bg-fair-dark"
+        className="flex-1 bg-background"
         edges={["top", "bottom", "left", "right"]}
       >
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-white text-xl font-bold mb-2">Verify PIN</Text>
-          <Text className="text-fair-muted text-sm mb-6 text-center">
+          <Text className="text-muted-foreground text-sm mb-6 text-center">
             Enter your PIN to access private key export
           </Text>
 
@@ -213,6 +215,8 @@ export default function ExportKeyScreen() {
             onDigit={handlePinDigit}
             onBackspace={handlePinBackspace}
             disabled={pinVerifying}
+            tintColor={colors.foreground}
+            disabledColor={colors.surface}
           />
         </View>
       </SafeAreaView>
@@ -222,7 +226,7 @@ export default function ExportKeyScreen() {
   if (step === "select") {
     return (
       <SafeAreaView
-        className="flex-1 bg-fair-dark"
+        className="flex-1 bg-background"
         edges={["top", "bottom", "left", "right"]}
       >
         <ScrollView
@@ -262,7 +266,7 @@ export default function ExportKeyScreen() {
   if (step === "passphrase") {
     return (
       <SafeAreaView
-        className="flex-1 bg-fair-dark"
+        className="flex-1 bg-background"
         edges={["top", "bottom", "left", "right"]}
       >
         <ScrollView
@@ -276,11 +280,11 @@ export default function ExportKeyScreen() {
           />
 
           <Card className="p-4 mt-4 mb-4">
-            <Text className="text-fair-muted text-xs mb-1">Passphrase</Text>
+            <Text className="text-muted-foreground text-xs mb-1">Passphrase</Text>
             <TextInput
-              className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
               placeholder="Enter passphrase (min 8 characters)"
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={colors.mutedForeground}
               value={passphrase}
               onChangeText={setPassphrase}
               secureTextEntry
@@ -288,13 +292,13 @@ export default function ExportKeyScreen() {
               autoCorrect={false}
             />
 
-            <Text className="text-fair-muted text-xs mb-1">
+            <Text className="text-muted-foreground text-xs mb-1">
               Confirm Passphrase
             </Text>
             <TextInput
-              className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base"
               placeholder="Confirm passphrase"
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={colors.mutedForeground}
               value={confirmPassphrase}
               onChangeText={setConfirmPassphrase}
               secureTextEntry
@@ -324,7 +328,7 @@ export default function ExportKeyScreen() {
   // Result step
   return (
     <SafeAreaView
-      className="flex-1 bg-fair-dark"
+      className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
     >
       <ScrollView
@@ -338,9 +342,9 @@ export default function ExportKeyScreen() {
 
         {/* Encrypted key display */}
         <Pressable onPress={handleCopyEncrypted}>
-          <Card className="p-4 mt-4 mb-4 border border-fair-green">
+          <Card className="p-4 mt-4 mb-4 border border-primary">
             <Text
-              className="text-fair-green text-sm text-center font-mono"
+              className="text-primary text-sm text-center font-mono"
               selectable
             >
               {encryptedKey}
@@ -356,7 +360,7 @@ export default function ExportKeyScreen() {
             <MaterialCommunityIcons
               name="content-copy"
               size={18}
-              color="#1b1e09"
+              color={colors.background}
             />
           }
         />

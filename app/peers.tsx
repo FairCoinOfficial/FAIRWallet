@@ -19,6 +19,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
+import { useColorScheme } from "../src/theme/useColorScheme";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -127,6 +128,7 @@ export default function PeersScreen() {
   const isSyncing = useWalletStore((s) => s.isSyncing);
   const syncProgress = useWalletStore((s) => s.syncProgress);
   const network = useWalletStore((s) => s.network);
+  const { colors } = useColorScheme();
 
   const { peers, loadPeers, addPeer } = usePeers();
 
@@ -180,7 +182,7 @@ export default function PeersScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-fair-dark"
+      className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
     >
       <ScrollView
@@ -195,23 +197,23 @@ export default function PeersScreen() {
         {/* Stats card */}
         <Card className="p-4 mb-6">
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-fair-muted text-sm">Connected Peers</Text>
+            <Text className="text-muted-foreground text-sm">Connected Peers</Text>
             <Text className="text-white text-sm font-semibold">
               {connectedPeers}
             </Text>
           </View>
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-fair-muted text-sm">Chain Height</Text>
+            <Text className="text-muted-foreground text-sm">Chain Height</Text>
             <Text className="text-white text-sm font-semibold">
               {chainHeight > 0 ? chainHeight.toLocaleString() : "Unknown"}
             </Text>
           </View>
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-fair-muted text-sm">Sync Status</Text>
+            <Text className="text-muted-foreground text-sm">Sync Status</Text>
             <Badge text={syncStatusText} variant={syncStatusVariant} />
           </View>
           <View className="flex-row items-center justify-between">
-            <Text className="text-fair-muted text-sm">Network</Text>
+            <Text className="text-muted-foreground text-sm">Network</Text>
             <Badge
               text={network === "testnet" ? "Testnet" : "Mainnet"}
               variant={network === "testnet" ? "warning" : "info"}
@@ -255,11 +257,11 @@ export default function PeersScreen() {
         {/* Add peer section */}
         <Section title="Add Peer" className="mb-6">
           <Card className="p-4">
-            <Text className="text-fair-muted text-xs mb-1">IP Address</Text>
+            <Text className="text-muted-foreground text-xs mb-1">IP Address</Text>
             <TextInput
-              className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
               placeholder="192.168.1.1"
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={colors.mutedForeground}
               value={ipInput}
               onChangeText={(text) => {
                 setIpInput(text);
@@ -270,11 +272,11 @@ export default function PeersScreen() {
               keyboardType="numbers-and-punctuation"
             />
 
-            <Text className="text-fair-muted text-xs mb-1">Port</Text>
+            <Text className="text-muted-foreground text-xs mb-1">Port</Text>
             <TextInput
-              className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
               placeholder={DEFAULT_PORT}
-              placeholderTextColor="#6b7280"
+              placeholderTextColor={colors.mutedForeground}
               value={portInput}
               onChangeText={(text) => {
                 setPortInput(text);

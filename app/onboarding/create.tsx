@@ -17,6 +17,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
 import { Card } from "../../src/ui/components/Card";
+import { useColorScheme } from "../../src/theme/useColorScheme";
 
 type Step = "generating" | "display" | "verify" | "complete";
 
@@ -63,7 +64,7 @@ function StepIndicator({ total, current }: { total: number; current: number }) {
         <View
           key={`step-${i}`}
           className={`h-1.5 rounded-full ${
-            i <= current ? "bg-fair-green w-6" : "bg-fair-dark-light w-3"
+            i <= current ? "bg-primary w-6" : "bg-surface w-3"
           }`}
         />
       ))}
@@ -74,6 +75,7 @@ function StepIndicator({ total, current }: { total: number; current: number }) {
 export default function CreateWalletScreen() {
   const router = useRouter();
   const createWallet = useWalletStore((s) => s.createWallet);
+  const { colors } = useColorScheme();
 
   const [step, setStep] = useState<Step>("generating");
   const [words, setWords] = useState<string[]>([]);
@@ -147,9 +149,9 @@ export default function CreateWalletScreen() {
   // -- Generate screen --
   if (isGenerating) {
     return (
-      <SafeAreaView className="flex-1 bg-fair-dark">
+      <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-fair-green text-5xl mb-8">{"\u229C"}</Text>
+          <Text className="text-primary text-5xl mb-8">{"\u229C"}</Text>
 
           {error ? (
             <>
@@ -163,7 +165,7 @@ export default function CreateWalletScreen() {
               <Text className="text-white text-xl font-semibold mb-3">
                 Create your wallet
               </Text>
-              <Text className="text-fair-muted text-sm text-center mb-8">
+              <Text className="text-muted-foreground text-sm text-center mb-8">
                 We&apos;ll generate a 24-word recovery phrase that only you control.
               </Text>
               <Button
@@ -182,7 +184,7 @@ export default function CreateWalletScreen() {
   // -- Display mnemonic --
   if (step === "display") {
     return (
-      <SafeAreaView className="flex-1 bg-fair-dark">
+      <SafeAreaView className="flex-1 bg-background">
         <ScrollView
           className="flex-1"
           contentContainerClassName="px-6 pt-24 pb-10"
@@ -192,7 +194,7 @@ export default function CreateWalletScreen() {
           <Text className="text-white text-xl font-bold mb-2 text-center">
             Your Recovery Phrase
           </Text>
-          <Text className="text-fair-muted text-sm mb-8 text-center leading-5">
+          <Text className="text-muted-foreground text-sm mb-8 text-center leading-5">
             Write these words down in order and store them somewhere safe.
           </Text>
 
@@ -204,7 +206,7 @@ export default function CreateWalletScreen() {
                 className="w-[31%] px-3 py-2.5"
               >
                 <View className="flex-row items-baseline gap-1.5">
-                  <Text className="text-fair-muted text-xs">{idx + 1}</Text>
+                  <Text className="text-muted-foreground text-xs">{idx + 1}</Text>
                   <Text className="text-white text-sm font-medium">{word}</Text>
                 </View>
               </Card>
@@ -238,14 +240,14 @@ export default function CreateWalletScreen() {
   // -- Verification step --
   if (step === "verify") {
     return (
-      <SafeAreaView className="flex-1 bg-fair-dark">
+      <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 px-6 pt-24">
           <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
 
           <Text className="text-white text-xl font-bold mb-2 text-center">
             Verify Your Phrase
           </Text>
-          <Text className="text-fair-muted text-sm mb-8 text-center">
+          <Text className="text-muted-foreground text-sm mb-8 text-center">
             What is word #{currentVerifyPosition}?
           </Text>
 
@@ -256,10 +258,10 @@ export default function CreateWalletScreen() {
                 key={`verify-progress-${idx}`}
                 className={`w-2.5 h-2.5 rounded-full ${
                   idx < currentVerifyIdx
-                    ? "bg-fair-green"
+                    ? "bg-primary"
                     : idx === currentVerifyIdx
-                      ? "bg-fair-green-dim"
-                      : "bg-fair-dark-light"
+                      ? "bg-primary-dim"
+                      : "bg-surface"
                 }`}
               />
             ))}
@@ -277,7 +279,7 @@ export default function CreateWalletScreen() {
             {shuffledOptions.map((option, idx) => (
               <Pressable
                 key={`option-${idx}-${option}`}
-                className="w-[31%] bg-fair-dark-light border border-fair-border rounded-2xl py-4 items-center active:border-fair-green active:bg-fair-green/10"
+                className="w-[31%] bg-surface border border-border rounded-2xl py-4 items-center active:border-primary active:bg-primary/10"
                 onPress={() => handleVerifySelect(option)}
               >
                 <Text className="text-white text-base font-medium">
@@ -293,8 +295,8 @@ export default function CreateWalletScreen() {
 
   // -- Complete (briefly shown before redirect) --
   return (
-    <View className="flex-1 bg-fair-dark items-center justify-center">
-      <ActivityIndicator size="large" color="#9ffb50" />
+    <View className="flex-1 bg-background items-center justify-center">
+      <ActivityIndicator size="large" color={colors.primary} />
       <Text className="text-white text-base mt-4">Setting up wallet...</Text>
     </View>
   );

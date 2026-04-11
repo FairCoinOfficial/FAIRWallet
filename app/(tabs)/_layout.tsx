@@ -1,28 +1,25 @@
 /**
  * Tab layout for Android and iOS using native system tab bar.
- * Uses NativeTabs from expo-router for platform-native look and feel.
- * Material symbols (md) for Android, SF Symbols (sf) for iOS.
- *
- * Note: NativeTabs labels are static strings set at render time.
- * For full i18n support, these would need to use translated values
- * from the i18n system. The web tab layout (_layout.web.tsx) already
- * uses t() for translated labels. NativeTabs i18n requires passing
- * the translated strings directly to <NativeTabs.Trigger.Label>.
+ * Dynamically applies dark or light theme from Bloom preset.
  */
 
-import { ThemeProvider, DarkTheme } from "@react-navigation/native";
+import {
+  ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+} from "@react-navigation/native";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useMemo } from "react";
 import { useColorScheme } from "../../src/theme/useColorScheme";
 
 export default function TabLayout() {
-  const { colors } = useColorScheme();
+  const { colors, isDark } = useColorScheme();
 
-  const fairDarkTheme = useMemo(
+  const navTheme = useMemo(
     () => ({
-      ...DarkTheme,
+      ...(isDark ? DarkTheme : DefaultTheme),
       colors: {
-        ...DarkTheme.colors,
+        ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
         background: colors.background,
         card: colors.background,
         border: colors.border,
@@ -30,11 +27,11 @@ export default function TabLayout() {
         text: colors.foreground,
       },
     }),
-    [colors],
+    [colors, isDark],
   );
 
   return (
-    <ThemeProvider value={fairDarkTheme}>
+    <ThemeProvider value={navTheme}>
       <NativeTabs tintColor={colors.primary}>
         <NativeTabs.Trigger name="index">
           <NativeTabs.Trigger.Icon

@@ -9,5 +9,5 @@ interface DividerProps {
 }
 
 export function Divider({ className = "" }: DividerProps) {
-  return <View className={`h-px bg-fair-border ${className}`.trim()} />;
+  return <View className={`h-px bg-border ${className}`.trim()} />;
 }
