@@ -11,7 +11,7 @@ import {
   type GestureResponderEvent,
   type ViewStyle,
 } from "react-native";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "outline" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";

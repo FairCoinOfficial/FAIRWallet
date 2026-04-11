@@ -5,7 +5,7 @@
 
 import { View, Text } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 

@@ -12,7 +12,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { verifyPin, isBiometricsEnabled } from "../src/storage/secure-store";
 import { PinPad } from "../src/ui/components/PinPad";
 import { PinDots } from "../src/ui/components/PinDots";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 const PIN_LENGTH = 6;
 const MAX_ATTEMPTS = 5;

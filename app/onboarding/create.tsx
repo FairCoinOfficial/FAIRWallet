@@ -17,7 +17,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
 import { Card } from "../../src/ui/components/Card";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 type Step = "generating" | "display" | "verify" | "complete";
 

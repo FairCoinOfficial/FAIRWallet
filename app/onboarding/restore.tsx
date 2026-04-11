@@ -10,7 +10,7 @@ import * as Clipboard from "expo-clipboard";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 export default function RestoreWalletScreen() {
   const router = useRouter();

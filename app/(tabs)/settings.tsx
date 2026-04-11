@@ -37,8 +37,8 @@ import {
   PinPad,
 } from "../../src/ui/components";
 import type { NetworkType } from "../../src/core/network";
-import { useBloomTheme, APP_COLOR_NAMES, APP_COLOR_PRESETS } from "@oxyhq/bloom";
-import type { ThemeMode, AppColorName } from "@oxyhq/bloom";
+import { useBloomTheme, APP_COLOR_NAMES, APP_COLOR_PRESETS } from "@oxyhq/bloom/theme";
+import type { ThemeMode, AppColorName } from "@oxyhq/bloom/theme";
 
 const APP_VERSION = "1.0.0";
 const PIN_LENGTH = 6;

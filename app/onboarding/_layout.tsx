@@ -5,7 +5,7 @@
 
 import { useMemo } from "react";
 import { Stack } from "expo-router";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 export default function OnboardingLayout() {
   const theme = useTheme();

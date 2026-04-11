@@ -9,7 +9,7 @@ import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
 import { View, Text, StyleSheet } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { t } from "../../src/i18n";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 interface WebTabProps {
   name: string;

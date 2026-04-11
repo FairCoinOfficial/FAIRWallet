@@ -25,7 +25,7 @@ import {
   ScreenHeader,
 } from "../../src/ui/components";
 import type { ContactRow } from "../../src/storage/database";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 // ---------------------------------------------------------------------------
 // Helpers

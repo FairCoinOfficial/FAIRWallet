@@ -35,7 +35,7 @@ import { QRScanner } from "../../src/ui/components/QRScanner";
 import { ContactPicker } from "../../src/ui/components/ContactPicker";
 import { getCachedPrice } from "../../src/services/price";
 import type { RecentRecipientRow } from "../../src/storage/database";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 const FEE_LEVELS: FeeLevel[] = ["low", "medium", "high"];
 

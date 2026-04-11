@@ -19,7 +19,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 function truncateTxid(txid: string): string {
   if (txid.length <= 20) return txid;

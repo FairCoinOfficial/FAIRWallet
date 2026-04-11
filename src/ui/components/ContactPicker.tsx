@@ -8,7 +8,7 @@ import { View, Text, TextInput, Pressable, Modal, FlatList } from "react-native"
 import { useContactsStore } from "../../wallet/contacts-store";
 import { getDatabase } from "../../wallet/wallet-store";
 import type { ContactRow } from "../../storage/database";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 interface ContactPickerProps {
   visible: boolean;

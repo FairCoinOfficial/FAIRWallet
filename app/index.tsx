@@ -9,7 +9,7 @@ import { View, Text, ActivityIndicator } from "react-native";
 import { Redirect, useFocusEffect } from "expo-router";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { getMnemonic, hasPin } from "../src/storage/secure-store";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 type AppState = "checking" | "onboarding" | "locked" | "ready" | "error";
 

@@ -22,7 +22,7 @@ import {
   getCachedPrice,
   type PriceData,
 } from "../../src/services/price";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 // ---------------------------------------------------------------------------
 // Helpers

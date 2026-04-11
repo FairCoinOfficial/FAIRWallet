@@ -21,7 +21,7 @@ import QRCode from "react-native-qrcode-svg";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Section, Card, ListItem, ActionButton } from "../../src/ui/components";
 import { t } from "../../src/i18n";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 function truncateAddress(address: string): string {
   if (address.length <= 16) return address;

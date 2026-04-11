@@ -19,7 +19,7 @@ import {
   ScreenHeader,
 } from "../src/ui/components";
 import { ScrollView } from "react-native";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 // ---------------------------------------------------------------------------
 // Types

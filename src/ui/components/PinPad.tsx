@@ -6,7 +6,7 @@
 import { useCallback } from "react";
 import { View, Text, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 interface PinPadProps {
   onDigit: (digit: string) => void;

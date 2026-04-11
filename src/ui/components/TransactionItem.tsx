@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 type TransactionType = "send" | "receive" | "stake" | "masternode_reward";
 

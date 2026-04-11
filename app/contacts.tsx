@@ -28,7 +28,7 @@ import {
   ScreenHeader,
 } from "../src/ui/components";
 import { QRScanner } from "../src/ui/components/QRScanner";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 // ---------------------------------------------------------------------------
 // Constants

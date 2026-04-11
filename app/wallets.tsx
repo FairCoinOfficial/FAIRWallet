@@ -27,7 +27,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 // ---------------------------------------------------------------------------
 // Helpers

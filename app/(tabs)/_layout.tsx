@@ -10,7 +10,7 @@ import {
 } from "@react-navigation/native";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useMemo } from "react";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 export default function TabLayout() {
   const theme = useTheme();

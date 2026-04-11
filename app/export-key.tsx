@@ -25,7 +25,7 @@ import {
 } from "../src/ui/components";
 import { PinDots } from "../src/ui/components/PinDots";
 import { PinPad } from "../src/ui/components/PinPad";
-import { useTheme } from "@oxyhq/bloom";
+import { useTheme } from "@oxyhq/bloom/theme";
 
 const PIN_LENGTH = 6;
 
