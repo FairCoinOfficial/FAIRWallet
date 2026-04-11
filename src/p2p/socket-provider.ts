@@ -67,11 +67,11 @@ function getElectronAPI(): ElectronAPI | undefined {
 
 class NativeSocketProvider implements SocketProvider {
   connect(host: string, port: number): SocketConnection {
-    const TcpSocket = require("react-native-tcp-socket") as { default: NativeTcpModule };
+    const TcpSocket = require("react-native-tcp-socket") as NativeTcpModule;
 
     let connectCallback: (() => void) | undefined;
 
-    const socket = TcpSocket.default.createConnection({ host, port }, () => {
+    const socket = TcpSocket.createConnection({ host, port }, () => {
       if (connectCallback) {
         connectCallback();
       }
