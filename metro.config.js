@@ -34,14 +34,6 @@ const originalResolveRequest = config.resolver?.resolveRequest;
 config.resolver = {
   ...config.resolver,
   assetExts: [...(config.resolver?.assetExts ?? []), "wasm"],
-
-  // Enable Node.js package "exports" field resolution.
-  // Required by @noble/hashes which uses the exports map to expose
-  // subpath imports like "@noble/hashes/crypto", "@noble/hashes/sha256".
-  // Without this, Metro warns about unresolvable subpaths and falls back
-  // to file-based resolution (which works but produces noisy warnings).
-  unstable_enablePackageExports: true,
-
   resolveRequest(context, moduleName, platform) {
     // On web, replace react-native-tcp-socket with an empty shim
     // (TCP sockets are not available in browsers; Electron uses IPC instead)
