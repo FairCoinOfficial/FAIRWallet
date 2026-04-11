@@ -349,8 +349,9 @@ export default function SettingsScreen() {
           setBiometricsEnabled(enabled && hardwareAvailable && enrolled);
           setAutoLockMinutes(lockTimeout);
           setDisplayCurrency(currency);
-        } catch {
-          // Settings load failed, leave defaults
+        } catch (_settingsError: unknown) {
+          // Settings load failed - using defaults is safe since all settings
+          // have fallback values set via useState initializers above.
         }
       };
       loadSettings();

@@ -1,11 +1,12 @@
 /**
- * Transaction list item component.
+ * Transaction list item — Revolut-inspired clean design.
  * Tappable to navigate to transaction details.
  */
 
 import { useMemo } from "react";
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 type TransactionType = "send" | "receive" | "stake" | "masternode_reward";
 
@@ -20,23 +21,46 @@ interface TransactionItemProps {
 
 const TYPE_CONFIG: Record<
   TransactionType,
-  { icon: string; amountColor: string; label: string }
+  {
+    icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+    iconBg: string;
+    iconColor: string;
+    amountColor: string;
+    label: string;
+    prefix: string;
+  }
 > = {
-  send: { icon: "\u2191", amountColor: "text-red-400", label: "Sent" },
+  send: {
+    icon: "arrow-up",
+    iconBg: "bg-red-500/10",
+    iconColor: "#f87171",
+    amountColor: "text-red-400",
+    label: "Sent",
+    prefix: "-",
+  },
   receive: {
-    icon: "\u2193",
+    icon: "arrow-down",
+    iconBg: "bg-fair-green/10",
+    iconColor: "#9ffb50",
     amountColor: "text-fair-green",
     label: "Received",
+    prefix: "+",
   },
   stake: {
-    icon: "\u2605",
-    amountColor: "text-fair-green-dim",
-    label: "Stake",
+    icon: "star-outline",
+    iconBg: "bg-purple-500/10",
+    iconColor: "#a78bfa",
+    amountColor: "text-purple-400",
+    label: "Staking Reward",
+    prefix: "+",
   },
   masternode_reward: {
-    icon: "\u2606",
-    amountColor: "text-fair-green",
-    label: "Masternode",
+    icon: "server",
+    iconBg: "bg-blue-500/10",
+    iconColor: "#60a5fa",
+    amountColor: "text-blue-400",
+    label: "Masternode Reward",
+    prefix: "+",
   },
 };
 
@@ -44,22 +68,20 @@ function formatTimeAgo(timestamp: number): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = now - timestamp;
 
-  if (diff < 60) return "just now";
+  if (diff < 60) return "Just now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`;
-  return `${Math.floor(diff / 2592000)}mo ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+
+  const date = new Date(timestamp * 1000);
+  const month = date.toLocaleString("en", { month: "short" });
+  const day = date.getDate();
+  return `${month} ${day}`;
 }
 
 function truncateAddress(address: string): string {
-  if (address.length <= 16) return address;
-  return `${address.slice(0, 8)}...${address.slice(-8)}`;
-}
-
-function getConfirmationColor(confirmations: number): string {
-  if (confirmations === 0) return "text-red-400";
-  if (confirmations < 6) return "text-yellow-400";
-  return "text-fair-green";
+  if (address.length <= 14) return address;
+  return `${address.slice(0, 6)}...${address.slice(-6)}`;
 }
 
 export function TransactionItem({
@@ -74,43 +96,50 @@ export function TransactionItem({
   const config = TYPE_CONFIG[type];
   const timeAgo = useMemo(() => formatTimeAgo(timestamp), [timestamp]);
   const truncated = useMemo(() => truncateAddress(address), [address]);
-  const confirmColor = useMemo(
-    () => getConfirmationColor(confirmations),
-    [confirmations],
-  );
 
-  const amountPrefix = type === "send" ? "-" : "+";
+  const isPending = confirmations === 0;
 
   return (
     <Pressable
-      className="flex-row items-center py-3 px-4 border-b border-fair-border active:bg-fair-dark"
+      className="flex-row items-center py-3.5 px-4 active:bg-fair-dark/50"
       onPress={() => router.push(`/transaction/${txid}`)}
     >
       {/* Icon */}
-      <View className="w-10 h-10 rounded-full bg-fair-dark-light items-center justify-center mr-3">
-        <Text className="text-lg text-white">{config.icon}</Text>
+      <View
+        className={`w-11 h-11 rounded-full ${config.iconBg} items-center justify-center mr-3`}
+      >
+        <MaterialCommunityIcons
+          name={config.icon}
+          size={20}
+          color={config.iconColor}
+        />
       </View>
 
-      {/* Details */}
-      <View className="flex-1">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-white text-sm font-medium">
-            {config.label}
+      {/* Label + address */}
+      <View className="flex-1 mr-3">
+        <Text className="text-white text-sm font-medium" numberOfLines={1}>
+          {config.label}
+        </Text>
+        <View className="flex-row items-center mt-0.5">
+          <Text className="text-fair-muted text-xs" numberOfLines={1}>
+            {truncated}
           </Text>
-          <Text className={`text-sm font-semibold ${config.amountColor}`}>
-            {amountPrefix}
-            {amount} FAIR
-          </Text>
+          {isPending ? (
+            <View className="ml-2 bg-yellow-500/15 rounded-full px-1.5 py-0.5">
+              <Text className="text-yellow-400 text-[9px] font-bold">
+                PENDING
+              </Text>
+            </View>
+          ) : null}
         </View>
-        <View className="flex-row items-center justify-between mt-1">
-          <Text className="text-fair-muted text-xs">{truncated}</Text>
-          <View className="flex-row items-center">
-            <Text className={`text-xs ${confirmColor} mr-2`}>
-              {confirmations} conf
-            </Text>
-            <Text className="text-fair-muted text-xs">{timeAgo}</Text>
-          </View>
-        </View>
+      </View>
+
+      {/* Amount + time */}
+      <View className="items-end">
+        <Text className={`text-sm font-semibold ${config.amountColor}`}>
+          {config.prefix}{amount}
+        </Text>
+        <Text className="text-fair-muted text-xs mt-0.5">{timeAgo}</Text>
       </View>
     </Pressable>
   );

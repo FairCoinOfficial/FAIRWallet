@@ -76,7 +76,8 @@ async function resolveViaDoH(hostname: string): Promise<string[]> {
         return ipv4Addresses;
       }
     } catch {
-      // Try next endpoint
+      // Individual DoH endpoint failed (network error, timeout, etc.)
+      // — try the next endpoint in the list.
       continue;
     }
   }
@@ -109,7 +110,7 @@ export async function resolveDNSSeeds(
         try {
           return await nativeResolver.resolve4(seed);
         } catch {
-          // Fall through to DoH
+          // Native DNS resolution failed for this seed — fall through to DoH.
         }
       }
 

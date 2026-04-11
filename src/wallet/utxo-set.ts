@@ -156,9 +156,7 @@ export class UTXOSet {
         // If change is dust (less than the cost to spend it), fold into fee
         const dustThreshold = BigInt(BYTES_PER_INPUT) * feeRate;
         if (change > 0n && change < dustThreshold) {
-          // No change output; recalculate fee for 1 output
-          const noChangeFee =
-            BigInt(estimateTxSize(selected.length, 1)) * feeRate;
+          // No change output; the excess becomes part of the miner fee
           return {
             selected,
             fee: selectedTotal - targetValue,

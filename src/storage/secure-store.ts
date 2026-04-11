@@ -49,6 +49,7 @@ export async function getWalletIndex(): Promise<WalletInfo[]> {
   try {
     return JSON.parse(raw) as WalletInfo[];
   } catch {
+    // Corrupted wallet index JSON — treat as empty to allow re-creation.
     return [];
   }
 }

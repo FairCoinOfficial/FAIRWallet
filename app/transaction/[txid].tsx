@@ -21,7 +21,6 @@ import {
   getDatabase,
   type WalletTransaction,
 } from "../../src/wallet/wallet-store";
-import { useContactsStore } from "../../src/wallet/contacts-store";
 import { Button } from "../../src/ui/components/Button";
 import type { ContactRow } from "../../src/storage/database";
 

@@ -87,7 +87,7 @@ function ContactForm({
         setAddress(text.trim());
       }
     } catch {
-      // Clipboard read failed silently
+      Alert.alert("Clipboard Error", "Failed to read from clipboard.");
     }
   }, []);
 

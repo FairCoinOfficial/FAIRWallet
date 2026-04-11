@@ -27,15 +27,10 @@ export class DatabaseHeaderStore implements HeaderStore {
   }
 
   async getHeaderByHash(hash: Uint8Array): Promise<StoredBlockHeader | undefined> {
-    // The SPV client uses this for chain validation. We don't have a direct
-    // getHeaderByHash query on the Database class, so we search by hex.
-    // This method is called infrequently (validation only), so a scan
-    // of the latest header is acceptable. For a full implementation,
-    // add a getHeaderByHash(hashHex) method to Database.
-    const _hashHex = bytesToHex(hash);
-    // Database does not currently expose getHeaderByHash.
-    // Return undefined - the SPV client handles this gracefully during validation.
-    return undefined;
+    const hashHex = bytesToHex(hash);
+    const row = await this.db.getHeaderByHash(hashHex);
+    if (!row) return undefined;
+    return rowToStoredHeader(row);
   }
 
   async getHeaderByHeight(height: number): Promise<StoredBlockHeader | undefined> {
@@ -44,19 +39,24 @@ export class DatabaseHeaderStore implements HeaderStore {
     return rowToStoredHeader(row);
   }
 
+  /**
+   * Save headers using batch insert for performance.
+   * During SPV sync, headers arrive in batches of 2,000.
+   * Using a prepared statement inside a transaction is ~100x faster
+   * than individual INSERT calls.
+   */
   async saveHeaders(headers: StoredBlockHeader[]): Promise<void> {
-    for (const header of headers) {
-      await this.db.insertHeader({
-        height: header.height,
-        hash: bytesToHex(header.hash),
-        prev_hash: bytesToHex(header.prevBlock),
-        merkle_root: bytesToHex(header.merkleRoot),
-        timestamp: header.timestamp,
-        bits: header.bits,
-        nonce: header.nonce,
-        version: header.version,
-      });
-    }
+    const rows: BlockHeaderRow[] = headers.map((h) => ({
+      height: h.height,
+      hash: bytesToHex(h.hash),
+      prev_hash: bytesToHex(h.prevBlock),
+      merkle_root: bytesToHex(h.merkleRoot),
+      timestamp: h.timestamp,
+      bits: h.bits,
+      nonce: h.nonce,
+      version: h.version,
+    }));
+    await this.db.insertHeadersBatch(rows);
   }
 
   async getChainHeight(): Promise<number> {

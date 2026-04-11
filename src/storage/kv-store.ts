@@ -48,6 +48,8 @@ function createWebAdapter(): StorageAdapter {
       try {
         return localStorage.getItem(key);
       } catch {
+        // localStorage may throw in private browsing mode or when
+        // storage quota is exceeded. Return null as if the key doesn't exist.
         return null;
       }
     },

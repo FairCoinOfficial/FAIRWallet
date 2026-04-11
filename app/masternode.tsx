@@ -17,7 +17,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { useWalletStore } from "../src/wallet/wallet-store";
-import type { MasternodeUTXO } from "../src/wallet/wallet-store";
 import { Button } from "../src/ui/components/Button";
 
 function truncateTxid(txid: string): string {

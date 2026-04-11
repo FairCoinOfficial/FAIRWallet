@@ -77,7 +77,7 @@ export default function LockScreen() {
           if (result.success && !cancelled) {
             navigateToTabs();
           }
-        } catch {
+        } catch (_biometricError: unknown) {
           // Biometric auth failed or unavailable - fall through to PIN entry
         }
       };

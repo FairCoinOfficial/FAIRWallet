@@ -51,18 +51,22 @@ function useDeepLinkHandler() {
     [router, initialized],
   );
 
-  // Check for initial URL (app opened via deep link)
-  const checkInitialURL = useCallback(async () => {
-    const url = await Linking.getInitialURL();
-    if (url) {
-      handleDeepLink({ url });
-    }
-  }, [handleDeepLink]);
+  // Subscribe to deep links once via ref to avoid re-subscriptions.
+  const linkSubscriptionRef = useRef<ReturnType<typeof Linking.addEventListener> | null>(null);
+  if (linkSubscriptionRef.current === null) {
+    linkSubscriptionRef.current = Linking.addEventListener("url", handleDeepLink);
+  }
 
-  // Listen for incoming URLs while app is running
-  Linking.addEventListener("url", handleDeepLink);
-
-  return { checkInitialURL };
+  // Check for initial URL (app opened via deep link) once on mount via ref.
+  const initialURLChecked = useRef(false);
+  if (!initialURLChecked.current) {
+    initialURLChecked.current = true;
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+  }
 }
 
 /**

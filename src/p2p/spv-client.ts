@@ -439,6 +439,8 @@ export class SPVClient {
     try {
       headers = parseHeaders(payload);
     } catch {
+      // Malformed headers payload from peer — skip this batch and
+      // allow the sync loop to request again from a different peer.
       return;
     }
 
@@ -481,7 +483,9 @@ export class SPVClient {
         this.events.onSyncProgress(this.getSyncProgress());
       }
     } catch {
-      // Storage failure — will retry on next sync round
+      // Header storage failure — will retry on next sync round.
+      // The in-memory chainHeight is not updated, so the next iteration
+      // will re-request the same range.
     }
   }
 
@@ -490,6 +494,7 @@ export class SPVClient {
     try {
       items = parseInv(payload);
     } catch {
+      // Malformed inv payload from peer — ignore this message.
       return;
     }
 
@@ -513,6 +518,7 @@ export class SPVClient {
     try {
       merkleBlock = parseMerkleBlock(payload);
     } catch {
+      // Malformed merkleblock from peer — skip this block.
       return;
     }
 
@@ -521,6 +527,8 @@ export class SPVClient {
     try {
       matchedHashes = validateMerkleProof(merkleBlock);
     } catch {
+      // Invalid Merkle proof — the block's partial tree didn't verify.
+      // This could indicate a misbehaving peer or corrupted data.
       return;
     }
 
@@ -537,6 +545,7 @@ export class SPVClient {
     try {
       tx = parseTx(payload);
     } catch {
+      // Malformed transaction payload from peer — ignore.
       return;
     }
 
@@ -577,7 +586,7 @@ export class SPVClient {
         }
       }
     } catch {
-      // Malformed addr message
+      // Malformed addr message from peer — ignore.
     }
   }
 }

@@ -105,6 +105,7 @@ export function validateAddress(
       decoded.version === network.scriptHash
     );
   } catch {
+    // Invalid base58check encoding or checksum — address is not valid.
     return false;
   }
 }
@@ -115,6 +116,7 @@ export function isP2PKH(address: string, network: NetworkConfig): boolean {
     const decoded = decodeAddress(address);
     return decoded.version === network.pubKeyHash;
   } catch {
+    // Invalid base58check encoding — not a valid P2PKH address.
     return false;
   }
 }
@@ -125,6 +127,7 @@ export function isP2SH(address: string, network: NetworkConfig): boolean {
     const decoded = decodeAddress(address);
     return decoded.version === network.scriptHash;
   } catch {
+    // Invalid base58check encoding — not a valid P2SH address.
     return false;
   }
 }

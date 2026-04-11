@@ -39,7 +39,6 @@ import {
   getWalletMnemonic,
   deleteWalletMnemonic,
   saveWalletXpub,
-  getWalletXpub,
   isWatchOnly as checkIsWatchOnly,
 } from "../storage/secure-store";
 import type { WalletInfo } from "../storage/secure-store";
@@ -623,6 +622,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       const stored = await getMnemonic();
       return stored !== null && stored.length > 0;
     } catch {
+      // Secure store may be unavailable (e.g. app just installed,
+      // keychain locked). Treat as no wallet present.
       return false;
     }
   },

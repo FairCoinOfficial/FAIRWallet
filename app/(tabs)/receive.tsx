@@ -12,7 +12,6 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  FlatList,
   Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

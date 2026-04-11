@@ -375,7 +375,8 @@ export class Peer {
         // Nonce mismatch — could be stale, ignore silently
       }
     } catch {
-      // Malformed pong, not fatal
+      // Malformed pong is non-fatal — the connection remains valid.
+      // The peer simply sent an unparseable response to our ping.
     }
   }
 

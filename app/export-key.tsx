@@ -13,8 +13,6 @@ import {
   ScrollView,
   Pressable,
   Alert,
-  ActivityIndicator,
-  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";

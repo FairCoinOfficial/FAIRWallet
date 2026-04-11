@@ -206,8 +206,9 @@ export class PeerManager {
         this.knownAddresses.add(addr);
       }
     } catch {
-      // DNS resolution failed entirely — known addresses and fallbacks are
-      // already populated by resolveDNSSeeds.
+      // DNS resolution failed entirely — this is expected on networks without
+      // DNS access. resolveDNSSeeds already returns fallback peers on failure,
+      // so the knownAddresses set will still be populated from prior calls.
     }
   }
 

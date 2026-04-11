@@ -24,11 +24,7 @@
         {
           "action": "VIEW",
           "autoVerify": false,
-          "data": [
-            {
-              "scheme": "faircoin"
-            }
-          ],
+          "data": [{ "scheme": "faircoin" }],
           "category": ["DEFAULT", "BROWSABLE"]
         }
       ]
@@ -43,12 +39,8 @@
       "expo-secure-store",
       "expo-sqlite",
       "expo-local-authentication",
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "FAIRWallet needs camera access to scan QR codes."
-        }
-      ]
+      ["expo-camera", { "cameraPermission": "FAIRWallet needs camera access to scan QR codes." }],
+      "./plugins/withGradle813"
     ],
     "experiments": {
       "typedRoutes": true
