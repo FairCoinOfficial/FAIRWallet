@@ -259,6 +259,7 @@ export class SPVClient {
 
     this.peerManager = new PeerManager(peerManagerConfig);
     this.peerManager.onMessage(this.handlePeerMessage.bind(this));
+    this.peerManager.onPeerReady(this.handlePeerReady.bind(this));
   }
 
   // -----------------------------------------------------------------------
@@ -287,6 +288,28 @@ export class SPVClient {
     this.running = false;
     this.syncing = false;
     this.peerManager.stop();
+  }
+
+  /**
+   * Called when a peer completes the version/verack handshake.
+   * Sends our Bloom filter and begins header sync if not already syncing.
+   */
+  private handlePeerReady(peer: Peer): void {
+    // Send Bloom filter to the newly connected peer
+    if (this.bloomFilter) {
+      const filterPayload = serializeFilterLoad(
+        this.bloomFilter.toBytes(),
+        this.bloomFilter.numHashFuncs,
+        this.bloomFilter.tweak,
+        1, // BLOOM_UPDATE_ALL
+      );
+      peer.sendMessage("filterload", filterPayload);
+    }
+
+    // Begin header sync on first ready peer
+    if (this.running && !this.syncing) {
+      void this.syncHeaders();
+    }
   }
 
   /**

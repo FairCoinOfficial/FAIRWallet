@@ -92,8 +92,8 @@ function murmurHash3(data: Uint8Array, seed: number): number {
 
 export class BloomFilter {
   private readonly data: Uint8Array;
-  private readonly numHashFuncs: number;
-  private readonly tweak: number;
+  readonly numHashFuncs: number;
+  readonly tweak: number;
   private readonly flags: number;
 
   constructor(size: number, numHashFuncs: number, tweak: number, flags: number) {

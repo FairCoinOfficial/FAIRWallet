@@ -375,17 +375,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         set({ networkStatus: "Connecting to peers..." });
         await spvClient.start();
 
-        const peerCount = spvClient.getPeerManager().getReadyPeers().length;
         set({
-          connectedPeers: peerCount,
           chainHeight: spvClient.getChainHeight(),
-          isSyncing: true,
-          networkStatus: peerCount > 0
-            ? `Connected to ${peerCount} peer${peerCount === 1 ? "" : "s"}`
-            : "Waiting for peers...",
+          networkStatus: "Waiting for peers...",
         });
 
-        // Start a periodic peer count updater
+        // Periodic peer count updater
         const peerUpdateInterval = setInterval(() => {
           if (!spvClient) {
             clearInterval(peerUpdateInterval);

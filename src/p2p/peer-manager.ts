@@ -22,6 +22,7 @@ export interface PeerManagerConfig {
 }
 
 export type MessageHandler = (peer: Peer, command: string, payload: Uint8Array) => void;
+export type PeerReadyHandler = (peer: Peer) => void;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -48,6 +49,7 @@ export class PeerManager {
   private readonly failedAddresses: Map<string, number> = new Map(); // address -> fail count
 
   private messageHandlers: MessageHandler[] = [];
+  private peerReadyHandlers: PeerReadyHandler[] = [];
   private reconnectTimer: ReturnType<typeof setInterval> | undefined;
   private discoveryTimer: ReturnType<typeof setInterval> | undefined;
   private running = false;
@@ -176,6 +178,13 @@ export class PeerManager {
   }
 
   /**
+   * Register a handler called when a peer completes the version handshake.
+   */
+  onPeerReady(handler: PeerReadyHandler): void {
+    this.peerReadyHandlers.push(handler);
+  }
+
+  /**
    * Remove a previously registered message handler.
    */
   removeMessageHandler(handler: MessageHandler): void {
@@ -262,6 +271,10 @@ export class PeerManager {
       onReady: (peer: Peer) => {
         // Reset fail count on successful connection
         this.failedAddresses.delete(peer.host);
+        // Notify subscribers
+        for (const handler of this.peerReadyHandlers) {
+          handler(peer);
+        }
       },
       onMessage: (peer: Peer, command: string, payload: Uint8Array) => {
         this.dispatchMessage(peer, command, payload);
