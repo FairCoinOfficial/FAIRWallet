@@ -9,35 +9,47 @@ import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
 import { View, Text, StyleSheet } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { t } from "../../src/i18n";
+import { useColorScheme } from "../../src/theme/useColorScheme";
 
 interface WebTabProps {
   name: string;
   href: React.ComponentProps<typeof TabTrigger>["href"];
   icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   label: string;
+  tintColor: string;
 }
 
-function WebTab({ name, href, icon, label }: WebTabProps) {
+function WebTab({ name, href, icon, label, tintColor }: WebTabProps) {
   return (
     <TabTrigger name={name} href={href} style={styles.tab}>
-      <MaterialCommunityIcons name={icon} size={22} color="#9ffb50" />
-      <Text style={styles.tabLabel}>{label}</Text>
+      <MaterialCommunityIcons name={icon} size={22} color={tintColor} />
+      <Text style={[styles.tabLabel, { color: tintColor }]}>{label}</Text>
     </TabTrigger>
   );
 }
 
 export default function TabLayout() {
+  const { colors } = useColorScheme();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Tabs>
         <View style={styles.content}>
           <TabSlot />
         </View>
-        <TabList style={styles.tabList}>
-          <WebTab name="index" href="/(tabs)" icon="wallet" label={t("wallet.title")} />
-          <WebTab name="send" href="/(tabs)/send" icon="arrow-up-bold" label={t("wallet.send")} />
-          <WebTab name="receive" href="/(tabs)/receive" icon="arrow-down-bold" label={t("wallet.receive")} />
-          <WebTab name="settings" href="/(tabs)/settings" icon="cog" label={t("wallet.settings")} />
+        <TabList
+          style={[
+            styles.tabList,
+            {
+              backgroundColor: colors.background,
+              borderTopColor: colors.border,
+            },
+          ]}
+        >
+          <WebTab name="index" href="/(tabs)" icon="wallet" label={t("wallet.title")} tintColor={colors.primary} />
+          <WebTab name="send" href="/(tabs)/send" icon="arrow-up-bold" label={t("wallet.send")} tintColor={colors.primary} />
+          <WebTab name="receive" href="/(tabs)/receive" icon="arrow-down-bold" label={t("wallet.receive")} tintColor={colors.primary} />
+          <WebTab name="settings" href="/(tabs)/settings" icon="cog" label={t("wallet.settings")} tintColor={colors.primary} />
         </TabList>
       </Tabs>
     </View>
@@ -47,7 +59,6 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1b1e09",
   },
   content: {
     flex: 1,
@@ -56,9 +67,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    backgroundColor: "#1b1e09",
     borderTopWidth: 1,
-    borderTopColor: "#3a3f1e",
     paddingVertical: 8,
     paddingBottom: 12,
   },
@@ -69,7 +78,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   tabLabel: {
-    color: "#9ffb50",
     fontSize: 11,
     marginTop: 2,
     fontWeight: "500",

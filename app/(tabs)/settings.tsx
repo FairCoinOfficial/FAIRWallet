@@ -4,7 +4,15 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, ScrollView, Switch, Modal, Alert } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Switch,
+  Modal,
+  Alert,
+  Pressable,
+} from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
@@ -28,6 +36,10 @@ import {
   PinPad,
 } from "../../src/ui/components";
 import type { NetworkType } from "../../src/core/network";
+import { useColorScheme } from "../../src/theme/useColorScheme";
+import { useThemeStore } from "../../src/theme/store";
+import { getAllPresets } from "../../src/theme/presets";
+import type { PresetName } from "../../src/theme/presets";
 
 const APP_VERSION = "1.0.0";
 const PIN_LENGTH = 6;
@@ -192,12 +204,58 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Theme color preset picker
+// ---------------------------------------------------------------------------
+
+function ThemePresetPicker() {
+  const currentPreset = useThemeStore((s) => s.preset);
+  const setPreset = useThemeStore((s) => s.setPreset);
+  const presets = useMemo(() => getAllPresets(), []);
+
+  const handleSelect = useCallback(
+    (name: PresetName) => {
+      setPreset(name);
+    },
+    [setPreset],
+  );
+
+  return (
+    <View className="px-4 py-3 border-t border-fair-border">
+      <Text className="text-fair-muted text-xs mb-2">Color Theme</Text>
+      <View className="flex-row gap-3">
+        {presets.map((preset) => {
+          const isActive = preset.name === currentPreset;
+          return (
+            <Pressable
+              key={preset.name}
+              onPress={() => handleSelect(preset.name)}
+              className="items-center"
+            >
+              <View
+                className={`w-10 h-10 rounded-full items-center justify-center ${isActive ? "border-2 border-white" : "border border-fair-border"}`}
+                style={{ backgroundColor: preset.swatch }}
+              />
+              <Text
+                className={`text-xs mt-1 ${isActive ? "text-white font-semibold" : "text-fair-muted"}`}
+              >
+                {preset.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main settings screen
 // ---------------------------------------------------------------------------
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors: themeColors } = useColorScheme();
   const network = useWalletStore((s) => s.network);
   const connectedPeers = useWalletStore((s) => s.connectedPeers);
   const wipeWallet = useWalletStore((s) => s.wipeWallet);
@@ -498,8 +556,11 @@ export default function SettingsScreen() {
               <Switch
                 value={biometricsEnabled}
                 onValueChange={handleToggleBiometrics}
-                trackColor={{ false: "#3a3f1e", true: "#7cc940" }}
-                thumbColor="#ffffff"
+                trackColor={{
+                  false: themeColors.border,
+                  true: themeColors.accent,
+                }}
+                thumbColor={themeColors.foreground}
               />
             }
             showChevron={false}
@@ -531,8 +592,8 @@ export default function SettingsScreen() {
             iconBg="bg-emerald-500/10"
             iconColor="#34d399"
             onPress={handleCycleCurrency}
-            isLast
           />
+          <ThemePresetPicker />
         </Section>
 
         {/* Network */}

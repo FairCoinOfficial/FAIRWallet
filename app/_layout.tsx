@@ -1,7 +1,7 @@
 /**
  * Root layout for FAIRWallet.
  * Sets up Stack navigation, dark theme, status bar, deep link handling,
- * auto-lock timer, and i18n initialization.
+ * auto-lock timer, theme system, and i18n initialization.
  */
 
 // Crypto polyfill MUST be imported before any crypto library usage.
@@ -10,19 +10,28 @@ import "../src/crypto-polyfill";
 
 import "../global.css";
 
-import { useCallback, useRef } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import { useCallback, useMemo, useRef } from "react";
+import { AppState, type AppStateStatus, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { vars } from "nativewind";
 import * as Linking from "expo-linking";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { parseFairCoinURI } from "../src/core/uri";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { getAutoLockTimeout } from "../src/storage/secure-store";
 import { initLanguage } from "../src/i18n";
+import { useColorScheme } from "../src/theme/useColorScheme";
+import { getPreset } from "../src/theme/presets";
+import { useThemeStore } from "../src/theme/store";
 
 // Initialize language detection on module load (runs once)
 initLanguage();
+
+// Hydrate theme preferences from storage on module load (runs once).
+// This is intentionally fire-and-forget at the module level so the
+// store is ready before the first render when possible.
+useThemeStore.getState().hydrate();
 
 /**
  * Handle incoming faircoin: deep links.
@@ -108,87 +117,110 @@ function useAutoLock() {
   }
 }
 
+/**
+ * Build NativeWind CSS variable overrides from the active theme preset.
+ * The `vars()` helper converts a Record<`--${string}`, string> into a
+ * style object that NativeWind applies as CSS custom properties on native.
+ */
+function useThemeVars() {
+  const { colorScheme, preset } = useColorScheme();
+  const presetData = getPreset(preset as Parameters<typeof getPreset>[0]);
+  const tokens = colorScheme === "dark" ? presetData.dark : presetData.light;
+
+  return useMemo(() => {
+    const entries: Record<`--${string}`, string> = {};
+    for (const [key, value] of Object.entries(tokens)) {
+      entries[key as `--${string}`] = value;
+    }
+    return vars(entries);
+  }, [tokens]);
+}
+
 export default function RootLayout() {
   useDeepLinkHandler();
   useAutoLock();
+  const { colors } = useColorScheme();
+  const themeVars = useThemeVars();
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: "#1b1e09" },
-          headerTintColor: "#9ffb50",
-          headerTitleStyle: { color: "#ffffff" },
-          contentStyle: { backgroundColor: "#1b1e09" },
-          animation: "slide_from_right",
-        }}
-      >
-        <Stack.Screen
-          name="index"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="onboarding"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="lock"
-          options={{ headerShown: false, gestureEnabled: false }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="masternode"
-          options={{
-            title: "Masternode",
-            presentation: "modal",
+      <View style={[{ flex: 1 }, themeVars]}>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.primary,
+            headerTitleStyle: { color: colors.foreground },
+            contentStyle: { backgroundColor: colors.background },
+            animation: "slide_from_right",
           }}
-        />
-        <Stack.Screen
-          name="wallets"
-          options={{
-            title: "Wallets",
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="contacts"
-          options={{
-            title: "Contacts",
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="export-key"
-          options={{
-            title: "Export Key",
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="coin-control"
-          options={{
-            title: "Coin Control",
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="peers"
-          options={{
-            title: "Network Peers",
-            presentation: "modal",
-          }}
-        />
-        <Stack.Screen
-          name="transaction/[txid]"
-          options={{
-            title: "Transaction",
-          }}
-        />
-      </Stack>
+        >
+          <Stack.Screen
+            name="index"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="onboarding"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="lock"
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="(tabs)"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="masternode"
+            options={{
+              title: "Masternode",
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="wallets"
+            options={{
+              title: "Wallets",
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="contacts"
+            options={{
+              title: "Contacts",
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="export-key"
+            options={{
+              title: "Export Key",
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="coin-control"
+            options={{
+              title: "Coin Control",
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="peers"
+            options={{
+              title: "Network Peers",
+              presentation: "modal",
+            }}
+          />
+          <Stack.Screen
+            name="transaction/[txid]"
+            options={{
+              title: "Transaction",
+            }}
+          />
+        </Stack>
+      </View>
     </SafeAreaProvider>
   );
 }
