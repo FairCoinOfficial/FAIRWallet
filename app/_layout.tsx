@@ -176,6 +176,13 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="peers"
+          options={{
+            title: "Network Peers",
+            presentation: "modal",
+          }}
+        />
+        <Stack.Screen
           name="transaction/[txid]"
           options={{
             title: "Transaction",

@@ -13,13 +13,20 @@ import {
   Alert,
   FlatList,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useContactsStore } from "../src/wallet/contacts-store";
 import { getDatabase } from "../src/wallet/wallet-store";
 import type { ContactRow } from "../src/storage/database";
-import { Button } from "../src/ui/components/Button";
+import {
+  Card,
+  Button,
+  ListItem,
+  EmptyState,
+  ScreenHeader,
+} from "../src/ui/components";
 import { QRScanner } from "../src/ui/components/QRScanner";
 
 // ---------------------------------------------------------------------------
@@ -27,11 +34,26 @@ import { QRScanner } from "../src/ui/components/QRScanner";
 // ---------------------------------------------------------------------------
 
 const EMOJI_OPTIONS = [
-  "\uD83D\uDC64", "\uD83D\uDCB0", "\uD83C\uDFE0", "\uD83C\uDFAE",
-  "\uD83D\uDED2", "\uD83D\uDCF1", "\uD83C\uDFE6", "\uD83D\uDC8E",
-  "\uD83C\uDF1F", "\uD83D\uDD11", "\uD83C\uDFB5", "\uD83C\uDF55",
-  "\u2708\uFE0F", "\uD83C\uDFA8", "\uD83C\uDFC6", "\uD83E\uDD1D",
-  "\uD83D\uDCBC", "\uD83C\uDFAF", "\uD83D\uDE80", "\u2B50",
+  "\uD83D\uDC64",
+  "\uD83D\uDCB0",
+  "\uD83C\uDFE0",
+  "\uD83C\uDFAE",
+  "\uD83D\uDED2",
+  "\uD83D\uDCF1",
+  "\uD83C\uDFE6",
+  "\uD83D\uDC8E",
+  "\uD83C\uDF1F",
+  "\uD83D\uDD11",
+  "\uD83C\uDFB5",
+  "\uD83C\uDF55",
+  "\u2708\uFE0F",
+  "\uD83C\uDFA8",
+  "\uD83C\uDFC6",
+  "\uD83E\uDD1D",
+  "\uD83D\uDCBC",
+  "\uD83C\uDFAF",
+  "\uD83D\uDE80",
+  "\u2B50",
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -50,7 +72,12 @@ function truncateAddress(address: string): string {
 interface ContactFormProps {
   visible: boolean;
   editingContact: ContactRow | null;
-  onSave: (name: string, address: string, notes: string, emoji: string) => void;
+  onSave: (
+    name: string,
+    address: string,
+    notes: string,
+    emoji: string,
+  ) => void;
   onClose: () => void;
 }
 
@@ -119,32 +146,34 @@ function ContactForm({
       onShow={handleOpen}
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-6">
-        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+        <Card className="p-6 w-full max-w-sm">
           <Text className="text-white text-lg font-bold mb-4 text-center">
             {editingContact ? "Edit Contact" : "New Contact"}
           </Text>
 
           {/* Emoji picker */}
           <Text className="text-fair-muted text-xs mb-2">Avatar</Text>
-          <View className="flex-row flex-wrap gap-2 mb-4">
-            {EMOJI_OPTIONS.map((e) => (
-              <Pressable
-                key={e}
-                className={`w-9 h-9 rounded-lg items-center justify-center ${
-                  emoji === e
-                    ? "bg-fair-green/20 border border-fair-green"
-                    : "bg-fair-dark"
-                }`}
-                onPress={() => setEmoji(e)}
-              >
-                <Text className="text-lg">{e}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <Card className="p-3 mb-4">
+            <View className="flex-row flex-wrap gap-2">
+              {EMOJI_OPTIONS.map((e) => (
+                <Pressable
+                  key={e}
+                  className={`w-9 h-9 rounded-lg items-center justify-center ${
+                    emoji === e
+                      ? "bg-fair-green/20 border border-fair-green"
+                      : "bg-fair-dark"
+                  }`}
+                  onPress={() => setEmoji(e)}
+                >
+                  <Text className="text-lg">{e}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </Card>
 
           {/* Name input */}
           <Text className="text-fair-muted text-xs mb-1">Name</Text>
-          <View className="bg-fair-dark border border-fair-border rounded-xl px-3 py-2.5 mb-3">
+          <Card className="px-3 py-2.5 mb-3">
             <TextInput
               className="text-white text-sm"
               placeholder="Contact name"
@@ -153,11 +182,11 @@ function ContactForm({
               onChangeText={setName}
               autoCapitalize="words"
             />
-          </View>
+          </Card>
 
           {/* Address input */}
           <Text className="text-fair-muted text-xs mb-1">Address</Text>
-          <View className="bg-fair-dark border border-fair-border rounded-xl px-3 py-2.5 mb-3">
+          <Card className="px-3 py-2.5 mb-3">
             <View className="flex-row items-center">
               <TextInput
                 className="flex-1 text-white text-sm mr-2"
@@ -169,23 +198,23 @@ function ContactForm({
                 autoCorrect={false}
               />
               <Pressable
-                className="bg-fair-dark-light border border-fair-border rounded-lg px-2 py-1 mr-1"
+                className="bg-fair-dark border border-fair-border rounded-lg px-2 py-1 mr-1"
                 onPress={handlePaste}
               >
                 <Text className="text-fair-green text-xs">Paste</Text>
               </Pressable>
               <Pressable
-                className="bg-fair-dark-light border border-fair-border rounded-lg px-2 py-1"
+                className="bg-fair-dark border border-fair-border rounded-lg px-2 py-1"
                 onPress={() => setShowQRScanner(true)}
               >
                 <Text className="text-fair-green text-xs">QR</Text>
               </Pressable>
             </View>
-          </View>
+          </Card>
 
           {/* Notes input */}
           <Text className="text-fair-muted text-xs mb-1">Notes</Text>
-          <View className="bg-fair-dark border border-fair-border rounded-xl px-3 py-2.5 mb-4">
+          <Card className="px-3 py-2.5 mb-4">
             <TextInput
               className="text-white text-sm"
               placeholder="Optional notes"
@@ -195,7 +224,7 @@ function ContactForm({
               multiline
               numberOfLines={2}
             />
-          </View>
+          </Card>
 
           {/* Actions */}
           <View className="gap-3">
@@ -207,7 +236,7 @@ function ContactForm({
             />
             <Button title="Cancel" onPress={handleClose} variant="secondary" />
           </View>
-        </View>
+        </Card>
       </View>
 
       <QRScanner
@@ -220,50 +249,10 @@ function ContactForm({
 }
 
 // ---------------------------------------------------------------------------
-// Contact list item
-// ---------------------------------------------------------------------------
-
-interface ContactItemProps {
-  contact: ContactRow;
-  onPress: (contact: ContactRow) => void;
-  onLongPress: (contact: ContactRow) => void;
-}
-
-function ContactItem({ contact, onPress, onLongPress }: ContactItemProps) {
-  const handlePress = useCallback(() => {
-    onPress(contact);
-  }, [contact, onPress]);
-
-  const handleLongPress = useCallback(() => {
-    onLongPress(contact);
-  }, [contact, onLongPress]);
-
-  return (
-    <Pressable
-      className="flex-row items-center px-4 py-3 border-b border-fair-border active:bg-fair-dark"
-      onPress={handlePress}
-      onLongPress={handleLongPress}
-    >
-      <View className="w-10 h-10 rounded-full bg-fair-dark items-center justify-center mr-3">
-        <Text className="text-lg">{contact.emoji}</Text>
-      </View>
-      <View className="flex-1">
-        <Text className="text-white text-sm font-medium">{contact.name}</Text>
-        <Text className="text-fair-muted text-xs mt-0.5">
-          {truncateAddress(contact.address)}
-        </Text>
-      </View>
-      <Text className="text-fair-muted text-sm">{"\u203A"}</Text>
-    </Pressable>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Main contacts screen
 // ---------------------------------------------------------------------------
 
 export default function ContactsScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isPickMode = params.mode === "pick";
@@ -287,20 +276,17 @@ export default function ContactsScreen() {
     }
   }, [loadContacts]);
 
-  const handleSearch = useCallback(
-    (query: string) => {
-      setSearchQuery(query);
-      if (query.trim() === "") {
-        setSearchResults(null);
-        return;
-      }
-      const db = getDatabase();
-      if (db) {
-        db.searchContacts(query.trim()).then(setSearchResults);
-      }
-    },
-    [],
-  );
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    if (query.trim() === "") {
+      setSearchResults(null);
+      return;
+    }
+    const db = getDatabase();
+    if (db) {
+      db.searchContacts(query.trim()).then(setSearchResults);
+    }
+  }, []);
 
   const displayContacts = useMemo(
     () => searchResults ?? contacts,
@@ -316,11 +302,6 @@ export default function ContactsScreen() {
     (contact: ContactRow) => {
       if (isPickMode) {
         router.back();
-        // Short delay to let navigation complete, then the send screen
-        // will read from a shared mechanism. For simplicity, we copy to clipboard
-        // and the Send screen handles it. Actually, better: we use router params.
-        // expo-router doesn't natively support returning data, so we use
-        // a store-based approach.
         return;
       }
       // In management mode, tap opens edit
@@ -398,40 +379,56 @@ export default function ContactsScreen() {
   }, []);
 
   const renderItem = useCallback(
-    ({ item }: { item: ContactRow }) => (
-      <ContactItem
-        contact={item}
-        onPress={handleContactPress}
-        onLongPress={handleContactLongPress}
+    ({ item, index }: { item: ContactRow; index: number }) => (
+      <ListItem
+        title={item.name}
+        subtitle={truncateAddress(item.address)}
+        isLast={index === displayContacts.length - 1}
+        onPress={() => handleContactPress(item)}
+        trailing={
+          <View className="w-10 h-10 rounded-full bg-fair-dark items-center justify-center">
+            <Text className="text-lg">{item.emoji}</Text>
+          </View>
+        }
       />
     ),
-    [handleContactPress, handleContactLongPress],
+    [handleContactPress, displayContacts.length],
   );
 
   const keyExtractor = useCallback((item: ContactRow) => item.id, []);
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1 bg-fair-dark"
-      style={{ paddingTop: insets.top }}
+      edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-fair-border">
-        <Pressable onPress={() => router.back()} className="p-2">
-          <Text className="text-fair-green text-base font-semibold">
-            {"\u2190"} Back
-          </Text>
-        </Pressable>
-        <Text className="text-white text-lg font-bold">Contacts</Text>
-        <Pressable onPress={handleAddPress} className="p-2">
-          <Text className="text-fair-green text-2xl font-bold">+</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="Contacts"
+        leftAction={
+          <Pressable onPress={() => router.back()} className="p-1">
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={22}
+              color="#9ffb50"
+            />
+          </Pressable>
+        }
+        rightAction={
+          <Pressable onPress={handleAddPress} className="p-1">
+            <MaterialCommunityIcons
+              name="plus"
+              size={24}
+              color="#9ffb50"
+            />
+          </Pressable>
+        }
+      />
 
       {/* Search bar */}
-      <View className="px-4 py-3">
-        <View className="bg-fair-dark-light border border-fair-border rounded-xl px-4 py-2.5">
+      <View className="px-5 py-3">
+        <Card className="px-4 py-2.5">
           <TextInput
             className="text-white text-sm"
             placeholder="Search by name or address..."
@@ -441,26 +438,32 @@ export default function ContactsScreen() {
             autoCapitalize="none"
             autoCorrect={false}
           />
-        </View>
+        </Card>
       </View>
 
       {/* Contact list */}
       {displayContacts.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-fair-muted text-4xl mb-4">{"\uD83D\uDCDA"}</Text>
-          <Text className="text-fair-muted text-base text-center">
-            {searchQuery
-              ? "No contacts match your search"
-              : "No contacts yet. Add one to get started."}
-          </Text>
+          <EmptyState
+            icon="book-open-variant"
+            title={
+              searchQuery
+                ? "No contacts match your search"
+                : "No contacts yet"
+            }
+            subtitle={
+              searchQuery ? undefined : "Add one to get started"
+            }
+          />
         </View>
       ) : (
         <FlatList
           data={displayContacts}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          className="flex-1"
+          className="flex-1 px-5"
           contentContainerClassName="pb-8"
+          ItemSeparatorComponent={null}
         />
       )}
 
@@ -471,6 +474,6 @@ export default function ContactsScreen() {
         onSave={handleFormSave}
         onClose={handleFormClose}
       />
-    </View>
+    </SafeAreaView>
   );
 }

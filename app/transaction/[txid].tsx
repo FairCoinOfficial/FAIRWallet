@@ -4,24 +4,26 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  TextInput,
-  Alert,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, Text, ScrollView, TextInput, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import {
   useWalletStore,
   getDatabase,
   type WalletTransaction,
 } from "../../src/wallet/wallet-store";
-import { Button } from "../../src/ui/components/Button";
+import {
+  Section,
+  ListItem,
+  Card,
+  Button,
+  Badge,
+  EmptyState,
+  ScreenHeader,
+} from "../../src/ui/components";
 import type { ContactRow } from "../../src/storage/database";
 
 // ---------------------------------------------------------------------------
@@ -56,88 +58,21 @@ type TransactionType = "send" | "receive" | "stake" | "masternode_reward";
 
 interface TypeBadgeConfig {
   label: string;
-  bgClass: string;
-  textClass: string;
+  variant: "success" | "warning" | "error" | "info";
 }
 
 const TYPE_BADGE: Record<TransactionType, TypeBadgeConfig> = {
-  send: {
-    label: "Sent",
-    bgClass: "bg-red-900/30 border-red-600/50",
-    textClass: "text-red-400",
-  },
-  receive: {
-    label: "Received",
-    bgClass: "bg-green-900/30 border-green-600/50",
-    textClass: "text-fair-green",
-  },
-  stake: {
-    label: "Stake",
-    bgClass: "bg-yellow-900/30 border-yellow-600/50",
-    textClass: "text-yellow-400",
-  },
-  masternode_reward: {
-    label: "Masternode Reward",
-    bgClass: "bg-green-900/30 border-green-600/50",
-    textClass: "text-fair-green",
-  },
+  send: { label: "Sent", variant: "error" },
+  receive: { label: "Received", variant: "success" },
+  stake: { label: "Stake", variant: "warning" },
+  masternode_reward: { label: "Masternode Reward", variant: "success" },
 };
-
-// ---------------------------------------------------------------------------
-// Detail row component
-// ---------------------------------------------------------------------------
-
-interface DetailRowProps {
-  label: string;
-  value: string;
-  mono?: boolean;
-  valueColor?: string;
-  onCopy?: string;
-}
-
-function DetailRow({
-  label,
-  value,
-  mono = false,
-  valueColor = "text-white",
-  onCopy,
-}: DetailRowProps) {
-  const handleCopy = useCallback(() => {
-    if (onCopy) {
-      Clipboard.setStringAsync(onCopy);
-      Alert.alert("Copied", "Copied to clipboard");
-    }
-  }, [onCopy]);
-
-  return (
-    <View className="flex-row items-start justify-between py-3 border-b border-fair-border">
-      <Text className="text-fair-muted text-sm flex-shrink-0 mr-4">
-        {label}
-      </Text>
-      <View className="flex-row items-center flex-shrink">
-        <Text
-          className={`text-sm ${valueColor} ${mono ? "font-mono" : ""} text-right flex-shrink`}
-          numberOfLines={mono ? 1 : undefined}
-          ellipsizeMode="middle"
-        >
-          {value}
-        </Text>
-        {onCopy ? (
-          <Pressable onPress={handleCopy} className="ml-2 p-1">
-            <Text className="text-fair-green text-xs">Copy</Text>
-          </Pressable>
-        ) : null}
-      </View>
-    </View>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Main screen
 // ---------------------------------------------------------------------------
 
 export default function TransactionDetailScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { txid } = useLocalSearchParams<{ txid: string }>();
   const transactions = useWalletStore((s) => s.transactions);
@@ -195,17 +130,28 @@ export default function TransactionDetailScreen() {
     Alert.alert("Copied", "Transaction ID copied to clipboard");
   }, [txid]);
 
+  const handleCopyAddress = useCallback(() => {
+    if (!transaction) return;
+    Clipboard.setStringAsync(transaction.address);
+    Alert.alert("Copied", "Address copied to clipboard");
+  }, [transaction]);
+
   const handleAddToContacts = useCallback(() => {
     router.push("/contacts");
   }, [router]);
 
   if (!transaction) {
     return (
-      <View className="flex-1 bg-fair-dark" style={{ paddingTop: insets.top }}>
+      <SafeAreaView
+        className="flex-1 bg-fair-dark"
+        edges={["top", "bottom", "left", "right"]}
+      >
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-fair-muted text-base text-center">
-            Transaction not found
-          </Text>
+          <EmptyState
+            icon="file-find"
+            title="Transaction not found"
+            subtitle="This transaction could not be loaded"
+          />
           <View className="mt-4">
             <Button
               title="Go Back"
@@ -214,7 +160,7 @@ export default function TransactionDetailScreen() {
             />
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -224,73 +170,82 @@ export default function TransactionDetailScreen() {
   const amountDisplay = formatSats(transaction.amount);
   const amountColor = isPositive ? "text-fair-green" : "text-red-400";
   const isConfirmed = transaction.confirmations >= 6;
-  const statusText = isConfirmed ? "Confirmed" : "Pending";
-  const statusColor = isConfirmed ? "text-fair-green" : "text-yellow-400";
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1 bg-fair-dark"
+      edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-4 pb-8"
-        contentContainerStyle={{ paddingTop: insets.top }}
+        contentContainerClassName="px-5 pt-4 pb-8"
       >
         {/* Type badge */}
         <View className="items-center mb-4">
-          <View className={`border rounded-full px-4 py-1.5 ${badgeConfig.bgClass}`}>
-            <Text className={`text-sm font-semibold ${badgeConfig.textClass}`}>
-              {badgeConfig.label}
-            </Text>
-          </View>
+          <Badge
+            text={badgeConfig.label}
+            variant={badgeConfig.variant}
+            size="md"
+          />
         </View>
 
         {/* Amount */}
         <View className="items-center mb-6">
           <Text className={`text-3xl font-bold ${amountColor}`}>
-            {amountSign}{amountDisplay}
+            {amountSign}
+            {amountDisplay}
           </Text>
           <Text className="text-fair-muted text-base mt-1">FAIR</Text>
         </View>
 
-        {/* Details card */}
-        <View className="bg-fair-dark-light rounded-xl px-4 mb-6">
-          <DetailRow
-            label="Status"
-            value={`${statusText} (${transaction.confirmations} confirmations)`}
-            valueColor={statusColor}
+        {/* Details */}
+        <Section title="Details" className="mb-6">
+          <ListItem
+            icon="check-circle"
+            iconBg={isConfirmed ? "bg-green-500/15" : "bg-yellow-500/15"}
+            iconColor={isConfirmed ? "#22c55e" : "#facc15"}
+            title="Status"
+            value={`${isConfirmed ? "Confirmed" : "Pending"} (${transaction.confirmations})`}
+            isLast={false}
           />
-          <DetailRow
-            label="Date"
+          <ListItem
+            icon="identifier"
+            title="Transaction ID"
+            subtitle={txid ?? ""}
+            onPress={handleCopyTxid}
+            isLast={false}
+          />
+          <ListItem
+            icon="clock-outline"
+            title="Date"
             value={formatTimestamp(transaction.timestamp)}
+            isLast={false}
           />
-          <DetailRow
-            label="Address"
-            value={
+          {transaction.type === "send" ? (
+            <ListItem
+              icon="currency-usd"
+              title="Fee"
+              value="Included in total"
+              isLast={false}
+            />
+          ) : null}
+          <ListItem
+            icon="map-marker"
+            title="Address"
+            subtitle={
               contact
                 ? `${contact.emoji} ${contact.name} (${truncateAddress(transaction.address)})`
                 : truncateAddress(transaction.address)
             }
-            onCopy={transaction.address}
+            onPress={handleCopyAddress}
+            isLast
           />
-          <DetailRow
-            label="Transaction ID"
-            value={txid ?? ""}
-            mono
-            onCopy={txid}
-          />
-          {transaction.type === "send" ? (
-            <DetailRow label="Fee" value="Included in total" />
-          ) : null}
-        </View>
+        </Section>
 
         {/* Transaction note */}
-        <View className="mb-6">
-          <Text className="text-white text-sm font-medium mb-2">
-            Transaction Note
-          </Text>
-          <View className="bg-fair-dark-light border border-fair-border rounded-xl p-3 mb-3">
+        <Section title="Note" className="mb-6">
+          <Card className="p-3">
             <TextInput
               className="text-white text-sm"
               placeholder="Add a note for this transaction..."
@@ -300,45 +255,60 @@ export default function TransactionDetailScreen() {
               multiline
               numberOfLines={3}
             />
-          </View>
-          <Button
-            title="Save Note"
-            onPress={handleSaveNote}
-            variant="secondary"
-            size="sm"
-          />
-        </View>
-
-        {/* Add to contacts (if not already saved) */}
-        {!contact && contactChecked ? (
-          <View className="mb-6">
+          </Card>
+          <View className="mt-3">
             <Button
-              title="Add Address to Contacts"
-              onPress={handleAddToContacts}
-              variant="outline"
+              title="Save Note"
+              onPress={handleSaveNote}
+              variant="secondary"
+              size="sm"
             />
           </View>
-        ) : null}
+        </Section>
 
-        {/* View on explorer */}
-        <View className="mb-6">
+        {/* Actions */}
+        <View className="gap-3">
           <Button
             title="View on Explorer"
             onPress={handleViewExplorer}
             variant="secondary"
+            icon={
+              <MaterialCommunityIcons
+                name="open-in-new"
+                size={18}
+                color="#ffffff"
+              />
+            }
           />
-        </View>
-
-        {/* Copy transaction ID */}
-        <View className="mb-4">
           <Button
             title="Copy Transaction ID"
             onPress={handleCopyTxid}
             variant="ghost"
             size="sm"
+            icon={
+              <MaterialCommunityIcons
+                name="content-copy"
+                size={16}
+                color="#9ffb50"
+              />
+            }
           />
+          {!contact && contactChecked ? (
+            <Button
+              title="Add Address to Contacts"
+              onPress={handleAddToContacts}
+              variant="outline"
+              icon={
+                <MaterialCommunityIcons
+                  name="account-plus"
+                  size={18}
+                  color="#9ffb50"
+                />
+              }
+            />
+          ) : null}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

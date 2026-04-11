@@ -1,5 +1,5 @@
 /**
- * Welcome screen - entry point for new users.
+ * Welcome screen — clean, minimal entry point for new users.
  */
 
 import { useCallback } from "react";
@@ -21,31 +21,31 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-fair-dark">
-      <View className="flex-1 items-center justify-center px-8">
-        {/* Logo / Title */}
-        <View className="items-center mb-16">
-          <Text className="text-fair-green text-5xl font-bold mb-4">
-            FAIR
+      <View className="flex-1 items-center justify-between px-8 pt-20 pb-10">
+        {/* Brand */}
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-fair-green text-7xl mb-6">{"\u229C"}</Text>
+          <Text className="text-white text-3xl font-bold tracking-wider mb-3">
+            FAIRWallet
           </Text>
-          <Text className="text-fair-green text-2xl font-light tracking-widest">
-            Wallet
-          </Text>
-          <Text className="text-white text-base mt-6 opacity-80">
-            Your FairCoin wallet
+          <Text className="text-fair-muted text-base tracking-widest">
+            Secure. Private. Yours.
           </Text>
         </View>
 
-        {/* Buttons */}
+        {/* Actions */}
         <View className="w-full gap-4">
           <Button
-            title="Create New Wallet"
+            title="Create Wallet"
             onPress={handleCreate}
             variant="primary"
+            size="lg"
           />
           <Button
             title="Restore Wallet"
             onPress={handleRestore}
             variant="outline"
+            size="lg"
           />
         </View>
       </View>

@@ -1,6 +1,6 @@
 /**
- * Create wallet flow.
- * Generates mnemonic, displays it, then verifies the user recorded it.
+ * Create wallet flow — Revolut-inspired design.
+ * Generates mnemonic, displays it in a clean grid, then verifies.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -13,12 +13,15 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
+import { Card } from "../../src/ui/components/Card";
 
 type Step = "generating" | "display" | "verify" | "complete";
 
 const VERIFY_COUNT = 3;
+const TOTAL_STEPS = 3; // display → verify → pin-setup
 
 function pickRandomIndices(total: number, count: number): number[] {
   const indices: number[] = [];
@@ -52,6 +55,22 @@ function buildShuffledOptions(words: string[], correctWord: string): string[] {
   return fisherYatesShuffle(shuffled);
 }
 
+/** Renders step indicator dots. */
+function StepIndicator({ total, current }: { total: number; current: number }) {
+  return (
+    <View className="flex-row justify-center gap-2 mb-8">
+      {Array.from({ length: total }, (_, i) => (
+        <View
+          key={`step-${i}`}
+          className={`h-1.5 rounded-full ${
+            i <= current ? "bg-fair-green w-6" : "bg-fair-dark-light w-3"
+          }`}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function CreateWalletScreen() {
   const router = useRouter();
   const createWallet = useWalletStore((s) => s.createWallet);
@@ -75,7 +94,6 @@ export default function CreateWalletScreen() {
     }
   }, [createWallet]);
 
-  // Trigger generation on first render via button
   const isGenerating = step === "generating";
 
   const handleWrittenDown = useCallback(() => {
@@ -83,7 +101,6 @@ export default function CreateWalletScreen() {
     setVerifyIndices(indices);
     setCurrentVerifyIdx(0);
 
-    // Create shuffled options for the first word
     const correctWord = words[indices[0]];
     setShuffledOptions(buildShuffledOptions(words, correctWord));
     setStep("verify");
@@ -110,16 +127,10 @@ export default function CreateWalletScreen() {
 
       setCurrentVerifyIdx(nextIdx);
 
-      // Prepare next options
       const nextCorrectWord = words[verifyIndices[nextIdx]];
       setShuffledOptions(buildShuffledOptions(words, nextCorrectWord));
     },
-    [
-      verifyIndices,
-      currentVerifyIdx,
-      words,
-      router,
-    ],
+    [verifyIndices, currentVerifyIdx, words, router],
   );
 
   const currentVerifyPosition = useMemo(() => {
@@ -127,28 +138,39 @@ export default function CreateWalletScreen() {
     return verifyIndices[currentVerifyIdx] + 1;
   }, [verifyIndices, currentVerifyIdx]);
 
+  const currentStepIndex = useMemo(() => {
+    if (step === "display") return 0;
+    if (step === "verify") return 1;
+    return 2;
+  }, [step]);
+
+  // -- Generate screen --
   if (isGenerating) {
     return (
       <SafeAreaView className="flex-1 bg-fair-dark">
         <View className="flex-1 items-center justify-center px-8">
+          <Text className="text-fair-green text-5xl mb-8">{"\u229C"}</Text>
+
           {error ? (
             <>
-              <Text className="text-red-400 text-base mb-4">{error}</Text>
-              <Button
-                title="Retry"
-                onPress={handleGenerate}
-                variant="primary"
-              />
+              <Text className="text-red-400 text-base mb-6 text-center">
+                {error}
+              </Text>
+              <Button title="Retry" onPress={handleGenerate} variant="primary" />
             </>
           ) : (
             <>
-              <Text className="text-white text-lg mb-6">
-                Generate your wallet
+              <Text className="text-white text-xl font-semibold mb-3">
+                Create your wallet
+              </Text>
+              <Text className="text-fair-muted text-sm text-center mb-8">
+                We&apos;ll generate a 24-word recovery phrase that only you control.
               </Text>
               <Button
-                title="Generate 24-Word Recovery Phrase"
+                title="Generate Recovery Phrase"
                 onPress={handleGenerate}
                 variant="primary"
+                size="lg"
               />
             </>
           )}
@@ -157,69 +179,82 @@ export default function CreateWalletScreen() {
     );
   }
 
+  // -- Display mnemonic --
   if (step === "display") {
     return (
       <SafeAreaView className="flex-1 bg-fair-dark">
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-6 pt-20 pb-8"
+          contentContainerClassName="px-6 pt-24 pb-10"
         >
+          <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
+
           <Text className="text-white text-xl font-bold mb-2 text-center">
             Your Recovery Phrase
           </Text>
-          <Text className="text-fair-muted text-sm mb-6 text-center">
-            Write these words down and store them safely. They are the ONLY way
-            to recover your wallet.
+          <Text className="text-fair-muted text-sm mb-8 text-center leading-5">
+            Write these words down in order and store them somewhere safe.
           </Text>
 
+          {/* 3-column word grid */}
+          <View className="flex-row flex-wrap justify-between gap-y-3 mb-8 px-1">
+            {words.map((word, idx) => (
+              <Card
+                key={`word-${idx}-${word}`}
+                className="w-[31%] px-3 py-2.5"
+              >
+                <View className="flex-row items-baseline gap-1.5">
+                  <Text className="text-fair-muted text-xs">{idx + 1}</Text>
+                  <Text className="text-white text-sm font-medium">{word}</Text>
+                </View>
+              </Card>
+            ))}
+          </View>
+
           {/* Warning */}
-          <View className="bg-red-900/30 border border-red-600/50 rounded-xl p-4 mb-6">
-            <Text className="text-red-400 text-sm text-center">
-              Never share your recovery phrase. Anyone with these words can steal
+          <View className="flex-row items-start gap-3 bg-red-950/40 border border-red-600/30 rounded-2xl p-4 mb-8">
+            <MaterialCommunityIcons
+              name="alert-outline"
+              size={20}
+              color="#f87171"
+            />
+            <Text className="text-red-400 text-sm flex-1 leading-5">
+              Never share your recovery phrase. Anyone with these words can access
               your funds.
             </Text>
           </View>
 
-          {/* Word grid: 4 columns x 6 rows */}
-          <View className="flex-row flex-wrap gap-2 mb-8">
-            {words.map((word, idx) => (
-              <View
-                key={`word-${idx}-${word}`}
-                className="bg-fair-dark-light border border-fair-border rounded-lg px-3 py-2 w-[23%]"
-              >
-                <Text className="text-fair-muted text-xs">{idx + 1}</Text>
-                <Text className="text-white text-sm font-medium">{word}</Text>
-              </View>
-            ))}
-          </View>
-
           <Button
-            title="I have written them down"
+            title="I\u2019ve written it down"
             onPress={handleWrittenDown}
             variant="primary"
+            size="lg"
           />
         </ScrollView>
       </SafeAreaView>
     );
   }
 
+  // -- Verification step --
   if (step === "verify") {
     return (
       <SafeAreaView className="flex-1 bg-fair-dark">
-        <View className="flex-1 px-6 pt-20">
+        <View className="flex-1 px-6 pt-24">
+          <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
+
           <Text className="text-white text-xl font-bold mb-2 text-center">
             Verify Your Phrase
           </Text>
           <Text className="text-fair-muted text-sm mb-8 text-center">
-            Select word #{currentVerifyPosition}
+            What is word #{currentVerifyPosition}?
           </Text>
 
-          {/* Progress */}
-          <View className="flex-row justify-center gap-2 mb-8">
+          {/* Verification progress dots */}
+          <View className="flex-row justify-center gap-3 mb-8">
             {verifyIndices.map((_, idx) => (
               <View
-                key={`progress-${idx}`}
-                className={`w-3 h-3 rounded-full ${
+                key={`verify-progress-${idx}`}
+                className={`w-2.5 h-2.5 rounded-full ${
                   idx < currentVerifyIdx
                     ? "bg-fair-green"
                     : idx === currentVerifyIdx
@@ -230,21 +265,24 @@ export default function CreateWalletScreen() {
             ))}
           </View>
 
+          {/* Error */}
           {error ? (
             <Text className="text-red-400 text-sm mb-4 text-center">
               {error}
             </Text>
           ) : null}
 
-          {/* Options */}
-          <View className="gap-3">
+          {/* Word options — 3 per row */}
+          <View className="flex-row flex-wrap justify-between gap-y-3">
             {shuffledOptions.map((option, idx) => (
               <Pressable
-                key={idx}
-                className="bg-fair-dark-light border border-fair-border rounded-xl py-4 px-6 items-center"
+                key={`option-${idx}-${option}`}
+                className="w-[31%] bg-fair-dark-light border border-fair-border rounded-2xl py-4 items-center active:border-fair-green active:bg-fair-green/10"
                 onPress={() => handleVerifySelect(option)}
               >
-                <Text className="text-white text-base">{option}</Text>
+                <Text className="text-white text-base font-medium">
+                  {option}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -253,7 +291,7 @@ export default function CreateWalletScreen() {
     );
   }
 
-  // Complete state (briefly shown before redirect)
+  // -- Complete (briefly shown before redirect) --
   return (
     <View className="flex-1 bg-fair-dark items-center justify-center">
       <ActivityIndicator size="large" color="#9ffb50" />

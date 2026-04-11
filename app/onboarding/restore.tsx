@@ -1,20 +1,13 @@
 /**
- * Restore wallet screen.
- * User enters 24-word mnemonic to restore an existing wallet.
+ * Restore wallet screen — clean mnemonic input with word count feedback.
  */
 
 import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  Pressable,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
 
@@ -58,26 +51,33 @@ export default function RestoreWalletScreen() {
     }
   }, [mnemonicInput, restoreWallet, router]);
 
+  const wordCountColor = useMemo(() => {
+    if (wordCount === 0) return "text-fair-muted";
+    if (isValidCount) return "text-fair-green";
+    return "text-fair-muted";
+  }, [wordCount, isValidCount]);
+
   return (
     <SafeAreaView className="flex-1 bg-fair-dark">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-20 pb-8"
+        contentContainerClassName="px-6 pt-24 pb-10"
         keyboardShouldPersistTaps="handled"
       >
+        {/* Header */}
         <Text className="text-white text-xl font-bold mb-2 text-center">
           Restore Your Wallet
         </Text>
-        <Text className="text-fair-muted text-sm mb-8 text-center">
-          Enter your 24-word recovery phrase to restore your wallet.
+        <Text className="text-fair-muted text-sm mb-8 text-center leading-5">
+          Enter your 24-word recovery phrase to restore access to your wallet.
         </Text>
 
-        {/* Mnemonic input */}
-        <View className="bg-fair-dark-light border border-fair-border rounded-xl p-4 mb-4">
+        {/* Mnemonic input area */}
+        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-5 mb-4">
           <TextInput
-            className="text-white text-base min-h-[120px]"
-            placeholder="Enter your 24-word recovery phrase..."
-            placeholderTextColor="#6b7280"
+            className="text-white text-base leading-6 min-h-[140px] font-mono"
+            placeholder="word1 word2 word3 ..."
+            placeholderTextColor="#4b5563"
             value={mnemonicInput}
             onChangeText={setMnemonicInput}
             multiline
@@ -88,27 +88,35 @@ export default function RestoreWalletScreen() {
           />
         </View>
 
-        {/* Word count and paste */}
+        {/* Word count + paste row */}
         <View className="flex-row items-center justify-between mb-6">
-          <Text
-            className={`text-sm ${
-              isValidCount ? "text-fair-green" : "text-fair-muted"
-            }`}
-          >
-            {wordCount} / 24 words
+          <Text className={`text-sm font-medium ${wordCountColor}`}>
+            {wordCount}/24 words
           </Text>
           <Pressable
-            className="bg-fair-dark-light border border-fair-border rounded-lg px-4 py-2"
+            className="flex-row items-center gap-2 bg-fair-dark-light border border-fair-border rounded-full px-4 py-2 active:bg-fair-green/10"
             onPress={handlePaste}
           >
-            <Text className="text-fair-green text-sm">Paste</Text>
+            <MaterialCommunityIcons
+              name="content-paste"
+              size={16}
+              color="#9ffb50"
+            />
+            <Text className="text-fair-green text-sm font-medium">Paste</Text>
           </Pressable>
         </View>
 
-        {/* Error message */}
+        {/* Validation error */}
         {error ? (
-          <View className="bg-red-900/30 border border-red-600/50 rounded-xl p-4 mb-6">
-            <Text className="text-red-400 text-sm text-center">{error}</Text>
+          <View className="flex-row items-start gap-3 bg-red-950/40 border border-red-600/30 rounded-2xl p-4 mb-6">
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={20}
+              color="#f87171"
+            />
+            <Text className="text-red-400 text-sm flex-1 leading-5">
+              {error}
+            </Text>
           </View>
         ) : null}
 
@@ -117,6 +125,7 @@ export default function RestoreWalletScreen() {
           title="Restore Wallet"
           onPress={handleRestore}
           variant="primary"
+          size="lg"
           disabled={!isValidCount}
           loading={loading}
         />

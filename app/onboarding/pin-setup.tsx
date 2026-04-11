@@ -1,13 +1,15 @@
 /**
- * PIN setup screen shown after wallet creation/restore during onboarding.
+ * PIN setup screen — Revolut-style passcode creation during onboarding.
  * Prompts user to set and confirm a 6-digit PIN.
  */
 
 import { useCallback, useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { savePin } from "../../src/storage/secure-store";
+import { PinPad } from "../../src/ui/components/PinPad";
+import { PinDots } from "../../src/ui/components/PinDots";
 
 const PIN_LENGTH = 6;
 
@@ -21,6 +23,12 @@ export default function PinSetupScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const title = phase === "create" ? "Create a passcode" : "Confirm your passcode";
+  const subtitle =
+    phase === "create"
+      ? "This passcode will protect your wallet"
+      : "Re-enter your passcode to confirm";
+
   const handleDigitPress = useCallback(
     (digit: string) => {
       if (saving) return;
@@ -32,14 +40,12 @@ export default function PinSetupScreen() {
 
         if (next.length === PIN_LENGTH) {
           if (phase === "create") {
-            // Move to confirm phase after a brief delay so user sees the last dot
             setTimeout(() => {
               setFirstPin(next);
               setPin("");
               setPhase("confirm");
             }, 200);
           } else {
-            // Confirm phase - check match
             setTimeout(() => {
               if (next === firstPin) {
                 setSaving(true);
@@ -57,7 +63,7 @@ export default function PinSetupScreen() {
                     setPin("");
                   });
               } else {
-                setError("PINs do not match. Try again.");
+                setError("Passcodes don\u2019t match. Let\u2019s try again.");
                 setPin("");
                 setFirstPin("");
                 setPhase("create");
@@ -78,82 +84,43 @@ export default function PinSetupScreen() {
     setError(null);
   }, [saving]);
 
-  const title = phase === "create" ? "Set a PIN" : "Confirm PIN";
-  const subtitle =
-    phase === "create"
-      ? "Choose a 6-digit PIN to secure your wallet"
-      : "Re-enter your PIN to confirm";
-
   return (
     <SafeAreaView className="flex-1 bg-fair-dark">
-      <View className="flex-1 items-center justify-between px-6 pt-20 pb-10">
-        {/* Header */}
-        <View className="items-center">
-          <Text className="text-white text-2xl font-bold mb-2">{title}</Text>
-          <Text className="text-fair-muted text-sm text-center mb-8">
+      <View className="flex-1 items-center justify-between px-6 pt-16 pb-8">
+        {/* Header + dots */}
+        <View className="items-center flex-1 justify-center">
+          <Text className="text-fair-green text-5xl mb-8">{"\u229C"}</Text>
+
+          <Text className="text-white text-xl font-semibold mb-2">
+            {title}
+          </Text>
+          <Text className="text-fair-muted text-sm text-center mb-10">
             {subtitle}
           </Text>
 
-          {/* PIN dots */}
-          <View className="flex-row gap-4 mb-6">
-            {Array.from({ length: PIN_LENGTH }, (_, i) => (
-              <View
-                key={`dot-${i}`}
-                className={`w-4 h-4 rounded-full ${
-                  i < pin.length ? "bg-fair-green" : "bg-fair-dark-light"
-                }`}
-              />
-            ))}
-          </View>
+          <PinDots
+            length={PIN_LENGTH}
+            filled={pin.length}
+            error={error !== null}
+          />
 
-          {/* Error */}
-          {error ? (
-            <Text className="text-red-400 text-sm text-center">{error}</Text>
-          ) : null}
+          {/* Error feedback */}
+          <View className="h-12 justify-center mt-4">
+            {error ? (
+              <Text className="text-red-400 text-sm text-center px-4">
+                {error}
+              </Text>
+            ) : null}
+          </View>
         </View>
 
         {/* Number pad */}
-        <View className="w-full max-w-xs">
-          {[
-            ["1", "2", "3"],
-            ["4", "5", "6"],
-            ["7", "8", "9"],
-            ["", "0", "back"],
-          ].map((row, rowIdx) => (
-            <View key={`row-${rowIdx}`} className="flex-row justify-around mb-4">
-              {row.map((key) => {
-                if (key === "") {
-                  return (
-                    <View key="empty" className="w-20 h-16" />
-                  );
-                }
-                if (key === "back") {
-                  return (
-                    <Pressable
-                      key="backspace"
-                      className="w-20 h-16 items-center justify-center rounded-2xl active:bg-fair-dark-light"
-                      onPress={handleBackspace}
-                    >
-                      <Text className="text-fair-muted text-2xl">
-                        {"\u232B"}
-                      </Text>
-                    </Pressable>
-                  );
-                }
-                return (
-                  <Pressable
-                    key={`key-${key}`}
-                    className="w-20 h-16 items-center justify-center rounded-2xl bg-fair-dark-light active:bg-fair-green/20"
-                    onPress={() => handleDigitPress(key)}
-                  >
-                    <Text className="text-white text-2xl font-medium">
-                      {key}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
+        <View className="w-full pb-4">
+          <PinPad
+            onDigit={handleDigitPress}
+            onBackspace={handleBackspace}
+            disabled={saving}
+          />
         </View>
       </View>
     </SafeAreaView>

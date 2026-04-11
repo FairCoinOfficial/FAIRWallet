@@ -4,6 +4,9 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
+      spacing: {
+        18: "4.5rem",
+      },
       colors: {
         fair: {
           dark: "#1b1e09",

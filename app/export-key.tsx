@@ -6,22 +6,25 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  Pressable,
-  Alert,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, Text, TextInput, ScrollView, Pressable, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { verifyPin } from "../src/storage/secure-store";
 import { encryptBIP38 } from "../src/core/bip38";
 import { getNetwork } from "../src/core/network";
 import { KeyManager } from "../src/wallet/key-manager";
-import { Button } from "../src/ui/components/Button";
+import {
+  Card,
+  Button,
+  ListItem,
+  Section,
+  EmptyState,
+  ScreenHeader,
+} from "../src/ui/components";
+import { PinDots } from "../src/ui/components/PinDots";
+import { PinPad } from "../src/ui/components/PinPad";
 
 const PIN_LENGTH = 6;
 
@@ -36,7 +39,6 @@ type ExportStep = "pin" | "select" | "passphrase" | "result";
 // ---------------------------------------------------------------------------
 
 export default function ExportKeyScreen() {
-  const insets = useSafeAreaInsets();
   const addresses = useWalletStore((s) => s.addresses);
   const network = useWalletStore((s) => s.network);
 
@@ -129,11 +131,6 @@ export default function ExportKeyScreen() {
     setEncrypting(true);
     try {
       const networkConfig = getNetwork(network);
-      // This is a simplified flow - in production, the KeyManager instance
-      // would be accessed through a secure channel. For the export screen,
-      // we need the private key for the selected address.
-      // The key manager is internal to the wallet store, so we access it
-      // through the store's internal state by re-deriving from the mnemonic.
       const { getMnemonic } = await import("../src/storage/secure-store");
       const mnemonic = await getMnemonic();
       if (!mnemonic) {
@@ -188,23 +185,22 @@ export default function ExportKeyScreen() {
 
   if (step === "pin") {
     return (
-      <View className="flex-1 bg-fair-dark" style={{ paddingTop: insets.top }}>
+      <SafeAreaView
+        className="flex-1 bg-fair-dark"
+        edges={["top", "bottom", "left", "right"]}
+      >
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-white text-xl font-bold mb-2">Verify PIN</Text>
           <Text className="text-fair-muted text-sm mb-6 text-center">
             Enter your PIN to access private key export
           </Text>
 
-          {/* PIN dots */}
-          <View className="flex-row gap-3 mb-4">
-            {Array.from({ length: PIN_LENGTH }, (_, i) => (
-              <View
-                key={`pin-dot-${i}`}
-                className={`w-3.5 h-3.5 rounded-full ${
-                  i < pin.length ? "bg-fair-green" : "bg-fair-dark-light"
-                }`}
-              />
-            ))}
+          <View className="mb-4">
+            <PinDots
+              length={PIN_LENGTH}
+              filled={pin.length}
+              error={pinError !== null}
+            />
           </View>
 
           {pinError ? (
@@ -213,122 +209,76 @@ export default function ExportKeyScreen() {
             </Text>
           ) : null}
 
-          {/* Number pad */}
-          <View className="items-center">
-            {[
-              ["1", "2", "3"],
-              ["4", "5", "6"],
-              ["7", "8", "9"],
-              ["", "0", "back"],
-            ].map((row, rowIdx) => (
-              <View
-                key={`row-${rowIdx}`}
-                className="flex-row justify-around w-full mb-2"
-              >
-                {row.map((key) => {
-                  if (key === "") {
-                    return <View key="empty-key" className="w-16 h-12" />;
-                  }
-                  if (key === "back") {
-                    return (
-                      <Pressable
-                        key="backspace-key"
-                        className="w-16 h-12 items-center justify-center rounded-xl active:bg-fair-dark-light"
-                        onPress={handlePinBackspace}
-                      >
-                        <Text className="text-fair-muted text-xl">
-                          {"\u232B"}
-                        </Text>
-                      </Pressable>
-                    );
-                  }
-                  return (
-                    <Pressable
-                      key={`pin-key-${key}`}
-                      className="w-16 h-12 items-center justify-center rounded-xl bg-fair-dark-light active:bg-fair-green/20"
-                      onPress={() => handlePinDigit(key)}
-                    >
-                      <Text className="text-white text-xl font-medium">
-                        {key}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ))}
-          </View>
+          <PinPad
+            onDigit={handlePinDigit}
+            onBackspace={handlePinBackspace}
+            disabled={pinVerifying}
+          />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (step === "select") {
     return (
-      <View className="flex-1 bg-fair-dark">
+      <SafeAreaView
+        className="flex-1 bg-fair-dark"
+        edges={["top", "bottom", "left", "right"]}
+      >
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-6 pt-6 pb-8"
-          contentContainerStyle={{ paddingTop: insets.top }}
+          contentContainerClassName="px-5 pt-4 pb-8"
         >
-          <Text className="text-white text-xl font-bold mb-2 text-center">
-            Select Address
-          </Text>
-          <Text className="text-fair-muted text-sm mb-6 text-center">
-            Choose the address whose private key you want to export
-          </Text>
+          <ScreenHeader
+            title="Select Address"
+            subtitle="Choose the address whose private key you want to export"
+          />
 
-          {addresses.length === 0 ? (
-            <View className="bg-fair-dark-light rounded-xl p-6 items-center">
-              <Text className="text-fair-muted text-sm text-center">
-                No addresses found.
-              </Text>
-            </View>
-          ) : (
-            <View className="bg-fair-dark-light rounded-xl overflow-hidden">
-              {addresses.map((address, idx) => (
-                <Pressable
+          <Section className="mt-4">
+            {addresses.length === 0 ? (
+              <EmptyState
+                icon="key-remove"
+                title="No addresses found"
+                subtitle="No addresses available for key export"
+              />
+            ) : (
+              addresses.map((address, idx) => (
+                <ListItem
                   key={`addr-${idx}-${address}`}
-                  className={`px-4 py-3.5 ${
-                    idx < addresses.length - 1 ? "border-b border-fair-border" : ""
-                  } active:bg-fair-green/5`}
+                  icon="key"
+                  title={address}
+                  subtitle={`#${idx + 1}`}
+                  isLast={idx === addresses.length - 1}
                   onPress={() => handleSelectAddress(address)}
-                >
-                  <Text className="text-white text-xs font-mono">
-                    {address}
-                  </Text>
-                  <Text className="text-fair-muted text-xs mt-0.5">
-                    #{idx + 1}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
+                />
+              ))
+            )}
+          </Section>
         </ScrollView>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (step === "passphrase") {
     return (
-      <View className="flex-1 bg-fair-dark">
+      <SafeAreaView
+        className="flex-1 bg-fair-dark"
+        edges={["top", "bottom", "left", "right"]}
+      >
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-6 pt-6 pb-8"
-          contentContainerStyle={{ paddingTop: insets.top }}
+          contentContainerClassName="px-5 pt-4 pb-8"
           keyboardShouldPersistTaps="handled"
         >
-          <Text className="text-white text-xl font-bold mb-2 text-center">
-            Set Encryption Passphrase
-          </Text>
-          <Text className="text-fair-muted text-sm mb-6 text-center">
-            This passphrase will be needed to decrypt the exported key.
-            Choose a strong passphrase and store it safely.
-          </Text>
+          <ScreenHeader
+            title="Set Encryption Passphrase"
+            subtitle="This passphrase will be needed to decrypt the exported key. Choose a strong passphrase and store it safely."
+          />
 
-          <Text className="text-fair-muted text-xs mb-1">Passphrase</Text>
-          <View className="bg-fair-dark-light border border-fair-border rounded-xl px-4 py-3 mb-3">
+          <Card className="p-4 mt-4 mb-4">
+            <Text className="text-fair-muted text-xs mb-1">Passphrase</Text>
             <TextInput
-              className="text-white text-base"
+              className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base mb-3"
               placeholder="Enter passphrase (min 8 characters)"
               placeholderTextColor="#6b7280"
               value={passphrase}
@@ -337,14 +287,12 @@ export default function ExportKeyScreen() {
               autoCapitalize="none"
               autoCorrect={false}
             />
-          </View>
 
-          <Text className="text-fair-muted text-xs mb-1">
-            Confirm Passphrase
-          </Text>
-          <View className="bg-fair-dark-light border border-fair-border rounded-xl px-4 py-3 mb-4">
+            <Text className="text-fair-muted text-xs mb-1">
+              Confirm Passphrase
+            </Text>
             <TextInput
-              className="text-white text-base"
+              className="bg-fair-dark border border-fair-border rounded-xl px-4 py-3 text-white text-base"
               placeholder="Confirm passphrase"
               placeholderTextColor="#6b7280"
               value={confirmPassphrase}
@@ -353,11 +301,13 @@ export default function ExportKeyScreen() {
               autoCapitalize="none"
               autoCorrect={false}
             />
-          </View>
 
-          {passphraseError ? (
-            <Text className="text-red-400 text-xs mb-4">{passphraseError}</Text>
-          ) : null}
+            {passphraseError ? (
+              <Text className="text-red-400 text-xs mt-3">
+                {passphraseError}
+              </Text>
+            ) : null}
+          </Card>
 
           <Button
             title={encrypting ? "Encrypting..." : "Encrypt Private Key"}
@@ -367,46 +317,52 @@ export default function ExportKeyScreen() {
             loading={encrypting}
           />
         </ScrollView>
-      </View>
+      </SafeAreaView>
     );
   }
 
   // Result step
   return (
-    <View className="flex-1 bg-fair-dark">
+    <SafeAreaView
+      className="flex-1 bg-fair-dark"
+      edges={["top", "bottom", "left", "right"]}
+    >
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-6 pb-8"
-        contentContainerStyle={{ paddingTop: insets.top }}
+        contentContainerClassName="px-5 pt-4 pb-8"
       >
-        <Text className="text-white text-xl font-bold mb-2 text-center">
-          Encrypted Key
-        </Text>
-        <Text className="text-fair-muted text-sm mb-6 text-center">
-          Your BIP38 encrypted private key
-        </Text>
+        <ScreenHeader
+          title="Encrypted Key"
+          subtitle="Your BIP38 encrypted private key"
+        />
 
         {/* Encrypted key display */}
-        <Pressable
-          className="bg-fair-dark-light border border-fair-green rounded-xl p-4 mb-4"
-          onPress={handleCopyEncrypted}
-        >
-          <Text
-            className="text-fair-green text-sm text-center font-mono"
-            selectable
-          >
-            {encryptedKey}
-          </Text>
+        <Pressable onPress={handleCopyEncrypted}>
+          <Card className="p-4 mt-4 mb-4 border border-fair-green">
+            <Text
+              className="text-fair-green text-sm text-center font-mono"
+              selectable
+            >
+              {encryptedKey}
+            </Text>
+          </Card>
         </Pressable>
 
         <Button
           title="Copy Encrypted Key"
           onPress={handleCopyEncrypted}
           variant="primary"
+          icon={
+            <MaterialCommunityIcons
+              name="content-copy"
+              size={18}
+              color="#1b1e09"
+            />
+          }
         />
 
         {/* Warning */}
-        <View className="bg-yellow-900/20 border border-yellow-600/30 rounded-xl p-4 mt-6">
+        <Card className="p-4 mt-6">
           <Text className="text-yellow-400 text-sm font-semibold mb-1">
             Important
           </Text>
@@ -415,8 +371,8 @@ export default function ExportKeyScreen() {
             safe. Without the passphrase, the private key cannot be recovered
             from this encrypted form.
           </Text>
-        </View>
+        </Card>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -4,7 +4,7 @@
  * and a scrollable list of all generated addresses.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -16,9 +16,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import QRCode from "react-native-qrcode-svg";
 import { useWalletStore } from "../../src/wallet/wallet-store";
-import { Button } from "../../src/ui/components/Button";
+import { Section, Card, ListItem, ActionButton } from "../../src/ui/components";
 import { t } from "../../src/i18n";
 
 function truncateAddress(address: string): string {
@@ -53,17 +54,26 @@ export default function ReceiveScreen() {
     });
   }, [displayAddress]);
 
-  const handleSelectAddress = useCallback(
-    (address: string) => {
-      setSelectedAddress(address);
-    },
-    [],
-  );
+  const handleSelectAddress = useCallback((address: string) => {
+    setSelectedAddress(address);
+  }, []);
 
   const handleCopyAddress = useCallback(async (address: string) => {
     await Clipboard.setStringAsync(address);
     Alert.alert("Copied", "Address copied to clipboard");
   }, []);
+
+  const addressListItems = useMemo(
+    () =>
+      addresses.map((address, idx) => ({
+        address,
+        index: idx,
+        isActive: address === displayAddress,
+        isLast: idx === addresses.length - 1,
+        label: truncateAddress(address),
+      })),
+    [addresses, displayAddress],
+  );
 
   if (!receiveAddress) {
     return (
@@ -82,110 +92,94 @@ export default function ReceiveScreen() {
     <View className="flex-1 bg-fair-dark">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-6 pb-8"
+        contentContainerClassName="px-4 pt-6 pb-8 gap-6"
         contentContainerStyle={{ paddingTop: insets.top }}
       >
         {/* Title */}
-        <Text className="text-white text-xl font-bold mb-1 text-center">
-          {t("receive.title")}
-        </Text>
-        <Text className="text-fair-muted text-sm mb-6 text-center">
-          Share this address to receive FairCoin
-        </Text>
-
-        {/* QR Code */}
-        <View className="items-center mb-6">
-          <View className="w-56 h-56 items-center justify-center">
-            <QRCode
-              value={`faircoin:${displayAddress}`}
-              size={200}
-              color="#9ffb50"
-              backgroundColor="transparent"
-            />
-          </View>
+        <View>
+          <Text className="text-white text-xl font-bold mb-1 text-center">
+            {t("receive.title")}
+          </Text>
+          <Text className="text-fair-muted text-sm text-center">
+            Share this address to receive FairCoin
+          </Text>
         </View>
 
-        {/* Selected address display */}
-        <Pressable
-          className="bg-fair-dark-light border border-fair-border rounded-xl p-4 w-full mb-4"
-          onPress={handleCopy}
-        >
-          <Text
-            className="text-white text-sm text-center font-mono"
-            selectable
-          >
-            {displayAddress}
-          </Text>
-        </Pressable>
+        {/* QR Code + Address */}
+        <Card className="p-6">
+          <View className="items-center mb-4">
+            <View className="w-56 h-56 items-center justify-center">
+              <QRCode
+                value={`faircoin:${displayAddress}`}
+                size={200}
+                color="#9ffb50"
+                backgroundColor="transparent"
+              />
+            </View>
+          </View>
+          <Pressable onPress={handleCopy}>
+            <Text
+              className="text-white text-sm text-center font-mono"
+              selectable
+            >
+              {displayAddress}
+            </Text>
+          </Pressable>
+        </Card>
 
-        {/* Actions */}
-        <View className="w-full gap-3 mb-8">
-          <Button
-            title={t("receive.copy")}
+        {/* Action row */}
+        <View className="flex-row justify-center gap-8">
+          <ActionButton
+            icon="content-copy"
+            label={t("receive.copy")}
             onPress={handleCopy}
-            variant="primary"
+            size="sm"
           />
-          <Button
-            title={t("receive.share")}
+          <ActionButton
+            icon="share-variant"
+            label={t("receive.share")}
             onPress={handleShare}
-            variant="outline"
+            size="sm"
           />
-          <Button
-            title={t("receive.new_address")}
+          <ActionButton
+            icon="plus-circle-outline"
+            label={t("receive.new_address")}
             onPress={handleNewAddress}
-            variant="outline"
+            size="sm"
           />
         </View>
 
         {/* All addresses */}
         {addresses.length > 0 ? (
-          <>
-            <Text className="text-fair-muted text-xs font-semibold uppercase tracking-wider mb-3 px-1">
-              Your Addresses ({addresses.length})
-            </Text>
-            <View className="bg-fair-dark-light rounded-xl overflow-hidden">
-              {addresses.map((address, idx) => {
-                const isActive = address === displayAddress;
-                return (
+          <Section title={`Your Addresses (${addresses.length})`}>
+            {addressListItems.map((item) => (
+              <ListItem
+                key={`${item.index}-${item.address}`}
+                title={item.label}
+                subtitle={`#${item.index + 1}`}
+                icon={item.isActive ? "radiobox-marked" : "radiobox-blank"}
+                iconColor={item.isActive ? "#9ffb50" : "#6b7280"}
+                iconBg={
+                  item.isActive ? "bg-fair-green/10" : "bg-fair-dark"
+                }
+                onPress={() => handleSelectAddress(item.address)}
+                trailing={
                   <Pressable
-                    key={`${idx}-${address}`}
-                    className={`flex-row items-center justify-between px-4 py-3 ${
-                      idx < addresses.length - 1 ? "border-b border-fair-border" : ""
-                    } ${isActive ? "bg-fair-green/5" : ""}`}
-                    onPress={() => handleSelectAddress(address)}
-                    onLongPress={() => handleCopyAddress(address)}
+                    className="p-1.5"
+                    onPress={() => handleCopyAddress(item.address)}
                   >
-                    <View className="flex-1 mr-3">
-                      <View className="flex-row items-center">
-                        {isActive ? (
-                          <View className="w-2 h-2 rounded-full bg-fair-green mr-2" />
-                        ) : null}
-                        <Text
-                          className={`text-xs font-mono ${
-                            isActive ? "text-fair-green" : "text-white"
-                          }`}
-                        >
-                          {truncateAddress(address)}
-                        </Text>
-                      </View>
-                      <Text className="text-fair-muted text-xs mt-0.5">
-                        #{idx + 1}
-                      </Text>
-                    </View>
-                    <Pressable
-                      className="bg-fair-dark border border-fair-border rounded-lg px-3 py-1.5"
-                      onPress={() => handleCopyAddress(address)}
-                    >
-                      <Text className="text-fair-green text-xs">Copy</Text>
-                    </Pressable>
+                    <MaterialCommunityIcons
+                      name="content-copy"
+                      size={16}
+                      color="#9ffb50"
+                    />
                   </Pressable>
-                );
-              })}
-            </View>
-            <Text className="text-fair-muted text-xs mt-2 text-center">
-              Tap to select, long press to copy
-            </Text>
-          </>
+                }
+                showChevron={false}
+                isLast={item.isLast}
+              />
+            ))}
+          </Section>
         ) : null}
       </ScrollView>
     </View>

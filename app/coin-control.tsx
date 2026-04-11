@@ -5,17 +5,20 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  Alert,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, Text, Alert, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore, getDatabase } from "../src/wallet/wallet-store";
-import { Button } from "../src/ui/components/Button";
+import {
+  Section,
+  ListItem,
+  Card,
+  Button,
+  EmptyState,
+  ScreenHeader,
+} from "../src/ui/components";
+import { ScrollView } from "react-native";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,75 +50,10 @@ function formatSats(sats: bigint): string {
 }
 
 // ---------------------------------------------------------------------------
-// UTXO row component
-// ---------------------------------------------------------------------------
-
-interface UTXORowProps {
-  utxo: UTXOItem;
-  selected: boolean;
-  onToggle: (txid: string, vout: number) => void;
-}
-
-function UTXORow({ utxo, selected, onToggle }: UTXORowProps) {
-  const handlePress = useCallback(() => {
-    onToggle(utxo.txid, utxo.vout);
-  }, [utxo.txid, utxo.vout, onToggle]);
-
-  return (
-    <Pressable
-      className={`px-4 py-3.5 border-b border-fair-border ${
-        selected ? "bg-fair-green/10" : ""
-      }`}
-      onPress={handlePress}
-    >
-      <View className="flex-row items-center">
-        {/* Checkbox */}
-        <View
-          className={`w-5 h-5 rounded border mr-3 items-center justify-center ${
-            selected
-              ? "bg-fair-green border-fair-green"
-              : "bg-transparent border-fair-muted"
-          }`}
-        >
-          {selected ? (
-            <Text className="text-fair-dark text-xs font-bold">
-              {"\u2713"}
-            </Text>
-          ) : null}
-        </View>
-
-        {/* Details */}
-        <View className="flex-1">
-          <View className="flex-row items-center justify-between mb-1">
-            <Text className="text-white text-xs font-mono">
-              {truncateTxid(utxo.txid)}:{utxo.vout}
-            </Text>
-            <Text className="text-fair-green text-sm font-semibold">
-              {formatSats(utxo.value)} FAIR
-            </Text>
-          </View>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-fair-muted text-xs">
-              {utxo.address.slice(0, 12)}...
-            </Text>
-            <Text className="text-fair-muted text-xs">
-              {utxo.confirmations > 0
-                ? `${utxo.confirmations} conf.`
-                : "Unconfirmed"}
-            </Text>
-          </View>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Main screen
 // ---------------------------------------------------------------------------
 
 export default function CoinControlScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const chainHeight = useWalletStore((s) => s.chainHeight);
   const existingSelection = useWalletStore((s) => s.selectedUTXOs);
@@ -211,29 +149,20 @@ export default function CoinControlScreen() {
   }, [utxos]);
 
   return (
-    <View
+    <SafeAreaView
       className="flex-1 bg-fair-dark"
+      edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="pb-8"
-        contentContainerStyle={{ paddingTop: insets.top }}
-      >
+      <ScrollView className="flex-1" contentContainerClassName="px-5 pb-4">
         {/* Header info */}
-        <View className="px-6 pt-4 pb-2">
-          <Text className="text-fair-muted text-sm">
-            {utxos.length} UTXO{utxos.length !== 1 ? "s" : ""} available
-          </Text>
-          {selectedCount > 0 ? (
-            <Text className="text-fair-green text-xs mt-1">
-              {selectedCount} selected = {formatSats(selectedTotal)} FAIR
-            </Text>
-          ) : null}
-        </View>
+        <ScreenHeader
+          title="Coin Control"
+          subtitle={`${utxos.length} UTXO${utxos.length !== 1 ? "s" : ""} available`}
+        />
 
         {/* Selection actions */}
-        <View className="flex-row px-6 gap-3 mb-4">
+        <View className="flex-row gap-3 mb-4">
           <Pressable
             className="bg-fair-dark-light border border-fair-border rounded-lg px-3 py-1.5"
             onPress={handleSelectAll}
@@ -249,33 +178,67 @@ export default function CoinControlScreen() {
         </View>
 
         {/* UTXO list */}
-        {utxos.length === 0 ? (
-          <View className="px-6">
-            <View className="bg-fair-dark-light rounded-xl p-6 items-center">
-              <Text className="text-fair-muted text-sm text-center">
-                No unspent outputs found.
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <View className="mx-4 bg-fair-dark-light rounded-xl overflow-hidden">
-            {utxos.map((utxo, idx) => {
+        <Section title="Unspent Outputs" className="mb-4">
+          {utxos.length === 0 ? (
+            <EmptyState
+              icon="database-off"
+              title="No unspent outputs"
+              subtitle="No UTXOs found in this wallet"
+            />
+          ) : (
+            utxos.map((utxo, idx) => {
               const key = `${utxo.txid}:${utxo.vout}`;
+              const isSelected = selected.has(key);
               return (
-                <UTXORow
+                <ListItem
                   key={`utxo-${idx}-${key}`}
-                  utxo={utxo}
-                  selected={selected.has(key)}
-                  onToggle={handleToggle}
+                  title={`${truncateTxid(utxo.txid)}:${utxo.vout}`}
+                  subtitle={`${utxo.address.slice(0, 12)}...`}
+                  value={`${formatSats(utxo.value)} FAIR`}
+                  isLast={idx === utxos.length - 1}
+                  onPress={() => handleToggle(utxo.txid, utxo.vout)}
+                  showChevron={false}
+                  trailing={
+                    <View
+                      className={`w-5 h-5 rounded border items-center justify-center ${
+                        isSelected
+                          ? "bg-fair-green border-fair-green"
+                          : "bg-transparent border-fair-muted"
+                      }`}
+                    >
+                      {isSelected ? (
+                        <MaterialCommunityIcons
+                          name="check"
+                          size={14}
+                          color="#1b1e09"
+                        />
+                      ) : null}
+                    </View>
+                  }
                 />
               );
-            })}
-          </View>
-        )}
+            })
+          )}
+        </Section>
+
+        {/* Selection summary */}
+        {selectedCount > 0 ? (
+          <Card className="p-4 mb-4">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-fair-muted text-sm">
+                Selected: {selectedCount} UTXO
+                {selectedCount !== 1 ? "s" : ""}
+              </Text>
+              <Text className="text-fair-green text-sm font-semibold">
+                {formatSats(selectedTotal)} FAIR
+              </Text>
+            </View>
+          </Card>
+        ) : null}
       </ScrollView>
 
       {/* Bottom action bar */}
-      <View className="px-6 py-4 border-t border-fair-border">
+      <View className="px-5 py-4 border-t border-fair-border">
         <Button
           title={
             selectedCount > 0
@@ -287,6 +250,6 @@ export default function CoinControlScreen() {
           disabled={selectedCount === 0}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Clipboard from "expo-clipboard";
 import {
   useWalletStore,
@@ -22,7 +23,14 @@ import {
   type FeeLevel,
 } from "../../src/wallet/wallet-store";
 import { useContactsStore } from "../../src/wallet/contacts-store";
-import { Button } from "../../src/ui/components/Button";
+import {
+  Card,
+  Button,
+  ListItem,
+  Divider,
+  Section,
+  EmptyState,
+} from "../../src/ui/components";
 import { QRScanner } from "../../src/ui/components/QRScanner";
 import { ContactPicker } from "../../src/ui/components/ContactPicker";
 import { getCachedPrice } from "../../src/services/price";
@@ -83,16 +91,11 @@ export default function SendScreen() {
   if (isWatchOnly) {
     return (
       <View className="flex-1 bg-fair-dark" style={{ paddingTop: insets.top }}>
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-fair-muted text-4xl mb-4">{"\uD83D\uDD12"}</Text>
-          <Text className="text-white text-xl font-bold mb-2 text-center">
-            Watch-Only Wallet
-          </Text>
-          <Text className="text-fair-muted text-sm text-center">
-            Sending is disabled for watch-only wallets. Import the full wallet
-            with a recovery phrase to enable sending.
-          </Text>
-        </View>
+        <EmptyState
+          icon="lock"
+          title="Watch-Only Wallet"
+          subtitle="Sending is disabled for watch-only wallets. Import the full wallet with a recovery phrase to enable sending."
+        />
       </View>
     );
   }
@@ -108,7 +111,9 @@ export default function SendScreen() {
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [recentRecipients, setRecentRecipients] = useState<RecentRecipientRow[]>([]);
+  const [recentRecipients, setRecentRecipients] = useState<
+    RecentRecipientRow[]
+  >([]);
 
   const fee = useMemo(() => estimateFee(feeLevel), [estimateFee, feeLevel]);
 
@@ -122,7 +127,11 @@ export default function SendScreen() {
     if (toAddress.length > 0 && toAddress.length < 25) {
       return "Address too short";
     }
-    if (toAddress.length > 0 && !toAddress.startsWith("F") && !toAddress.startsWith("T")) {
+    if (
+      toAddress.length > 0 &&
+      !toAddress.startsWith("F") &&
+      !toAddress.startsWith("T")
+    ) {
       return "Invalid FairCoin address format";
     }
     const amountSats = parseFairToSats(amount);
@@ -144,6 +153,16 @@ export default function SendScreen() {
     amountSatsForCanSend !== null &&
     amountSatsForCanSend > 0n &&
     validationError === null;
+
+  const usdEquivalent = useMemo(() => {
+    const price = getCachedPrice();
+    const sats = parseFairToSats(amount);
+    if (price && sats !== null && sats > 0n) {
+      const fair = Number(sats) / 100_000_000;
+      return (fair * price.usd).toFixed(2);
+    }
+    return null;
+  }, [amount]);
 
   const handlePaste = useCallback(async () => {
     try {
@@ -231,19 +250,15 @@ export default function SendScreen() {
             sentAddress.length > 16
               ? `${sentAddress.slice(0, 8)}...${sentAddress.slice(-8)}`
               : sentAddress;
-          Alert.alert(
-            "Save Contact?",
-            `Save ${truncated} to contacts?`,
-            [
-              { text: "No", style: "cancel" },
-              {
-                text: "Save",
-                onPress: () => {
-                  router.push("/contacts");
-                },
+          Alert.alert("Save Contact?", `Save ${truncated} to contacts?`, [
+            { text: "No", style: "cancel" },
+            {
+              text: "Save",
+              onPress: () => {
+                router.push("/contacts");
               },
-            ],
-          );
+            },
+          ]);
         }
       }
     } catch (e: unknown) {
@@ -251,26 +266,32 @@ export default function SendScreen() {
         e instanceof Error ? e.message : "Failed to send transaction";
       setError(msg);
     }
-  }, [toAddress, amount, feeLevel, sendTransaction, getContactByAddress, loadRecentRecipients, router]);
+  }, [
+    toAddress,
+    amount,
+    feeLevel,
+    sendTransaction,
+    getContactByAddress,
+    loadRecentRecipients,
+    router,
+  ]);
 
   const handleCancelSend = useCallback(() => {
     setShowConfirmModal(false);
   }, []);
 
   return (
-    <View className="flex-1 bg-fair-dark"
-      onLayout={loadRecentRecipients}
-    >
+    <View className="flex-1 bg-fair-dark" onLayout={loadRecentRecipients}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-4 pb-8"
+        contentContainerClassName="px-4 pt-4 pb-8 gap-4"
         contentContainerStyle={{ paddingTop: insets.top }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Recent recipients */}
         {recentRecipients.length > 0 ? (
-          <View className="mb-4">
-            <Text className="text-fair-muted text-xs font-semibold uppercase tracking-wider mb-2">
+          <View>
+            <Text className="text-fair-muted text-xs font-semibold uppercase tracking-wider mb-2 px-1">
               Recent Recipients
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -278,14 +299,15 @@ export default function SendScreen() {
                 {recentRecipients.map((r) => (
                   <Pressable
                     key={r.address}
-                    className="bg-fair-dark-light border border-fair-border rounded-xl px-3 py-2"
                     onPress={() => handleRecentRecipientPress(r.address)}
                   >
-                    <Text className="text-white text-xs">
-                      {r.address.length > 16
-                        ? `${r.address.slice(0, 6)}...${r.address.slice(-6)}`
-                        : r.address}
-                    </Text>
+                    <Card className="px-3 py-2">
+                      <Text className="text-white text-xs">
+                        {r.address.length > 16
+                          ? `${r.address.slice(0, 6)}...${r.address.slice(-6)}`
+                          : r.address}
+                      </Text>
+                    </Card>
                   </Pressable>
                 ))}
               </View>
@@ -294,152 +316,161 @@ export default function SendScreen() {
         ) : null}
 
         {/* To Address */}
-        <Text className="text-white text-sm font-medium mb-2">To Address</Text>
-        <View className="bg-fair-dark-light border border-fair-border rounded-xl p-3 mb-1">
-          <View className="flex-row items-center">
-            <TextInput
-              className="flex-1 text-white text-base mr-2"
-              placeholder="FairCoin address"
-              placeholderTextColor="#6b7280"
-              value={toAddress}
-              onChangeText={setToAddress}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Pressable
-              className="bg-fair-dark border border-fair-border rounded-lg px-3 py-1.5 mr-2"
-              onPress={handlePaste}
-            >
-              <Text className="text-fair-green text-xs">Paste</Text>
-            </Pressable>
-            <Pressable
-              className="bg-fair-dark border border-fair-border rounded-lg px-3 py-1.5 mr-2"
-              onPress={handleOpenContactPicker}
-            >
-              <Text className="text-fair-green text-xs">{"\uD83D\uDCC7"}</Text>
-            </Pressable>
-            <Pressable
-              className="bg-fair-dark border border-fair-border rounded-lg px-3 py-1.5"
-              onPress={handleOpenScanner}
-            >
-              <Text className="text-fair-green text-xs">QR</Text>
-            </Pressable>
+        <Section title="To Address">
+          <View className="px-4 py-3">
+            <View className="flex-row items-center">
+              <TextInput
+                className="flex-1 text-white text-base mr-2"
+                placeholder="FairCoin address"
+                placeholderTextColor="#6b7280"
+                value={toAddress}
+                onChangeText={setToAddress}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            <View className="flex-row gap-2 mt-3">
+              <Pressable
+                className="flex-row items-center bg-fair-dark rounded-lg px-3 py-2"
+                onPress={handlePaste}
+              >
+                <MaterialCommunityIcons
+                  name="content-paste"
+                  size={14}
+                  color="#9ffb50"
+                />
+                <Text className="text-fair-green text-xs ml-1.5">Paste</Text>
+              </Pressable>
+              <Pressable
+                className="flex-row items-center bg-fair-dark rounded-lg px-3 py-2"
+                onPress={handleOpenScanner}
+              >
+                <MaterialCommunityIcons
+                  name="qrcode-scan"
+                  size={14}
+                  color="#9ffb50"
+                />
+                <Text className="text-fair-green text-xs ml-1.5">QR</Text>
+              </Pressable>
+              <Pressable
+                className="flex-row items-center bg-fair-dark rounded-lg px-3 py-2"
+                onPress={handleOpenContactPicker}
+              >
+                <MaterialCommunityIcons
+                  name="account-box"
+                  size={14}
+                  color="#9ffb50"
+                />
+                <Text className="text-fair-green text-xs ml-1.5">
+                  Contacts
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        </Section>
 
         {/* Address validation */}
         {validationError && toAddress.length > 0 ? (
-          <Text className="text-red-400 text-xs mb-4">{validationError}</Text>
-        ) : (
-          <View className="mb-4" />
-        )}
+          <Text className="text-red-400 text-xs px-1">{validationError}</Text>
+        ) : null}
 
         {/* Amount */}
-        <Text className="text-white text-sm font-medium mb-2">
-          Amount (FAIR)
-        </Text>
-        <View className="bg-fair-dark-light border border-fair-border rounded-xl p-3 mb-2">
-          <View className="flex-row items-center">
-            <TextInput
-              className="flex-1 text-white text-base mr-2"
-              placeholder="0.00000000"
-              placeholderTextColor="#6b7280"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-            />
-            <Pressable
-              className="bg-fair-dark border border-fair-border rounded-lg px-3 py-1.5"
-              onPress={handleMax}
-            >
-              <Text className="text-fair-green text-xs">Max</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* USD equivalent of amount */}
-        {(() => {
-          const price = getCachedPrice();
-          const sats = parseFairToSats(amount);
-          if (price && sats !== null && sats > 0n) {
-            const fair = Number(sats) / 100_000_000;
-            const usd = (fair * price.usd).toFixed(2);
-            return (
-              <Text className="text-fair-muted text-xs mb-4">
-                {"\u2248"} ${usd} USD
+        <Section title="Amount (FAIR)">
+          <View className="px-4 py-3">
+            <View className="flex-row items-center">
+              <Text className="text-fair-green text-lg font-bold mr-2">
+                {"\u29BE"}
               </Text>
-            );
-          }
-          return <View className="mb-4" />;
-        })()}
-
-        {/* Available balance */}
-        <Text className="text-fair-muted text-xs mb-6">
-          Available: {formatSats(balance)} FAIR
-        </Text>
+              <TextInput
+                className="flex-1 text-white text-base mr-2"
+                placeholder="0.00000000"
+                placeholderTextColor="#6b7280"
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="decimal-pad"
+              />
+              <Pressable
+                className="bg-fair-dark rounded-lg px-3 py-2"
+                onPress={handleMax}
+              >
+                <Text className="text-fair-green text-xs font-medium">Max</Text>
+              </Pressable>
+            </View>
+            {usdEquivalent ? (
+              <Text className="text-fair-muted text-xs mt-2">
+                {"\u2248"} ${usdEquivalent} USD
+              </Text>
+            ) : null}
+            <Text className="text-fair-muted text-xs mt-1">
+              Available: {formatSats(balance)} FAIR
+            </Text>
+          </View>
+        </Section>
 
         {/* Fee selector */}
-        <Text className="text-white text-sm font-medium mb-2">
-          Network Fee
-        </Text>
-        <View className="flex-row gap-2 mb-6">
-          {FEE_LEVELS.map((level) => (
-            <Pressable
-              key={level}
-              className={`flex-1 rounded-xl py-3 items-center border ${
-                feeLevel === level
-                  ? "bg-fair-green/10 border-fair-green"
-                  : "bg-fair-dark-light border-fair-border"
-              }`}
-              onPress={() => setFeeLevel(level)}
-            >
-              <Text
-                className={`text-sm font-medium ${
-                  feeLevel === level ? "text-fair-green" : "text-fair-muted"
-                }`}
-              >
-                {FEE_LABELS[level]}
-              </Text>
-              <Text className="text-fair-muted text-xs mt-1">
-                {estimateFee(level).toString()} sats
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <Section title="Network Fee">
+          <View className="flex-row gap-2 p-3">
+            {FEE_LEVELS.map((level) => {
+              const isSelected = feeLevel === level;
+              return (
+                <Pressable
+                  key={level}
+                  className={`flex-1 rounded-xl py-3 items-center border ${
+                    isSelected
+                      ? "bg-fair-green/10 border-fair-green"
+                      : "bg-fair-dark border-fair-border"
+                  }`}
+                  onPress={() => setFeeLevel(level)}
+                >
+                  <Text
+                    className={`text-sm font-medium ${
+                      isSelected ? "text-fair-green" : "text-fair-muted"
+                    }`}
+                  >
+                    {FEE_LABELS[level]}
+                  </Text>
+                  <Text className="text-fair-muted text-xs mt-1">
+                    {estimateFee(level).toString()} sats
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Section>
 
         {/* Summary */}
-        <View className="bg-fair-dark-light rounded-xl p-4 mb-6">
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-fair-muted text-sm">Amount</Text>
-            <Text className="text-white text-sm">
-              {amount || "0.00000000"} FAIR
-            </Text>
-          </View>
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-fair-muted text-sm">Fee</Text>
-            <Text className="text-white text-sm">{formatSats(fee)} FAIR</Text>
-          </View>
-          <View className="border-t border-fair-border my-2" />
-          <View className="flex-row justify-between">
-            <Text className="text-white text-sm font-semibold">Total</Text>
-            <Text className="text-white text-sm font-semibold">
-              {total} FAIR
-            </Text>
-          </View>
-        </View>
+        <Section title="Summary">
+          <ListItem
+            title="Amount"
+            value={`${amount || "0.00000000"} FAIR`}
+            showChevron={false}
+          />
+          <ListItem
+            title="Fee"
+            value={`${formatSats(fee)} FAIR`}
+            showChevron={false}
+          />
+          <Divider className="mx-4" />
+          <ListItem
+            title="Total"
+            value={`${total} FAIR`}
+            showChevron={false}
+            isLast
+          />
+        </Section>
 
         {/* Error / Success messages */}
         {error ? (
-          <View className="bg-red-900/30 border border-red-600/50 rounded-xl p-4 mb-4">
+          <Card className="border border-red-600/50 p-4">
             <Text className="text-red-400 text-sm text-center">{error}</Text>
-          </View>
+          </Card>
         ) : null}
         {success ? (
-          <View className="bg-green-900/30 border border-green-600/50 rounded-xl p-4 mb-4">
+          <Card className="border border-green-600/50 p-4">
             <Text className="text-fair-green text-sm text-center">
               {success}
             </Text>
-          </View>
+          </Card>
         ) : null}
 
         {/* Send button */}
@@ -459,31 +490,33 @@ export default function SendScreen() {
           onRequestClose={handleCancelSend}
         >
           <View className="flex-1 bg-black/70 items-center justify-center px-8">
-            <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+            <Card className="p-6 w-full max-w-sm border border-fair-border">
               <Text className="text-white text-lg font-bold mb-4 text-center">
                 Confirm Transaction
               </Text>
-              <View className="mb-4">
-                <Text className="text-fair-muted text-sm mb-1">To</Text>
-                <Text className="text-white text-xs font-mono">
-                  {toAddress}
-                </Text>
-              </View>
-              <View className="mb-4">
-                <Text className="text-fair-muted text-sm mb-1">Amount</Text>
-                <Text className="text-white text-base font-semibold">
-                  {amount} FAIR
-                </Text>
-              </View>
-              <View className="mb-6">
-                <Text className="text-fair-muted text-sm mb-1">
-                  Total (incl. fee)
-                </Text>
-                <Text className="text-white text-base font-semibold">
-                  {total} FAIR
-                </Text>
-              </View>
-              <View className="gap-3">
+              <ListItem
+                title="To"
+                subtitle={toAddress}
+                showChevron={false}
+              />
+              <ListItem
+                title="Amount"
+                value={`${amount} FAIR`}
+                showChevron={false}
+              />
+              <ListItem
+                title="Fee"
+                value={`${formatSats(fee)} FAIR`}
+                showChevron={false}
+              />
+              <Divider className="mx-4" />
+              <ListItem
+                title="Total"
+                value={`${total} FAIR`}
+                showChevron={false}
+                isLast
+              />
+              <View className="gap-3 mt-4">
                 <Button
                   title="Confirm Send"
                   onPress={handleConfirmSend}
@@ -495,7 +528,7 @@ export default function SendScreen() {
                   variant="secondary"
                 />
               </View>
-            </View>
+            </Card>
           </View>
         </Modal>
 

@@ -106,15 +106,18 @@ export default function HomeScreen() {
             />
           </Pressable>
 
-          {/* Right: network badge + sync status */}
+          {/* Right: network badge + sync status (tappable → peers) */}
           <View className="flex-row items-center gap-2">
             {network === "testnet" ? (
               <Badge text="TESTNET" variant="warning" size="sm" />
             ) : null}
-            <View className="flex-row items-center">
+            <Pressable
+              className="flex-row items-center active:opacity-60"
+              onPress={() => router.push("/peers")}
+            >
               <View className={`w-1.5 h-1.5 rounded-full ${syncState.dot} mr-1`} />
               <Text className="text-fair-muted text-[11px]">{syncState.label}</Text>
-            </View>
+            </Pressable>
           </View>
         </View>
 

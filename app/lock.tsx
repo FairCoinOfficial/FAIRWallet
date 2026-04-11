@@ -1,5 +1,5 @@
 /**
- * Lock screen - PIN entry with optional biometric unlock.
+ * Lock screen — Revolut-style PIN entry with optional biometric unlock.
  * Shown when the app opens with an existing wallet that has a PIN set.
  */
 
@@ -8,7 +8,10 @@ import { View, Text, Pressable } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { verifyPin, isBiometricsEnabled } from "../src/storage/secure-store";
+import { PinPad } from "../src/ui/components/PinPad";
+import { PinDots } from "../src/ui/components/PinDots";
 
 const PIN_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
@@ -22,6 +25,7 @@ export default function LockScreen() {
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
   const [verifying, setVerifying] = useState(false);
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const lockoutTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isLockedOut = lockedUntil !== null && Date.now() < lockedUntil;
@@ -53,35 +57,67 @@ export default function LockScreen() {
     lockoutTimerRef.current = setInterval(updateRemaining, 1000);
   }, []);
 
+  const tryBiometricAuth = useCallback(async () => {
+    try {
+      const [hardwareAvailable, enrolled, enabled] = await Promise.all([
+        LocalAuthentication.hasHardwareAsync(),
+        LocalAuthentication.isEnrolledAsync(),
+        isBiometricsEnabled(),
+      ]);
+
+      if (!hardwareAvailable || !enrolled || !enabled) {
+        return;
+      }
+
+      setBiometricsAvailable(true);
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Unlock FAIRWallet",
+        disableDeviceFallback: false,
+      });
+
+      if (result.success) {
+        navigateToTabs();
+      }
+    } catch (_biometricError: unknown) {
+      // Biometric auth failed or unavailable — fall through to PIN entry
+    }
+  }, [navigateToTabs]);
+
   // Attempt biometric auth on focus
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      const tryBiometrics = async () => {
-        try {
-          const [hardwareAvailable, enrolled, enabled] = await Promise.all([
-            LocalAuthentication.hasHardwareAsync(),
-            LocalAuthentication.isEnrolledAsync(),
-            isBiometricsEnabled(),
-          ]);
 
-          if (!hardwareAvailable || !enrolled || !enabled || cancelled) {
-            return;
+      const init = async () => {
+        const [hardwareAvailable, enrolled, enabled] = await Promise.all([
+          LocalAuthentication.hasHardwareAsync(),
+          LocalAuthentication.isEnrolledAsync(),
+          isBiometricsEnabled(),
+        ]).catch(() => [false, false, false] as const);
+
+        if (cancelled) return;
+
+        if (hardwareAvailable && enrolled && enabled) {
+          setBiometricsAvailable(true);
+
+          try {
+            const result = await LocalAuthentication.authenticateAsync({
+              promptMessage: "Unlock FAIRWallet",
+              disableDeviceFallback: false,
+            });
+
+            if (result.success && !cancelled) {
+              navigateToTabs();
+            }
+          } catch (_e: unknown) {
+            // Biometric failed — user falls through to PIN
           }
-
-          const result = await LocalAuthentication.authenticateAsync({
-            promptMessage: "Unlock FAIRWallet",
-            disableDeviceFallback: false,
-          });
-
-          if (result.success && !cancelled) {
-            navigateToTabs();
-          }
-        } catch (_biometricError: unknown) {
-          // Biometric auth failed or unavailable - fall through to PIN entry
         }
       };
-      tryBiometrics();
+
+      init();
+
       return () => {
         cancelled = true;
         if (lockoutTimerRef.current) {
@@ -115,12 +151,12 @@ export default function LockScreen() {
                   const until = Date.now() + LOCKOUT_SECONDS * 1000;
                   setLockedUntil(until);
                   setError(
-                    `Too many attempts. Try again in ${LOCKOUT_SECONDS} seconds.`,
+                    `Too many attempts. Try again in ${LOCKOUT_SECONDS}s.`,
                   );
                   startLockoutTimer(until);
                 } else {
                   setError(
-                    `Wrong PIN. ${MAX_ATTEMPTS - newAttempts} attempt${
+                    `Wrong passcode. ${MAX_ATTEMPTS - newAttempts} attempt${
                       MAX_ATTEMPTS - newAttempts === 1 ? "" : "s"
                     } remaining.`,
                   );
@@ -148,98 +184,60 @@ export default function LockScreen() {
     setError(null);
   }, [verifying, isLockedOut]);
 
+  const biometricButton = biometricsAvailable ? (
+    <Pressable
+      className="w-18 h-18 rounded-full items-center justify-center active:bg-fair-green/10"
+      onPress={tryBiometricAuth}
+      disabled={isLockedOut}
+    >
+      <MaterialCommunityIcons
+        name="fingerprint"
+        size={28}
+        color={isLockedOut ? "#2a2e14" : "#9ffb50"}
+      />
+    </Pressable>
+  ) : undefined;
+
   return (
     <SafeAreaView className="flex-1 bg-fair-dark">
-      <View className="flex-1 items-center justify-between px-6 pt-20 pb-10">
-        {/* Header */}
-        <View className="items-center">
-          <Text className="text-fair-green text-3xl font-bold mb-2">FAIR</Text>
-          <Text className="text-white text-xl font-medium mb-8">
-            Enter PIN
+      <View className="flex-1 items-center justify-between px-6 pt-16 pb-8">
+        {/* Brand + prompt */}
+        <View className="items-center flex-1 justify-center">
+          <Text className="text-fair-green text-5xl mb-8">{"\u229C"}</Text>
+
+          <Text className="text-white text-xl font-semibold mb-8">
+            Enter your passcode
           </Text>
 
-          {/* PIN dots */}
-          <View className="flex-row gap-4 mb-6">
-            {Array.from({ length: PIN_LENGTH }, (_, i) => (
-              <View
-                key={`dot-${i}`}
-                className={`w-4 h-4 rounded-full ${
-                  i < pin.length ? "bg-fair-green" : "bg-fair-dark-light"
-                }`}
-              />
-            ))}
-          </View>
+          <PinDots
+            length={PIN_LENGTH}
+            filled={pin.length}
+            error={error !== null}
+          />
 
-          {/* Error / lockout */}
-          {error ? (
-            <Text className="text-red-400 text-sm text-center px-4">
-              {error}
-            </Text>
-          ) : null}
-          {isLockedOut && lockoutRemaining > 0 ? (
-            <Text className="text-fair-muted text-sm mt-2">
-              Locked for {lockoutRemaining}s
-            </Text>
-          ) : null}
+          {/* Error / lockout messages */}
+          <View className="h-12 justify-center mt-4">
+            {error ? (
+              <Text className="text-red-400 text-sm text-center px-4">
+                {error}
+              </Text>
+            ) : null}
+            {isLockedOut && lockoutRemaining > 0 ? (
+              <Text className="text-fair-muted text-sm text-center">
+                Locked for {lockoutRemaining}s
+              </Text>
+            ) : null}
+          </View>
         </View>
 
         {/* Number pad */}
-        <View className="w-full max-w-xs">
-          {[
-            ["1", "2", "3"],
-            ["4", "5", "6"],
-            ["7", "8", "9"],
-            ["", "0", "back"],
-          ].map((row, rowIdx) => (
-            <View
-              key={`row-${rowIdx}`}
-              className="flex-row justify-around mb-4"
-            >
-              {row.map((key) => {
-                if (key === "") {
-                  return <View key="empty" className="w-20 h-16" />;
-                }
-                if (key === "back") {
-                  return (
-                    <Pressable
-                      key="backspace"
-                      className="w-20 h-16 items-center justify-center rounded-2xl active:bg-fair-dark-light"
-                      onPress={handleBackspace}
-                      disabled={isLockedOut}
-                    >
-                      <Text
-                        className={`text-2xl ${
-                          isLockedOut ? "text-fair-dark-light" : "text-fair-muted"
-                        }`}
-                      >
-                        {"\u232B"}
-                      </Text>
-                    </Pressable>
-                  );
-                }
-                return (
-                  <Pressable
-                    key={`key-${key}`}
-                    className={`w-20 h-16 items-center justify-center rounded-2xl ${
-                      isLockedOut
-                        ? "bg-fair-dark-light/50"
-                        : "bg-fair-dark-light active:bg-fair-green/20"
-                    }`}
-                    onPress={() => handleDigitPress(key)}
-                    disabled={isLockedOut}
-                  >
-                    <Text
-                      className={`text-2xl font-medium ${
-                        isLockedOut ? "text-fair-muted/50" : "text-white"
-                      }`}
-                    >
-                      {key}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
+        <View className="w-full pb-4">
+          <PinPad
+            onDigit={handleDigitPress}
+            onBackspace={handleBackspace}
+            disabled={isLockedOut || verifying}
+            biometricButton={biometricButton}
+          />
         </View>
       </View>
     </SafeAreaView>

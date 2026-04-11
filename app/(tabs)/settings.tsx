@@ -4,15 +4,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  Switch,
-  Modal,
-  Alert,
-} from "react-native";
+import { View, Text, ScrollView, Switch, Modal, Alert } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
@@ -27,75 +19,18 @@ import {
   getCurrency,
   setCurrency,
 } from "../../src/storage/secure-store";
-import { Button } from "../../src/ui/components/Button";
+import {
+  Section,
+  ListItem,
+  Card,
+  Button,
+  PinDots,
+  PinPad,
+} from "../../src/ui/components";
 import type { NetworkType } from "../../src/core/network";
 
 const APP_VERSION = "1.0.0";
 const PIN_LENGTH = 6;
-
-// ---------------------------------------------------------------------------
-// Settings section and row components
-// ---------------------------------------------------------------------------
-
-interface SettingsSectionProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function SettingsSection({ title, children }: SettingsSectionProps) {
-  return (
-    <View className="mb-6">
-      <Text className="text-fair-muted text-xs font-semibold uppercase tracking-wider mb-2 px-1">
-        {title}
-      </Text>
-      <View className="bg-fair-dark-light rounded-xl overflow-hidden">
-        {children}
-      </View>
-    </View>
-  );
-}
-
-interface SettingsRowProps {
-  label: string;
-  value?: string;
-  onPress?: () => void;
-  trailing?: React.ReactNode;
-  destructive?: boolean;
-}
-
-function SettingsRow({
-  label,
-  value,
-  onPress,
-  trailing,
-  destructive = false,
-}: SettingsRowProps) {
-  const content = (
-    <View className="flex-row items-center justify-between px-4 py-3.5 border-b border-fair-border">
-      <Text
-        className={`text-sm ${destructive ? "text-red-400" : "text-white"}`}
-      >
-        {label}
-      </Text>
-      {trailing ?? (
-        <View className="flex-row items-center">
-          {value ? (
-            <Text className="text-fair-muted text-sm mr-2">{value}</Text>
-          ) : null}
-          {onPress ? (
-            <Text className="text-fair-muted text-sm">{"\u203A"}</Text>
-          ) : null}
-        </View>
-      )}
-    </View>
-  );
-
-  if (onPress) {
-    return <Pressable onPress={onPress}>{content}</Pressable>;
-  }
-
-  return content;
-}
 
 // ---------------------------------------------------------------------------
 // PIN entry modal (for verifying current PIN before sensitive actions)
@@ -169,7 +104,7 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
       onRequestClose={handleCancel}
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+        <Card className="p-6 w-full max-w-sm border border-fair-border">
           <Text className="text-white text-lg font-bold mb-2 text-center">
             {title}
           </Text>
@@ -177,16 +112,12 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
             Enter your 6-digit PIN
           </Text>
 
-          {/* PIN dots */}
-          <View className="flex-row justify-center gap-3 mb-4">
-            {Array.from({ length: PIN_LENGTH }, (_, i) => (
-              <View
-                key={`pin-dot-${i}`}
-                className={`w-3.5 h-3.5 rounded-full ${
-                  i < pin.length ? "bg-fair-green" : "bg-fair-dark"
-                }`}
-              />
-            ))}
+          <View className="items-center mb-4">
+            <PinDots
+              length={PIN_LENGTH}
+              filled={pin.length}
+              error={error !== null}
+            />
           </View>
 
           {error ? (
@@ -195,53 +126,16 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
             </Text>
           ) : null}
 
-          {/* Compact number pad */}
           <View className="items-center mb-4">
-            {[
-              ["1", "2", "3"],
-              ["4", "5", "6"],
-              ["7", "8", "9"],
-              ["", "0", "back"],
-            ].map((row, rowIdx) => (
-              <View
-                key={`pin-row-${rowIdx}`}
-                className="flex-row justify-around w-full mb-2"
-              >
-                {row.map((key) => {
-                  if (key === "") {
-                    return <View key="empty-key" className="w-16 h-12" />;
-                  }
-                  if (key === "back") {
-                    return (
-                      <Pressable
-                        key="backspace-key"
-                        className="w-16 h-12 items-center justify-center rounded-xl active:bg-fair-dark"
-                        onPress={handleBackspace}
-                      >
-                        <Text className="text-fair-muted text-xl">
-                          {"\u232B"}
-                        </Text>
-                      </Pressable>
-                    );
-                  }
-                  return (
-                    <Pressable
-                      key={`pin-key-${key}`}
-                      className="w-16 h-12 items-center justify-center rounded-xl bg-fair-dark active:bg-fair-green/20"
-                      onPress={() => handleDigitPress(key)}
-                    >
-                      <Text className="text-white text-xl font-medium">
-                        {key}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ))}
+            <PinPad
+              onDigit={handleDigitPress}
+              onBackspace={handleBackspace}
+              disabled={verifying}
+            />
           </View>
 
           <Button title="Cancel" onPress={handleCancel} variant="secondary" />
-        </View>
+        </Card>
       </View>
     </Modal>
   );
@@ -268,7 +162,7 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
       onRequestClose={onDismiss}
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+        <Card className="p-6 w-full max-w-sm border border-fair-border">
           <Text className="text-white text-lg font-bold mb-2 text-center">
             Recovery Phrase
           </Text>
@@ -291,7 +185,7 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
           </View>
 
           <Button title="Done" onPress={onDismiss} variant="primary" />
-        </View>
+        </Card>
       </View>
     </Modal>
   );
@@ -306,7 +200,6 @@ export default function SettingsScreen() {
   const router = useRouter();
   const network = useWalletStore((s) => s.network);
   const connectedPeers = useWalletStore((s) => s.connectedPeers);
-  const chainHeight = useWalletStore((s) => s.chainHeight);
   const wipeWallet = useWalletStore((s) => s.wipeWallet);
   const refreshBalance = useWalletStore((s) => s.refreshBalance);
   const activeWalletName = useWalletStore((s) => s.activeWalletName);
@@ -314,13 +207,14 @@ export default function SettingsScreen() {
   const switchNetwork = useWalletStore((s) => s.switchNetwork);
   const exportBackup = useWalletStore((s) => s.exportBackup);
   const importBackup = useWalletStore((s) => s.importBackup);
-  const isWatchOnly = useWalletStore((s) => s.isWatchOnly);
 
   const [showWipeModal, setShowWipeModal] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
-  const [pinAction, setPinAction] = useState<"recovery" | "change_pin" | null>(null);
+  const [pinAction, setPinAction] = useState<"recovery" | "change_pin" | null>(
+    null,
+  );
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveryMnemonic, setRecoveryMnemonic] = useState("");
   const [autoLockMinutes, setAutoLockMinutes] = useState(5);
@@ -350,8 +244,7 @@ export default function SettingsScreen() {
           setAutoLockMinutes(lockTimeout);
           setDisplayCurrency(currency);
         } catch (_settingsError: unknown) {
-          // Settings load failed - using defaults is safe since all settings
-          // have fallback values set via useState initializers above.
+          // Settings load failed — defaults from useState initializers are safe.
         }
       };
       loadSettings();
@@ -446,7 +339,6 @@ export default function SettingsScreen() {
 
       try {
         if (enabled) {
-          // Verify biometrics works before enabling
           const result = await LocalAuthentication.authenticateAsync({
             promptMessage: "Verify biometrics to enable",
             disableDeviceFallback: false,
@@ -499,11 +391,12 @@ export default function SettingsScreen() {
   const handleExportBackup = useCallback(async () => {
     try {
       const json = await exportBackup();
-      // In production, this would use FileSystem to save or Share to export.
-      // For now, copy to clipboard as a portable approach.
       const { setStringAsync } = await import("expo-clipboard");
       await setStringAsync(json);
-      Alert.alert("Backup Exported", "Backup data copied to clipboard. Save it in a secure location.");
+      Alert.alert(
+        "Backup Exported",
+        "Backup data copied to clipboard. Save it in a secure location.",
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Export failed";
       Alert.alert("Error", message);
@@ -515,11 +408,17 @@ export default function SettingsScreen() {
       const { getStringAsync } = await import("expo-clipboard");
       const json = await getStringAsync();
       if (!json || json.trim().length === 0) {
-        Alert.alert("Error", "No backup data found in clipboard. Copy backup JSON to clipboard first.");
+        Alert.alert(
+          "Error",
+          "No backup data found in clipboard. Copy backup JSON to clipboard first.",
+        );
         return;
       }
       await importBackup(json);
-      Alert.alert("Backup Imported", "Contacts, labels, and settings have been restored.");
+      Alert.alert(
+        "Backup Imported",
+        "Contacts, labels, and settings have been restored.",
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Import failed";
       Alert.alert("Error", message);
@@ -527,13 +426,17 @@ export default function SettingsScreen() {
   }, [importBackup]);
 
   const handleResync = useCallback(() => {
-    Alert.alert("Resync Wallet", "This will re-download all blockchain data.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Resync",
-        onPress: () => refreshBalance(),
-      },
-    ]);
+    Alert.alert(
+      "Resync Wallet",
+      "This will re-download all blockchain data.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Resync",
+          onPress: () => refreshBalance(),
+        },
+      ],
+    );
   }, [refreshBalance]);
 
   const handleWipePress = useCallback(() => {
@@ -554,50 +457,43 @@ export default function SettingsScreen() {
     <View className="flex-1 bg-fair-dark">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pt-4 pb-8"
+        contentContainerClassName="px-4 pt-4 pb-8 gap-6"
         contentContainerStyle={{ paddingTop: insets.top }}
       >
         {/* Wallets */}
-        <SettingsSection title="Wallets">
-          <SettingsRow
-            label="Manage Wallets"
+        <Section title="Wallets">
+          <ListItem
+            title="Manage Wallets"
             value={walletCountLabel}
+            icon="wallet"
+            iconBg="bg-blue-500/10"
+            iconColor="#60a5fa"
             onPress={handleManageWallets}
           />
-          <SettingsRow
-            label="Contacts"
+          <ListItem
+            title="Contacts"
+            icon="account-group"
+            iconBg="bg-purple-500/10"
+            iconColor="#a78bfa"
             onPress={handleContacts}
+            isLast
           />
-        </SettingsSection>
-
-        {/* Network */}
-        <SettingsSection title="Network">
-          <SettingsRow
-            label="Network"
-            trailing={
-              <View className="flex-row items-center">
-                <Text className="text-fair-muted text-sm mr-3">
-                  {isMainnet ? "Mainnet" : "Testnet"}
-                </Text>
-                <Switch
-                  value={!isMainnet}
-                  onValueChange={handleToggleNetwork}
-                  trackColor={{ false: "#3a3f1e", true: "#7cc940" }}
-                  thumbColor="#ffffff"
-                />
-              </View>
-            }
-          />
-        </SettingsSection>
+        </Section>
 
         {/* Security */}
-        <SettingsSection title="Security">
-          <SettingsRow
-            label="Change PIN"
+        <Section title="Security">
+          <ListItem
+            title="Change PIN"
+            icon="lock"
+            iconBg="bg-yellow-500/10"
+            iconColor="#facc15"
             onPress={handleChangePIN}
           />
-          <SettingsRow
-            label="Biometrics"
+          <ListItem
+            title="Biometric Unlock"
+            icon="fingerprint"
+            iconBg="bg-fair-green/10"
+            iconColor="#9ffb50"
             trailing={
               <Switch
                 value={biometricsEnabled}
@@ -606,82 +502,136 @@ export default function SettingsScreen() {
                 thumbColor="#ffffff"
               />
             }
+            showChevron={false}
           />
-          <SettingsRow
-            label="Auto-Lock"
+          <ListItem
+            title="Auto-Lock"
             value={`${autoLockMinutes} min`}
+            icon="clock-outline"
+            iconBg="bg-orange-500/10"
+            iconColor="#fb923c"
             onPress={handleCycleAutoLock}
           />
-          <SettingsRow
-            label="Display Currency"
-            value={displayCurrency}
-            onPress={handleCycleCurrency}
-          />
-          <SettingsRow
-            label="Export Encrypted Key (BIP38)"
+          <ListItem
+            title="Export Encrypted Key"
+            icon="shield-key"
+            iconBg="bg-teal-500/10"
+            iconColor="#2dd4bf"
             onPress={handleExportKey}
+            isLast
           />
-        </SettingsSection>
+        </Section>
+
+        {/* Display */}
+        <Section title="Display">
+          <ListItem
+            title="Display Currency"
+            value={displayCurrency}
+            icon="currency-usd"
+            iconBg="bg-emerald-500/10"
+            iconColor="#34d399"
+            onPress={handleCycleCurrency}
+            isLast
+          />
+        </Section>
+
+        {/* Network */}
+        <Section title="Network">
+          <ListItem
+            title="Network"
+            value={isMainnet ? "Mainnet" : "Testnet"}
+            icon="earth"
+            iconBg="bg-cyan-500/10"
+            iconColor="#22d3ee"
+            onPress={handleToggleNetwork}
+          />
+          <ListItem
+            title="Connected Peers"
+            value={String(connectedPeers)}
+            icon="server-network"
+            iconBg="bg-indigo-500/10"
+            iconColor="#818cf8"
+            showChevron={false}
+          />
+          <ListItem
+            title="Resync Wallet"
+            icon="sync"
+            iconBg="bg-sky-500/10"
+            iconColor="#38bdf8"
+            onPress={handleResync}
+            isLast
+          />
+        </Section>
 
         {/* Backup */}
-        <SettingsSection title="Backup">
-          <SettingsRow
-            label="Show Recovery Phrase"
+        <Section title="Backup">
+          <ListItem
+            title="Show Recovery Phrase"
+            icon="eye"
+            iconBg="bg-amber-500/10"
+            iconColor="#fbbf24"
             onPress={handleShowRecovery}
           />
-          <SettingsRow
-            label="Export Backup"
+          <ListItem
+            title="Export Backup"
+            icon="download"
+            iconBg="bg-fair-green/10"
+            iconColor="#9ffb50"
             onPress={handleExportBackup}
           />
-          <SettingsRow
-            label="Import Backup"
+          <ListItem
+            title="Import Backup"
+            icon="upload"
+            iconBg="bg-violet-500/10"
+            iconColor="#8b5cf6"
             onPress={handleImportBackup}
+            isLast
           />
-        </SettingsSection>
-
-        {/* Masternode */}
-        <SettingsSection title="Masternode">
-          <SettingsRow
-            label="Masternode Management"
-            onPress={handleMasternode}
-          />
-        </SettingsSection>
+        </Section>
 
         {/* Advanced */}
-        <SettingsSection title="Advanced">
-          <SettingsRow
-            label="Connected Peers"
-            value={String(connectedPeers)}
-          />
-          <SettingsRow
-            label="Chain Height"
-            value={chainHeight > 0 ? chainHeight.toLocaleString() : "--"}
-          />
-          <SettingsRow
-            label="Coin Control"
+        <Section title="Advanced">
+          <ListItem
+            title="Coin Control"
+            icon="tune"
+            iconBg="bg-slate-500/10"
+            iconColor="#94a3b8"
             onPress={handleCoinControl}
           />
-          <SettingsRow
-            label="Resync Wallet"
-            onPress={handleResync}
+          <ListItem
+            title="Masternode"
+            icon="server"
+            iconBg="bg-rose-500/10"
+            iconColor="#fb7185"
+            onPress={handleMasternode}
+            isLast
           />
-        </SettingsSection>
+        </Section>
 
         {/* About */}
-        <SettingsSection title="About">
-          <SettingsRow label="Version" value={APP_VERSION} />
-          <SettingsRow label="Network" value="FairCoin" />
-          <SettingsRow label="Coin Type" value="119 (BIP44)" />
-        </SettingsSection>
+        <Section title="About">
+          <ListItem
+            title="About FAIRWallet"
+            value={`v${APP_VERSION}`}
+            icon="information"
+            iconBg="bg-blue-500/10"
+            iconColor="#60a5fa"
+            isLast
+          />
+        </Section>
 
         {/* Danger Zone */}
-        <SettingsSection title="Danger Zone">
-          <SettingsRow
-            label="Wipe Wallet"
-            onPress={handleWipePress}
+        <Section title="Danger Zone">
+          <ListItem
+            title="Wipe Wallet"
+            icon="delete"
+            iconBg="bg-red-500/10"
+            iconColor="#f87171"
             destructive
+            onPress={handleWipePress}
+            isLast
           />
-        </SettingsSection>
+        </Section>
 
         {/* Wipe confirmation modal */}
         <Modal
@@ -691,7 +641,7 @@ export default function SettingsScreen() {
           onRequestClose={handleCancelWipe}
         >
           <View className="flex-1 bg-black/70 items-center justify-center px-8">
-            <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+            <Card className="p-6 w-full max-w-sm border border-fair-border">
               <Text className="text-white text-lg font-bold mb-2 text-center">
                 Wipe Wallet?
               </Text>
@@ -712,7 +662,7 @@ export default function SettingsScreen() {
                   variant="secondary"
                 />
               </View>
-            </View>
+            </Card>
           </View>
         </Modal>
 
@@ -720,9 +670,7 @@ export default function SettingsScreen() {
         <PinModal
           visible={showPinModal}
           title={
-            pinAction === "recovery"
-              ? "Verify PIN"
-              : "Enter Current PIN"
+            pinAction === "recovery" ? "Verify PIN" : "Enter Current PIN"
           }
           onCancel={handlePinCancel}
           onSuccess={handlePinSuccess}

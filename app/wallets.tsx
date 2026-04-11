@@ -9,17 +9,24 @@ import {
   View,
   Text,
   ScrollView,
-  Pressable,
   Alert,
   Modal,
   TextInput,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import type { WalletInfo } from "../src/storage/secure-store";
-import { Button } from "../src/ui/components/Button";
+import {
+  Section,
+  ListItem,
+  Card,
+  Button,
+  Badge,
+  EmptyState,
+  ScreenHeader,
+} from "../src/ui/components";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -32,62 +39,6 @@ function formatDate(timestamp: number): string {
     month: "short",
     day: "numeric",
   });
-}
-
-// ---------------------------------------------------------------------------
-// Wallet row component
-// ---------------------------------------------------------------------------
-
-interface WalletRowProps {
-  wallet: WalletInfo;
-  isActive: boolean;
-  onSwitch: (id: string) => void;
-  onDelete: (id: string, name: string) => void;
-}
-
-function WalletRow({ wallet, isActive, onSwitch, onDelete }: WalletRowProps) {
-  const handlePress = useCallback(() => {
-    if (!isActive) {
-      onSwitch(wallet.id);
-    }
-  }, [isActive, onSwitch, wallet.id]);
-
-  const handleLongPress = useCallback(() => {
-    onDelete(wallet.id, wallet.name);
-  }, [onDelete, wallet.id, wallet.name]);
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      onLongPress={handleLongPress}
-      className="bg-fair-dark-light border border-fair-border rounded-xl p-4 mb-3"
-    >
-      <View className="flex-row items-center justify-between">
-        <View className="flex-1 mr-3">
-          <View className="flex-row items-center mb-1">
-            {isActive ? (
-              <View className="w-2.5 h-2.5 rounded-full bg-fair-green mr-2" />
-            ) : (
-              <View className="w-2.5 h-2.5 rounded-full bg-fair-dark mr-2" />
-            )}
-            <Text className="text-white text-base font-semibold">
-              {wallet.name}
-            </Text>
-          </View>
-          <Text className="text-fair-muted text-xs ml-[18px]">
-            Created {formatDate(wallet.createdAt)}
-          </Text>
-        </View>
-        {isActive ? (
-          <View className="bg-fair-green/20 rounded-full px-3 py-1">
-            <Text className="text-fair-green text-xs font-medium">Active</Text>
-          </View>
-        ) : (
-          <Text className="text-fair-muted text-sm">{"\u203A"}</Text>
-        )}
-      </View>
-    </Pressable>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +97,7 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
       onRequestClose={handleCancel}
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+        <Card className="p-6 w-full max-w-sm">
           <Text className="text-white text-lg font-bold mb-4 text-center">
             Import Wallet
           </Text>
@@ -186,7 +137,7 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
             <Button title="Import" onPress={handleImport} variant="primary" />
             <Button title="Cancel" onPress={handleCancel} variant="secondary" />
           </View>
-        </View>
+        </Card>
       </View>
     </Modal>
   );
@@ -247,7 +198,7 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
       onRequestClose={handleCancel}
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+        <Card className="p-6 w-full max-w-sm">
           <Text className="text-white text-lg font-bold mb-4 text-center">
             Watch-Only Wallet
           </Text>
@@ -293,7 +244,7 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
             />
             <Button title="Cancel" onPress={handleCancel} variant="secondary" />
           </View>
-        </View>
+        </Card>
       </View>
     </Modal>
   );
@@ -339,7 +290,7 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
       onRequestClose={handleCancel}
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+        <Card className="p-6 w-full max-w-sm">
           <Text className="text-white text-lg font-bold mb-4 text-center">
             Create New Wallet
           </Text>
@@ -365,7 +316,7 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
             <Button title="Create" onPress={handleCreate} variant="primary" />
             <Button title="Cancel" onPress={handleCancel} variant="secondary" />
           </View>
-        </View>
+        </Card>
       </View>
     </Modal>
   );
@@ -392,7 +343,7 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
       onRequestClose={onDismiss}
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <View className="bg-fair-dark-light border border-fair-border rounded-2xl p-6 w-full max-w-sm">
+        <Card className="p-6 w-full max-w-sm">
           <Text className="text-white text-lg font-bold mb-2 text-center">
             Recovery Phrase
           </Text>
@@ -415,8 +366,12 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
             ))}
           </View>
 
-          <Button title="I've Written It Down" onPress={onDismiss} variant="primary" />
-        </View>
+          <Button
+            title="I've Written It Down"
+            onPress={onDismiss}
+            variant="primary"
+          />
+        </Card>
       </View>
     </Modal>
   );
@@ -427,7 +382,6 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
 // ---------------------------------------------------------------------------
 
 export default function WalletsScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const wallets = useWalletStore((s) => s.wallets);
   const activeWalletId = useWalletStore((s) => s.activeWalletId);
@@ -571,53 +525,69 @@ export default function WalletsScreen() {
 
   if (switching || loading) {
     return (
-      <View className="flex-1 bg-fair-dark items-center justify-center" style={{ paddingTop: insets.top }}>
+      <SafeAreaView
+        className="flex-1 bg-fair-dark items-center justify-center"
+        edges={["top", "bottom", "left", "right"]}
+      >
         <ActivityIndicator size="large" color="#9ffb50" />
         <Text className="text-fair-muted text-sm mt-4">
           {switching ? "Switching wallet..." : "Loading..."}
         </Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View className="flex-1 bg-fair-dark">
+    <SafeAreaView
+      className="flex-1 bg-fair-dark"
+      edges={["top", "bottom", "left", "right"]}
+    >
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-4 pb-8"
-        contentContainerStyle={{ paddingTop: insets.top }}
+        contentContainerClassName="px-5 pt-4 pb-8"
       >
         {/* Header info */}
-        <View className="mb-6">
-          <Text className="text-fair-muted text-sm">
-            {wallets.length} wallet{wallets.length !== 1 ? "s" : ""}
-          </Text>
-          <Text className="text-fair-muted text-xs mt-1">
-            Tap to switch. Long-press to delete.
-          </Text>
-        </View>
+        <ScreenHeader
+          title="Wallets"
+          subtitle={`${wallets.length} wallet${wallets.length !== 1 ? "s" : ""} - Tap to switch, long-press to delete`}
+        />
 
         {/* Wallet list */}
-        {wallets.map((wallet) => (
-          <WalletRow
-            key={wallet.id}
-            wallet={wallet}
-            isActive={wallet.id === activeWalletId}
-            onSwitch={handleSwitch}
-            onDelete={handleDelete}
-          />
-        ))}
-
-        {wallets.length === 0 ? (
-          <View className="bg-fair-dark-light rounded-xl p-6 items-center mb-6">
-            <Text className="text-fair-muted text-sm text-center">
-              No wallets found. Create or import one below.
-            </Text>
-          </View>
-        ) : null}
+        <Section className="mb-6">
+          {wallets.length === 0 ? (
+            <EmptyState
+              icon="wallet"
+              title="No wallets found"
+              subtitle="Create or import one below"
+            />
+          ) : (
+            wallets.map((wallet, idx) => {
+              const isActive = wallet.id === activeWalletId;
+              return (
+                <ListItem
+                  key={wallet.id}
+                  icon="wallet"
+                  iconBg={isActive ? "bg-green-500/15" : "bg-fair-green/10"}
+                  iconColor={isActive ? "#22c55e" : "#9ffb50"}
+                  title={wallet.name}
+                  subtitle={`Created ${formatDate(wallet.createdAt)}`}
+                  isLast={idx === wallets.length - 1}
+                  onPress={() => {
+                    if (!isActive) handleSwitch(wallet.id);
+                  }}
+                  trailing={
+                    isActive ? (
+                      <Badge text="Active" variant="success" />
+                    ) : undefined
+                  }
+                />
+              );
+            })
+          )}
+        </Section>
 
         {/* Action buttons */}
-        <View className="gap-3 mt-4">
+        <View className="gap-3">
           <Button
             title="Create New Wallet"
             onPress={handleOpenCreate}
@@ -657,6 +627,6 @@ export default function WalletsScreen() {
         mnemonic={newMnemonic}
         onDismiss={handleMnemonicDismiss}
       />
-    </View>
+    </SafeAreaView>
   );
 }
