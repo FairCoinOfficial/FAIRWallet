@@ -206,7 +206,7 @@ export default function TransactionDetailScreen() {
           <ListItem
             icon="check-circle"
             iconBg={isConfirmed ? "bg-green-500/15" : "bg-yellow-500/15"}
-            iconColor={isConfirmed ? "#22c55e" : "#facc15"}
+            iconColor={isConfirmed ? theme.colors.success : theme.colors.warning}
             title="Status"
             value={`${isConfirmed ? "Confirmed" : "Pending"} (${transaction.confirmations})`}
             isLast={false}

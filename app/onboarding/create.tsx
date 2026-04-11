@@ -218,7 +218,7 @@ export default function CreateWalletScreen() {
             <MaterialCommunityIcons
               name="alert-outline"
               size={20}
-              color="#f87171"
+              color={theme.colors.error}
             />
             <Text className="text-red-400 text-sm flex-1 leading-5">
               Never share your recovery phrase. Anyone with these words can access

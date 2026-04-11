@@ -573,7 +573,7 @@ export default function WalletsScreen() {
                   key={wallet.id}
                   icon="wallet"
                   iconBg={isActive ? "bg-green-500/15" : "bg-primary/10"}
-                  iconColor={isActive ? "#22c55e" : theme.colors.primary}
+                  iconColor={isActive ? theme.colors.success : theme.colors.tint}
                   title={wallet.name}
                   subtitle={`Created ${formatDate(wallet.createdAt)}`}
                   isLast={idx === wallets.length - 1}

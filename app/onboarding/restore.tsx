@@ -114,7 +114,7 @@ export default function RestoreWalletScreen() {
             <MaterialCommunityIcons
               name="alert-circle-outline"
               size={20}
-              color="#f87171"
+              color={theme.colors.error}
             />
             <Text className="text-red-400 text-sm flex-1 leading-5">
               {error}

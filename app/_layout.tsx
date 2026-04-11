@@ -3,7 +3,7 @@
  *
  * Responsibilities:
  * - Crypto polyfill (before any crypto imports)
- * - Theme: BloomThemeProvider from @oxyhq/bloom
+ * - Theme: BloomThemeProvider + NativeWind CSS variable injection
  * - Navigation: Stack router with themed headers
  * - Deep link handler for faircoin: URIs
  * - Auto-lock timer
@@ -13,14 +13,19 @@
 import "../src/crypto-polyfill";
 import "../global.css";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AppState, type AppStateStatus, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { vars } from "nativewind";
 import * as Linking from "expo-linking";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { BloomThemeProvider, useBloomTheme } from "@oxyhq/bloom/theme";
-import type { ThemeMode, AppColorName } from "@oxyhq/bloom/theme";
+import {
+  BloomThemeProvider,
+  useBloomTheme,
+  APP_COLOR_PRESETS,
+} from "@oxyhq/bloom/theme";
+import type { ThemeMode } from "@oxyhq/bloom/theme";
 import { parseFairCoinURI } from "../src/core/uri";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { getAutoLockTimeout } from "../src/storage/secure-store";
@@ -29,12 +34,7 @@ import { getItemAsync, setItemAsync } from "../src/storage/kv-store";
 
 initLanguage();
 
-// ---------------------------------------------------------------------------
-// Persistence keys
-// ---------------------------------------------------------------------------
-
 const THEME_MODE_KEY = "fairwallet_theme_mode";
-const THEME_PRESET_KEY = "fairwallet_theme_preset";
 
 // ---------------------------------------------------------------------------
 // Deep link handler
@@ -59,9 +59,14 @@ function useDeepLinkHandler() {
     [router, initialized],
   );
 
-  const linkSubscriptionRef = useRef<ReturnType<typeof Linking.addEventListener> | null>(null);
+  const linkSubscriptionRef = useRef<ReturnType<
+    typeof Linking.addEventListener
+  > | null>(null);
   if (linkSubscriptionRef.current === null) {
-    linkSubscriptionRef.current = Linking.addEventListener("url", handleDeepLink);
+    linkSubscriptionRef.current = Linking.addEventListener(
+      "url",
+      handleDeepLink,
+    );
   }
 
   const initialURLChecked = useRef(false);
@@ -87,7 +92,10 @@ function useAutoLock() {
       if (!initialized) return;
       if (nextState === "background" || nextState === "inactive") {
         backgroundTimestamp.current = Date.now();
-      } else if (nextState === "active" && backgroundTimestamp.current !== null) {
+      } else if (
+        nextState === "active" &&
+        backgroundTimestamp.current !== null
+      ) {
         const elapsed = Date.now() - backgroundTimestamp.current;
         backgroundTimestamp.current = null;
         getAutoLockTimeout().then((minutes) => {
@@ -100,10 +108,41 @@ function useAutoLock() {
     [initialized, router],
   );
 
-  const subscriptionRef = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
+  const subscriptionRef = useRef<ReturnType<
+    typeof AppState.addEventListener
+  > | null>(null);
   if (subscriptionRef.current === null) {
-    subscriptionRef.current = AppState.addEventListener("change", handleAppStateChange);
+    subscriptionRef.current = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
   }
+}
+
+// ---------------------------------------------------------------------------
+// NativeWind CSS variable bridge
+//
+// Bloom provides theme colors via React context (useTheme().colors).
+// Tailwind classes (bg-background, text-primary, etc.) need CSS custom
+// properties to resolve. This hook reads the active Bloom preset's raw
+// HSL tokens and injects them as NativeWind vars() on the root View.
+// ---------------------------------------------------------------------------
+
+function useBloomCSSVars() {
+  const { theme, colorPreset } = useBloomTheme();
+  const preset = APP_COLOR_PRESETS[colorPreset];
+  const tokens = theme.isDark ? preset.dark : preset.light;
+
+  return useMemo(() => {
+    const entries: Record<`--${string}`, string> = {};
+    for (const [key, value] of Object.entries(tokens)) {
+      entries[key as `--${string}`] = value;
+    }
+    // Add success/warning which aren't in Bloom presets
+    entries["--success"] = tokens["--primary"] ?? "92 96% 65%";
+    entries["--warning"] = "45 93% 47%";
+    return vars(entries);
+  }, [tokens]);
 }
 
 // ---------------------------------------------------------------------------
@@ -115,21 +154,17 @@ export default function RootLayout() {
   useAutoLock();
 
   const [mode, setMode] = useState<ThemeMode>("dark");
-  const [preset, setPreset] = useState<AppColorName>("faircoin");
 
-  // Hydrate theme from storage once
   const hydrated = useRef(false);
   if (!hydrated.current) {
     hydrated.current = true;
-    Promise.all([
-      getItemAsync(THEME_MODE_KEY),
-      getItemAsync(THEME_PRESET_KEY),
-    ]).then(([storedMode, storedPreset]) => {
-      if (storedMode === "light" || storedMode === "dark" || storedMode === "system") {
+    getItemAsync(THEME_MODE_KEY).then((storedMode) => {
+      if (
+        storedMode === "light" ||
+        storedMode === "dark" ||
+        storedMode === "system"
+      ) {
         setMode(storedMode);
-      }
-      if (storedPreset) {
-        setPreset(storedPreset as AppColorName);
       }
     });
   }
@@ -139,18 +174,12 @@ export default function RootLayout() {
     setItemAsync(THEME_MODE_KEY, newMode);
   }, []);
 
-  const handlePresetChange = useCallback((newPreset: AppColorName) => {
-    setPreset(newPreset);
-    setItemAsync(THEME_PRESET_KEY, newPreset);
-  }, []);
-
   return (
     <SafeAreaProvider>
       <BloomThemeProvider
         mode={mode}
-        colorPreset={preset}
+        colorPreset="faircoin"
         onModeChange={handleModeChange}
-        onColorPresetChange={handlePresetChange}
       >
         <RootContent />
       </BloomThemeProvider>
@@ -160,30 +189,64 @@ export default function RootLayout() {
 
 function RootContent() {
   const { theme } = useBloomTheme();
+  const cssVars = useBloomCSSVars();
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <View style={[{ flex: 1 }, cssVars]}>
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.colors.background },
-          headerTintColor: theme.colors.primary,
+          headerTintColor: theme.colors.tint,
           headerTitleStyle: { color: theme.colors.text },
           contentStyle: { backgroundColor: theme.colors.background },
           animation: "slide_from_right",
         }}
       >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="lock" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="masternode" options={{ title: "Masternode", presentation: "modal" }} />
-        <Stack.Screen name="wallets" options={{ title: "Wallets", presentation: "modal" }} />
-        <Stack.Screen name="contacts" options={{ title: "Contacts", presentation: "modal" }} />
-        <Stack.Screen name="export-key" options={{ title: "Export Key", presentation: "modal" }} />
-        <Stack.Screen name="coin-control" options={{ title: "Coin Control", presentation: "modal" }} />
-        <Stack.Screen name="peers" options={{ title: "Network Peers", presentation: "modal" }} />
-        <Stack.Screen name="transaction/[txid]" options={{ title: "Transaction" }} />
+        <Stack.Screen
+          name="index"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="onboarding"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="lock"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="masternode"
+          options={{ title: "Masternode", presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="wallets"
+          options={{ title: "Wallets", presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="contacts"
+          options={{ title: "Contacts", presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="export-key"
+          options={{ title: "Export Key", presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="coin-control"
+          options={{ title: "Coin Control", presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="peers"
+          options={{ title: "Network Peers", presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="transaction/[txid]"
+          options={{ title: "Transaction" }}
+        />
       </Stack>
     </View>
   );

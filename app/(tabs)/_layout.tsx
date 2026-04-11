@@ -1,13 +1,9 @@
 /**
  * Tab layout for Android and iOS using native system tab bar.
- * Dynamically applies dark or light theme from Bloom preset.
+ * Colors come from Bloom's theme context.
  */
 
-import {
-  ThemeProvider,
-  DarkTheme,
-  DefaultTheme,
-} from "@react-navigation/native";
+import { ThemeProvider } from "@react-navigation/native";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useMemo } from "react";
 import { useTheme } from "@oxyhq/bloom/theme";
@@ -17,14 +13,20 @@ export default function TabLayout() {
 
   const navTheme = useMemo(
     () => ({
-      ...(theme.isDark ? DarkTheme : DefaultTheme),
+      dark: theme.isDark,
+      fonts: {
+        regular: { fontFamily: "System", fontWeight: "400" as const },
+        medium: { fontFamily: "System", fontWeight: "500" as const },
+        bold: { fontFamily: "System", fontWeight: "700" as const },
+        heavy: { fontFamily: "System", fontWeight: "800" as const },
+      },
       colors: {
-        ...(theme.isDark ? DarkTheme.colors : DefaultTheme.colors),
         background: theme.colors.background,
         card: theme.colors.card,
         border: theme.colors.border,
-        primary: theme.colors.primary,
+        primary: theme.colors.tint,
         text: theme.colors.text,
+        notification: theme.colors.error,
       },
     }),
     [theme],
@@ -32,7 +34,7 @@ export default function TabLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
-      <NativeTabs tintColor={theme.colors.primary}>
+      <NativeTabs tintColor={theme.colors.tint}>
         <NativeTabs.Trigger name="index">
           <NativeTabs.Trigger.Icon
             sf={{ default: "creditcard", selected: "creditcard.fill" }}
@@ -43,7 +45,10 @@ export default function TabLayout() {
 
         <NativeTabs.Trigger name="send">
           <NativeTabs.Trigger.Icon
-            sf={{ default: "arrow.up.circle", selected: "arrow.up.circle.fill" }}
+            sf={{
+              default: "arrow.up.circle",
+              selected: "arrow.up.circle.fill",
+            }}
             md="arrow_upward"
           />
           <NativeTabs.Trigger.Label>Send</NativeTabs.Trigger.Label>
@@ -51,7 +56,10 @@ export default function TabLayout() {
 
         <NativeTabs.Trigger name="receive">
           <NativeTabs.Trigger.Icon
-            sf={{ default: "arrow.down.circle", selected: "arrow.down.circle.fill" }}
+            sf={{
+              default: "arrow.down.circle",
+              selected: "arrow.down.circle.fill",
+            }}
             md="arrow_downward"
           />
           <NativeTabs.Trigger.Label>Receive</NativeTabs.Trigger.Label>

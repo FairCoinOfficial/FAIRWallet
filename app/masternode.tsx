@@ -196,7 +196,7 @@ export default function MasternodeScreen() {
                   key={`${utxo.txid}-${utxo.vout}`}
                   icon="server"
                   iconBg={confirmOk ? "bg-primary/10" : "bg-yellow-500/10"}
-                  iconColor={confirmOk ? theme.colors.primary : "#facc15"}
+                  iconColor={confirmOk ? theme.colors.success : theme.colors.warning}
                   title={truncateTxid(utxo.txid)}
                   subtitle={`${utxo.address.slice(0, 8)}...${utxo.address.slice(-6)}`}
                   value="5,000 FAIR"

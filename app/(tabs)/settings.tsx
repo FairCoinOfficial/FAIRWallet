@@ -37,8 +37,8 @@ import {
   PinPad,
 } from "../../src/ui/components";
 import type { NetworkType } from "../../src/core/network";
-import { useBloomTheme, APP_COLOR_NAMES, APP_COLOR_PRESETS } from "@oxyhq/bloom/theme";
-import type { ThemeMode, AppColorName } from "@oxyhq/bloom/theme";
+import { useBloomTheme } from "@oxyhq/bloom/theme";
+import type { ThemeMode } from "@oxyhq/bloom/theme";
 
 const APP_VERSION = "1.0.0";
 const PIN_LENGTH = 6;
@@ -207,9 +207,9 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
 // ---------------------------------------------------------------------------
 
 function AppearancePicker() {
-  const { theme, mode, colorPreset, setMode, setColorPreset } = useBloomTheme();
+  const { theme, mode, setMode } = useBloomTheme();
 
-  const modes: Array<{ value: ThemeMode; label: string; icon: string }> = [
+  const modes: Array<{ value: ThemeMode; label: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"] }> = [
     { value: "light", label: "Light", icon: "white-balance-sunny" },
     { value: "dark", label: "Dark", icon: "moon-waning-crescent" },
     { value: "system", label: "System", icon: "cellphone" },
@@ -217,9 +217,8 @@ function AppearancePicker() {
 
   return (
     <View className="px-4 py-3">
-      {/* Mode picker */}
       <Text className="text-muted-foreground text-xs mb-2">Appearance</Text>
-      <View className="flex-row gap-2 mb-4">
+      <View className="flex-row gap-2">
         {modes.map((m) => {
           const isActive = mode === m.value;
           return (
@@ -233,9 +232,9 @@ function AppearancePicker() {
               }`}
             >
               <MaterialCommunityIcons
-                name={m.icon as React.ComponentProps<typeof MaterialCommunityIcons>["name"]}
+                name={m.icon}
                 size={16}
-                color={isActive ? theme.colors.primary : theme.colors.textSecondary}
+                color={isActive ? theme.colors.tint : theme.colors.textSecondary}
               />
               <Text
                 className={`text-xs ml-1.5 font-medium ${
@@ -243,36 +242,6 @@ function AppearancePicker() {
                 }`}
               >
                 {m.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {/* Color preset picker */}
-      <Text className="text-muted-foreground text-xs mb-2">Accent Color</Text>
-      <View className="flex-row gap-3">
-        {APP_COLOR_NAMES.map((name) => {
-          const preset = APP_COLOR_PRESETS[name];
-          const isActive = name === colorPreset;
-          return (
-            <Pressable
-              key={name}
-              onPress={() => setColorPreset(name)}
-              className="items-center"
-            >
-              <View
-                className={`w-10 h-10 rounded-full items-center justify-center ${
-                  isActive ? "border-2 border-foreground" : "border border-border"
-                }`}
-                style={{ backgroundColor: preset.hex }}
-              />
-              <Text
-                className={`text-xs mt-1 ${
-                  isActive ? "text-foreground font-semibold" : "text-muted-foreground"
-                }`}
-              >
-                {name.charAt(0).toUpperCase() + name.slice(1)}
               </Text>
             </Pressable>
           );
@@ -623,8 +592,7 @@ export default function SettingsScreen() {
             title="Display Currency"
             value={displayCurrency}
             icon="currency-usd"
-            iconBg="bg-emerald-500/10"
-            iconColor="#34d399"
+            iconBg="bg-primary/10"
             onPress={handleCycleCurrency}
           />
           <AppearancePicker />
