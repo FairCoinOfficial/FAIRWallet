@@ -12,7 +12,7 @@ import {
   Pressable,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useWalletStore, getDatabase } from "../src/wallet/wallet-store";
 import { Button } from "../src/ui/components/Button";
@@ -115,6 +115,7 @@ function UTXORow({ utxo, selected, onToggle }: UTXORowProps) {
 // ---------------------------------------------------------------------------
 
 export default function CoinControlScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const chainHeight = useWalletStore((s) => s.chainHeight);
   const existingSelection = useWalletStore((s) => s.selectedUTXOs);
@@ -210,14 +211,14 @@ export default function CoinControlScreen() {
   }, [utxos]);
 
   return (
-    <SafeAreaView
+    <View
       className="flex-1 bg-fair-dark"
-      edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
       <ScrollView
         className="flex-1"
         contentContainerClassName="pb-8"
+        contentContainerStyle={{ paddingTop: insets.top }}
       >
         {/* Header info */}
         <View className="px-6 pt-4 pb-2">
@@ -286,6 +287,6 @@ export default function CoinControlScreen() {
           disabled={selectedCount === 0}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }

@@ -12,7 +12,7 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
@@ -138,6 +138,7 @@ function DetailRow({
 // ---------------------------------------------------------------------------
 
 export default function TransactionDetailScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { txid } = useLocalSearchParams<{ txid: string }>();
   const transactions = useWalletStore((s) => s.transactions);
@@ -201,7 +202,7 @@ export default function TransactionDetailScreen() {
 
   if (!transaction) {
     return (
-      <SafeAreaView className="flex-1 bg-fair-dark" edges={["top"]}>
+      <View className="flex-1 bg-fair-dark" style={{ paddingTop: insets.top }}>
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-fair-muted text-base text-center">
             Transaction not found
@@ -214,7 +215,7 @@ export default function TransactionDetailScreen() {
             />
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -228,14 +229,14 @@ export default function TransactionDetailScreen() {
   const statusColor = isConfirmed ? "text-fair-green" : "text-yellow-400";
 
   return (
-    <SafeAreaView
+    <View
       className="flex-1 bg-fair-dark"
-      edges={["top"]}
       onLayout={handleLayout}
     >
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pt-4 pb-8"
+        contentContainerStyle={{ paddingTop: insets.top }}
       >
         {/* Type badge */}
         <View className="items-center mb-4">
@@ -339,6 +340,6 @@ export default function TransactionDetailScreen() {
           />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

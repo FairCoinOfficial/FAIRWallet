@@ -13,7 +13,7 @@ import {
   Alert,
   FlatList,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import { useContactsStore } from "../src/wallet/contacts-store";
@@ -263,6 +263,7 @@ function ContactItem({ contact, onPress, onLongPress }: ContactItemProps) {
 // ---------------------------------------------------------------------------
 
 export default function ContactsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isPickMode = params.mode === "pick";
@@ -410,9 +411,9 @@ export default function ContactsScreen() {
   const keyExtractor = useCallback((item: ContactRow) => item.id, []);
 
   return (
-    <SafeAreaView
+    <View
       className="flex-1 bg-fair-dark"
-      edges={["top", "left", "right", "bottom"]}
+      style={{ paddingTop: insets.top }}
       onLayout={handleLayout}
     >
       {/* Header */}
@@ -470,6 +471,6 @@ export default function ContactsScreen() {
         onSave={handleFormSave}
         onClose={handleFormClose}
       />
-    </SafeAreaView>
+    </View>
   );
 }

@@ -5,7 +5,7 @@
 
 import { useCallback, useState } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { SyncStatus } from "../../src/ui/components/SyncStatus";
@@ -47,6 +47,7 @@ function formatChange(change: number | null): {
 }
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const balance = useWalletStore((s) => s.balance);
   const isSyncing = useWalletStore((s) => s.isSyncing);
   const syncProgress = useWalletStore((s) => s.syncProgress);
@@ -84,10 +85,11 @@ export default function HomeScreen() {
   const change = price ? formatChange(price.change24h) : null;
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark" edges={["top", "left", "right"]}>
+    <View className="flex-1 bg-fair-dark">
       <ScrollView
         className="flex-1"
         contentContainerClassName="pb-8"
+        contentContainerStyle={{ paddingTop: insets.top }}
         refreshControl={
           <RefreshControl
             refreshing={loading}
@@ -173,6 +175,6 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

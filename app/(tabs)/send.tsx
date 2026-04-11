@@ -13,7 +13,7 @@ import {
   Modal,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import {
@@ -70,6 +70,7 @@ function parseFairToSats(input: string): bigint | null {
 }
 
 export default function SendScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const balance = useWalletStore((s) => s.balance);
   const sendTransaction = useWalletStore((s) => s.sendTransaction);
@@ -81,7 +82,7 @@ export default function SendScreen() {
   // Watch-only wallets cannot send transactions
   if (isWatchOnly) {
     return (
-      <SafeAreaView className="flex-1 bg-fair-dark" edges={["top", "left", "right"]}>
+      <View className="flex-1 bg-fair-dark" style={{ paddingTop: insets.top }}>
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-fair-muted text-4xl mb-4">{"\uD83D\uDD12"}</Text>
           <Text className="text-white text-xl font-bold mb-2 text-center">
@@ -92,7 +93,7 @@ export default function SendScreen() {
             with a recovery phrase to enable sending.
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -257,12 +258,13 @@ export default function SendScreen() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark" edges={["top", "left", "right"]}
+    <View className="flex-1 bg-fair-dark"
       onLayout={loadRecentRecipients}
     >
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pt-4 pb-8"
+        contentContainerStyle={{ paddingTop: insets.top }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Recent recipients */}
@@ -511,6 +513,6 @@ export default function SendScreen() {
           onClose={handleCloseContactPicker}
         />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

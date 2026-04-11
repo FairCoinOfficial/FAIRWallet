@@ -14,7 +14,7 @@ import {
   Modal,
   TextInput,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import type { MasternodeUTXO } from "../src/wallet/wallet-store";
@@ -53,6 +53,7 @@ function parseIpPort(input: string): { ip: string; port: number } | null {
 }
 
 export default function MasternodeScreen() {
+  const insets = useSafeAreaInsets();
   const masternodeUTXOs = useWalletStore((s) => s.masternodeUTXOs);
   const refreshMasternodeUTXOs = useWalletStore((s) => s.refreshMasternodeUTXOs);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
@@ -143,10 +144,11 @@ export default function MasternodeScreen() {
   }, [ipPortInput, firstEligible]);
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark" edges={["top", "bottom", "left", "right"]}>
+    <View className="flex-1 bg-fair-dark">
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pt-4 pb-8"
+        contentContainerStyle={{ paddingTop: insets.top }}
       >
         {/* Info card */}
         <View className="bg-fair-dark-light border border-fair-border rounded-xl p-4 mb-6">
@@ -302,6 +304,6 @@ export default function MasternodeScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }

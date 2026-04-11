@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { verifyPin } from "../src/storage/secure-store";
@@ -38,6 +38,7 @@ type ExportStep = "pin" | "select" | "passphrase" | "result";
 // ---------------------------------------------------------------------------
 
 export default function ExportKeyScreen() {
+  const insets = useSafeAreaInsets();
   const addresses = useWalletStore((s) => s.addresses);
   const network = useWalletStore((s) => s.network);
 
@@ -189,7 +190,7 @@ export default function ExportKeyScreen() {
 
   if (step === "pin") {
     return (
-      <SafeAreaView className="flex-1 bg-fair-dark">
+      <View className="flex-1 bg-fair-dark" style={{ paddingTop: insets.top }}>
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-white text-xl font-bold mb-2">Verify PIN</Text>
           <Text className="text-fair-muted text-sm mb-6 text-center">
@@ -259,16 +260,17 @@ export default function ExportKeyScreen() {
             ))}
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (step === "select") {
     return (
-      <SafeAreaView className="flex-1 bg-fair-dark">
+      <View className="flex-1 bg-fair-dark">
         <ScrollView
           className="flex-1"
           contentContainerClassName="px-6 pt-6 pb-8"
+          contentContainerStyle={{ paddingTop: insets.top }}
         >
           <Text className="text-white text-xl font-bold mb-2 text-center">
             Select Address
@@ -304,16 +306,17 @@ export default function ExportKeyScreen() {
             </View>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (step === "passphrase") {
     return (
-      <SafeAreaView className="flex-1 bg-fair-dark">
+      <View className="flex-1 bg-fair-dark">
         <ScrollView
           className="flex-1"
           contentContainerClassName="px-6 pt-6 pb-8"
+          contentContainerStyle={{ paddingTop: insets.top }}
           keyboardShouldPersistTaps="handled"
         >
           <Text className="text-white text-xl font-bold mb-2 text-center">
@@ -366,16 +369,17 @@ export default function ExportKeyScreen() {
             loading={encrypting}
           />
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   // Result step
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark">
+    <View className="flex-1 bg-fair-dark">
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pt-6 pb-8"
+        contentContainerStyle={{ paddingTop: insets.top }}
       >
         <Text className="text-white text-xl font-bold mb-2 text-center">
           Encrypted Key
@@ -415,6 +419,6 @@ export default function ExportKeyScreen() {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

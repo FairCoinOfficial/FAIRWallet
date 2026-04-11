@@ -14,7 +14,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import {
@@ -302,6 +302,7 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
 // ---------------------------------------------------------------------------
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const network = useWalletStore((s) => s.network);
   const connectedPeers = useWalletStore((s) => s.connectedPeers);
@@ -549,10 +550,11 @@ export default function SettingsScreen() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark" edges={["top", "left", "right"]}>
+    <View className="flex-1 bg-fair-dark">
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pt-4 pb-8"
+        contentContainerStyle={{ paddingTop: insets.top }}
       >
         {/* Wallets */}
         <SettingsSection title="Wallets">
@@ -732,6 +734,6 @@ export default function SettingsScreen() {
           onDismiss={handleRecoveryDismiss}
         />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

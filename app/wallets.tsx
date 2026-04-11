@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import type { WalletInfo } from "../src/storage/secure-store";
 import { Button } from "../src/ui/components/Button";
@@ -427,6 +427,7 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
 // ---------------------------------------------------------------------------
 
 export default function WalletsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const wallets = useWalletStore((s) => s.wallets);
   const activeWalletId = useWalletStore((s) => s.activeWalletId);
@@ -570,20 +571,21 @@ export default function WalletsScreen() {
 
   if (switching || loading) {
     return (
-      <SafeAreaView className="flex-1 bg-fair-dark items-center justify-center">
+      <View className="flex-1 bg-fair-dark items-center justify-center" style={{ paddingTop: insets.top }}>
         <ActivityIndicator size="large" color="#9ffb50" />
         <Text className="text-fair-muted text-sm mt-4">
           {switching ? "Switching wallet..." : "Loading..."}
         </Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-fair-dark" edges={["top", "bottom", "left", "right"]}>
+    <View className="flex-1 bg-fair-dark">
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-6 pt-4 pb-8"
+        contentContainerStyle={{ paddingTop: insets.top }}
       >
         {/* Header info */}
         <View className="mb-6">
@@ -655,6 +657,6 @@ export default function WalletsScreen() {
         mnemonic={newMnemonic}
         onDismiss={handleMnemonicDismiss}
       />
-    </SafeAreaView>
+    </View>
   );
 }
