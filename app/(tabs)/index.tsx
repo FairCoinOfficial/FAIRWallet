@@ -52,6 +52,7 @@ export default function HomeScreen() {
   const syncProgress = useWalletStore((s) => s.syncProgress);
   const connectedPeers = useWalletStore((s) => s.connectedPeers);
   const chainHeight = useWalletStore((s) => s.chainHeight);
+  const networkStatus = useWalletStore((s) => s.networkStatus);
   const transactions = useWalletStore((s) => s.transactions);
   const network = useWalletStore((s) => s.network);
   const refreshBalance = useWalletStore((s) => s.refreshBalance);
@@ -136,6 +137,7 @@ export default function HomeScreen() {
             isSyncing={isSyncing}
             connectedPeers={connectedPeers}
             chainHeight={chainHeight}
+            networkStatus={networkStatus}
           />
         </View>
 

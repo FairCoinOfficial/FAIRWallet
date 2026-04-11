@@ -10,6 +10,7 @@ interface SyncStatusProps {
   isSyncing: boolean;
   connectedPeers: number;
   chainHeight: number;
+  networkStatus: string;
 }
 
 type SyncState = "synced" | "syncing" | "disconnected";
@@ -26,17 +27,12 @@ const DOT_COLORS: Record<SyncState, string> = {
   disconnected: "bg-red-400",
 };
 
-const STATUS_TEXT: Record<SyncState, string> = {
-  synced: "Synced",
-  syncing: "Syncing...",
-  disconnected: "Disconnected",
-};
-
 export function SyncStatus({
   progress,
   isSyncing,
   connectedPeers,
   chainHeight,
+  networkStatus,
 }: SyncStatusProps) {
   const syncState = useMemo(
     () => getSyncState(isSyncing, connectedPeers),
@@ -44,18 +40,26 @@ export function SyncStatus({
   );
 
   const dotColor = DOT_COLORS[syncState];
-  const statusLabel =
-    syncState === "syncing"
-      ? `Syncing... ${Math.round(progress)}%`
-      : STATUS_TEXT[syncState];
+
+  const statusLabel = useMemo(() => {
+    if (syncState === "syncing") {
+      return `Syncing... ${Math.round(progress)}%`;
+    }
+    if (syncState === "synced") {
+      return "Synced";
+    }
+    return networkStatus;
+  }, [syncState, progress, networkStatus]);
 
   return (
     <View className="bg-fair-dark-light rounded-xl px-4 py-3">
       <View className="flex-row items-center justify-between">
         {/* Status dot + text */}
-        <View className="flex-row items-center">
+        <View className="flex-row items-center flex-1 mr-2">
           <View className={`w-2.5 h-2.5 rounded-full ${dotColor} mr-2`} />
-          <Text className="text-white text-sm">{statusLabel}</Text>
+          <Text className="text-white text-sm flex-shrink" numberOfLines={2}>
+            {statusLabel}
+          </Text>
         </View>
 
         {/* Peers */}
@@ -69,7 +73,6 @@ export function SyncStatus({
         <View className="mt-2 h-1.5 bg-fair-dark rounded-full overflow-hidden">
           <View
             className="h-full bg-fair-green rounded-full"
-            // Using inline style only for dynamic width - no NativeWind class for percentage widths
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
           />
         </View>

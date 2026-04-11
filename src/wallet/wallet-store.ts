@@ -90,6 +90,7 @@ export interface WalletState {
   chainHeight: number;
   connectedPeers: number;
   isSyncing: boolean;
+  networkStatus: string; // human-readable P2P status
 
   // Addresses
   currentReceiveAddress: string;
@@ -212,6 +213,7 @@ const DEFAULT_WALLET_STATE = {
   chainHeight: 0,
   connectedPeers: 0,
   isSyncing: false,
+  networkStatus: "Offline",
   currentReceiveAddress: "",
   addresses: [] as string[],
   transactions: [] as WalletTransaction[],
@@ -245,6 +247,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   chainHeight: 0,
   connectedPeers: 0,
   isSyncing: false,
+  networkStatus: "Offline",
 
   currentReceiveAddress: "",
   addresses: [],
@@ -334,6 +337,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
       // Start SPV client for P2P connectivity
       try {
+        set({ networkStatus: "Resolving DNS seeds..." });
         const socketProvider = createSocketProvider();
         const headerStore = new DatabaseHeaderStore(database);
 
@@ -369,16 +373,36 @@ export const useWalletStore = create<WalletState>((set, get) => ({
           spvClient.setBloomFilter(addressHashes);
         }
 
+        set({ networkStatus: "Connecting to peers..." });
         await spvClient.start();
 
+        const peerCount = spvClient.getPeerManager().getReadyPeers().length;
         set({
-          connectedPeers: spvClient.getPeerManager().getReadyPeers().length,
+          connectedPeers: peerCount,
           chainHeight: spvClient.getChainHeight(),
           isSyncing: true,
+          networkStatus: peerCount > 0
+            ? `Connected to ${peerCount} peer${peerCount === 1 ? "" : "s"}`
+            : "Waiting for peers...",
         });
-      } catch {
-        // SPV failed to start - wallet still works in offline mode.
-        // The explorer API fallback will be used for broadcasting instead.
+
+        // Start a periodic peer count updater
+        const peerUpdateInterval = setInterval(() => {
+          if (!spvClient) {
+            clearInterval(peerUpdateInterval);
+            return;
+          }
+          const count = spvClient.getPeerManager().getReadyPeers().length;
+          set({
+            connectedPeers: count,
+            networkStatus: count > 0
+              ? `Connected to ${count} peer${count === 1 ? "" : "s"}`
+              : "Searching for peers...",
+          });
+        }, 5000);
+      } catch (spvError: unknown) {
+        const spvMsg = spvError instanceof Error ? spvError.message : "Unknown P2P error";
+        set({ networkStatus: `P2P error: ${spvMsg}` });
       }
     } catch (err: unknown) {
       const message =
