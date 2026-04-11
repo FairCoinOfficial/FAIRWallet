@@ -26,6 +26,7 @@ import {
 // ---------------------------------------------------------------------------
 
 export interface SocketConnection {
+  onConnect(callback: () => void): void;
   onData(callback: (data: Uint8Array) => void): void;
   onClose(callback: () => void): void;
   onError(callback: (err: Error) => void): void;
@@ -148,6 +149,11 @@ export class Peer {
       return;
     }
 
+    this.socket.onConnect(() => {
+      this._state = "connected";
+      this.startHandshake();
+    });
+
     this.socket.onData((data: Uint8Array) => {
       this.onSocketData(data);
     });
@@ -160,9 +166,6 @@ export class Peer {
       this.events.onError(this, err);
       this.handleDisconnect(`error: ${err.message}`);
     });
-
-    this._state = "connected";
-    this.startHandshake();
   }
 
   disconnect(): void {

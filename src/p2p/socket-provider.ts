@@ -67,14 +67,20 @@ function getElectronAPI(): ElectronAPI | undefined {
 
 class NativeSocketProvider implements SocketProvider {
   connect(host: string, port: number): SocketConnection {
-    // Dynamic require to avoid web bundling issues (same pattern as kv-store.ts)
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const TcpSocket = require("react-native-tcp-socket") as { default: NativeTcpModule };
+
+    let connectCallback: (() => void) | undefined;
+
     const socket = TcpSocket.default.createConnection({ host, port }, () => {
-      // Connection callback - no-op, events handle the lifecycle
+      if (connectCallback) {
+        connectCallback();
+      }
     });
 
     return {
+      onConnect: (cb: () => void) => {
+        connectCallback = cb;
+      },
       onData: (cb: (data: Uint8Array) => void) => {
         socket.on("data", (data: Uint8Array) => {
           cb(new Uint8Array(data));
@@ -111,7 +117,17 @@ class ElectronSocketProvider implements SocketProvider {
 
     const socket = electronAPI.p2p.connect(host, port);
 
+    // Electron's IPC p2p:connect resolves when the TCP connection is established,
+    // so we fire onConnect immediately after setup.
+    let connectCallback: (() => void) | undefined;
+    setTimeout(() => {
+      if (connectCallback) connectCallback();
+    }, 0);
+
     return {
+      onConnect: (cb: () => void) => {
+        connectCallback = cb;
+      },
       onData: (cb: (data: Uint8Array) => void) => {
         socket.onData(cb);
       },
