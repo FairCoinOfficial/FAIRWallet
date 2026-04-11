@@ -1,0 +1,30 @@
+/**
+ * PinDots — row of indicator dots for PIN entry.
+ * Shows filled (green) and empty (muted border) dots.
+ * Turns red on error state.
+ */
+
+import { View } from "react-native";
+
+interface PinDotsProps {
+  length: number;
+  filled: number;
+  error?: boolean;
+}
+
+export function PinDots({ length, filled, error = false }: PinDotsProps) {
+  const filledColor = error ? "bg-red-400" : "bg-fair-green";
+
+  return (
+    <View className="flex-row gap-4">
+      {Array.from({ length }, (_, i) => (
+        <View
+          key={`pin-dot-${i}`}
+          className={`w-4 h-4 rounded-full ${
+            i < filled ? filledColor : "border-2 border-fair-border"
+          }`}
+        />
+      ))}
+    </View>
+  );
+}
