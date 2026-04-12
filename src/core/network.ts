@@ -3,10 +3,12 @@
  * Values sourced from FairCoin's C++ source (chainparams.cpp).
  */
 
+import { UNITS_PER_COIN } from "./branding";
+
 export type NetworkType = "mainnet" | "testnet";
 
-/** 1 FAIR = 100,000,000 satoshis */
-const COIN = 100_000_000n;
+/** 1 FAIR = 100,000,000 base units. Re-exported from branding for local clarity. */
+const COIN = UNITS_PER_COIN;
 
 export interface NetworkConfig {
   readonly name: NetworkType;

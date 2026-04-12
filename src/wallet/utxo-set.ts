@@ -4,6 +4,8 @@
  * and performs coin selection for transaction building.
  */
 
+import { UNITS_PER_COIN, SMALLEST_UNIT_NAME } from "../core/branding";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -29,10 +31,10 @@ interface CoinSelectionResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Masternode collateral: exactly 5,000 FAIR = 500_000_000_000 satoshis.
- * (5000 * 100_000_000)
+ * Masternode collateral: exactly 5,000 FAIR in base units.
+ * (5000 * UNITS_PER_COIN)
  */
-const MASTERNODE_COLLATERAL_SATS = 500_000_000_000n;
+const MASTERNODE_COLLATERAL_SATS = 5_000n * UNITS_PER_COIN;
 
 /**
  * Estimated transaction overhead in bytes (version + locktime + input/output counts).
@@ -173,8 +175,8 @@ export class UTXOSet {
     }
 
     throw new Error(
-      `Insufficient funds: need ${targetValue.toString()} satoshis + fee, ` +
-        `but only ${selectedTotal.toString()} satoshis available`,
+      `Insufficient funds: need ${targetValue.toString()} ${SMALLEST_UNIT_NAME} + fee, ` +
+        `but only ${selectedTotal.toString()} ${SMALLEST_UNIT_NAME} available`,
     );
   }
 

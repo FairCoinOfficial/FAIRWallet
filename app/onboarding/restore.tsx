@@ -11,6 +11,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { t } from "../../src/i18n";
 
 export default function RestoreWalletScreen() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function RestoreWalletScreen() {
         setError(null);
       }
     } catch {
-      setError("Failed to read clipboard");
+      setError(t("onboarding.restore.error.clipboard"));
     }
   }, []);
 
@@ -48,7 +49,7 @@ export default function RestoreWalletScreen() {
       router.replace("/onboarding/pin-setup");
     } catch (e: unknown) {
       const msg =
-        e instanceof Error ? e.message : "Failed to restore wallet";
+        e instanceof Error ? e.message : t("onboarding.restore.error.failed");
       setError(msg);
     }
   }, [mnemonicInput, restoreWallet, router]);
@@ -68,17 +69,17 @@ export default function RestoreWalletScreen() {
       >
         {/* Header */}
         <Text className="text-foreground text-xl font-bold mb-2 text-center">
-          Restore Your Wallet
+          {t("onboarding.restore.title")}
         </Text>
         <Text className="text-muted-foreground text-sm mb-8 text-center leading-5">
-          Enter your 24-word recovery phrase to restore access to your wallet.
+          {t("onboarding.restore.description")}
         </Text>
 
         {/* Mnemonic input area */}
         <View className="bg-surface border border-border rounded-2xl p-5 mb-4">
           <TextInput
             className="text-foreground text-base leading-6 min-h-[140px] font-mono"
-            placeholder="word1 word2 word3 ..."
+            placeholder={t("onboarding.restore.phrasePlaceholder")}
             placeholderTextColor={theme.colors.textSecondary}
             value={mnemonicInput}
             onChangeText={setMnemonicInput}
@@ -93,7 +94,7 @@ export default function RestoreWalletScreen() {
         {/* Word count + paste row */}
         <View className="flex-row items-center justify-between mb-6">
           <Text className={`text-sm font-medium ${wordCountColor}`}>
-            {wordCount}/24 words
+            {t("onboarding.restore.wordCount", { count: wordCount })}
           </Text>
           <Pressable
             className="flex-row items-center gap-2 bg-surface border border-border rounded-full px-4 py-2 active:bg-primary/10"
@@ -104,7 +105,9 @@ export default function RestoreWalletScreen() {
               size={16}
               color={theme.colors.primary}
             />
-            <Text className="text-primary text-sm font-medium">Paste</Text>
+            <Text className="text-primary text-sm font-medium">
+              {t("onboarding.restore.pasteCta")}
+            </Text>
           </Pressable>
         </View>
 
@@ -124,7 +127,7 @@ export default function RestoreWalletScreen() {
 
         {/* Restore button */}
         <Button
-          title="Restore Wallet"
+          title={t("onboarding.restoreCta")}
           onPress={handleRestore}
           variant="primary"
           size="lg"

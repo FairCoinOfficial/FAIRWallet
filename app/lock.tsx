@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useRef, useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Image } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
@@ -14,6 +14,9 @@ import { PinPad } from "../src/ui/components/PinPad";
 import { PinDots } from "../src/ui/components/PinDots";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { hapticSuccess, hapticError } from "../src/utils/haptics";
+import { playUnlocked } from "../src/services/sounds";
+import { APP_NAME } from "../src/core/branding";
+import { t } from "../src/i18n";
 
 const PIN_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
@@ -75,12 +78,13 @@ export default function LockScreen() {
       setBiometricsAvailable(true);
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Unlock FAIRWallet",
+        promptMessage: t("lock.unlockPrompt", { app: APP_NAME }),
         disableDeviceFallback: false,
       });
 
       if (result.success) {
         hapticSuccess();
+        playUnlocked();
         navigateToTabs();
       }
     } catch (_biometricError: unknown) {
@@ -107,12 +111,13 @@ export default function LockScreen() {
 
           try {
             const result = await LocalAuthentication.authenticateAsync({
-              promptMessage: "Unlock FAIRWallet",
+              promptMessage: t("lock.unlockPrompt", { app: APP_NAME }),
               disableDeviceFallback: false,
             });
 
             if (result.success && !cancelled) {
               hapticSuccess();
+              playUnlocked();
               navigateToTabs();
             }
           } catch (_e: unknown) {
@@ -148,6 +153,7 @@ export default function LockScreen() {
             .then((correct) => {
               if (correct) {
                 hapticSuccess();
+                playUnlocked();
                 navigateToTabs();
               } else {
                 hapticError();
@@ -158,14 +164,15 @@ export default function LockScreen() {
                   const until = Date.now() + LOCKOUT_SECONDS * 1000;
                   setLockedUntil(until);
                   setError(
-                    `Too many attempts. Try again in ${LOCKOUT_SECONDS}s.`,
+                    t("lock.tooManyAttempts", { seconds: LOCKOUT_SECONDS }),
                   );
                   startLockoutTimer(until);
                 } else {
+                  const remaining = MAX_ATTEMPTS - newAttempts;
                   setError(
-                    `Wrong passcode. ${MAX_ATTEMPTS - newAttempts} attempt${
-                      MAX_ATTEMPTS - newAttempts === 1 ? "" : "s"
-                    } remaining.`,
+                    remaining === 1
+                      ? t("lock.wrongPasscode.one", { count: remaining })
+                      : t("lock.wrongPasscode.other", { count: remaining }),
                   );
                 }
                 setPin("");
@@ -173,7 +180,7 @@ export default function LockScreen() {
               setVerifying(false);
             })
             .catch(() => {
-              setError("Verification failed. Try again.");
+              setError(t("lock.verificationFailed"));
               setPin("");
               setVerifying(false);
             });
@@ -210,10 +217,17 @@ export default function LockScreen() {
       <View className="flex-1 items-center justify-between px-6 pt-16 pb-8">
         {/* Brand + prompt */}
         <View className="items-center flex-1 justify-center">
-          <Text className="text-primary text-5xl mb-8">{"\u229C"}</Text>
+          <Image
+            source={require("../assets/icon.png")}
+            style={{ width: 88, height: 88, marginBottom: 24, borderRadius: 20 }}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+            accessibilityRole="image"
+            accessibilityLabel={t("onboarding.logoAccessibility")}
+          />
 
           <Text className="text-foreground text-xl font-semibold mb-8">
-            Enter your passcode
+            {t("lock.enterPasscode")}
           </Text>
 
           <PinDots
@@ -231,7 +245,7 @@ export default function LockScreen() {
             ) : null}
             {isLockedOut && lockoutRemaining > 0 ? (
               <Text className="text-muted-foreground text-sm text-center">
-                Locked for {lockoutRemaining}s
+                {t("lock.lockedFor", { seconds: lockoutRemaining })}
               </Text>
             ) : null}
           </View>

@@ -4,6 +4,7 @@
 
 import { Stack } from "expo-router";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { t } from "../../src/i18n";
 
 export default function PeersLayout() {
   const theme = useTheme();
@@ -19,11 +20,11 @@ export default function PeersLayout() {
     >
       <Stack.Screen
         name="index"
-        options={{ title: "Network Peers" }}
+        options={{ title: t("peers.title") }}
       />
       <Stack.Screen
         name="add"
-        options={{ title: "Add Peer" }}
+        options={{ title: t("peers.add.title") }}
       />
     </Stack>
   );

@@ -10,6 +10,7 @@ import { getDatabase } from "../../wallet/wallet-store";
 import type { ContactRow } from "../../storage/database";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { ContactAvatar } from "./ContactAvatar";
+import { t } from "../../i18n";
 
 interface ContactPickerProps {
   visible: boolean;
@@ -124,10 +125,12 @@ export function ContactPicker({
       <View className="flex-1 bg-background">
         {/* Header */}
         <View className="pt-14 pb-3 px-6 flex-row items-center justify-between bg-background border-b border-border">
-          <Text className="text-foreground text-lg font-bold">Pick Contact</Text>
+          <Text className="text-foreground text-lg font-bold">
+            {t("contactPicker.title")}
+          </Text>
           <Pressable onPress={handleClose} className="p-2">
             <Text className="text-primary text-base font-semibold">
-              Close
+              {t("common.close")}
             </Text>
           </Pressable>
         </View>
@@ -137,7 +140,7 @@ export function ContactPicker({
           <View className="bg-surface border border-border rounded-xl px-4 py-2.5">
             <TextInput
               className="text-foreground text-sm"
-              placeholder="Search contacts..."
+              placeholder={t("contactPicker.searchPlaceholder")}
               placeholderTextColor={theme.colors.textSecondary}
               value={searchQuery}
               onChangeText={handleSearch}
@@ -152,8 +155,8 @@ export function ContactPicker({
           <View className="flex-1 items-center justify-center px-8">
             <Text className="text-muted-foreground text-base text-center">
               {searchQuery
-                ? "No contacts match your search"
-                : "No contacts yet. Add one to get started."}
+                ? t("contactPicker.emptySearch")
+                : t("contactPicker.empty")}
             </Text>
           </View>
         ) : (

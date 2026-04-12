@@ -16,6 +16,7 @@ import {
   EmptyState,
 } from "../../src/ui/components";
 import { Button } from "../../src/ui/components/Button";
+import { t } from "../../src/i18n";
 
 const DNS_SEEDS = [
   { host: "seed1.fairco.in", port: 46372 },
@@ -35,10 +36,10 @@ function getServiceLabels(services: number): string[] {
 function formatLastSeen(timestamp: number): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = now - timestamp;
-  if (diff < 60) return "Just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+  if (diff < 60) return t("peers.lastSeen.justNow");
+  if (diff < 3600) return t("peers.lastSeen.minutes", { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t("peers.lastSeen.hours", { count: Math.floor(diff / 3600) });
+  return t("peers.lastSeen.days", { count: Math.floor(diff / 86400) });
 }
 
 export default function PeersScreen() {
@@ -61,9 +62,16 @@ export default function PeersScreen() {
   );
 
   const syncStatus = useMemo(() => {
-    if (connectedPeers === 0) return { text: "Offline", variant: "error" as const };
-    if (isSyncing) return { text: `Syncing ${Math.round(syncProgress)}%`, variant: "warning" as const };
-    return { text: "Synced", variant: "success" as const };
+    if (connectedPeers === 0) {
+      return { text: t("peers.offline"), variant: "error" as const };
+    }
+    if (isSyncing) {
+      return {
+        text: t("peers.syncing", { progress: Math.round(syncProgress) }),
+        variant: "warning" as const,
+      };
+    }
+    return { text: t("peers.synced"), variant: "success" as const };
   }, [connectedPeers, isSyncing, syncProgress]);
 
   return (
@@ -74,37 +82,43 @@ export default function PeersScreen() {
       {/* Stats */}
       <Card className="p-4 mb-6">
         <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-muted-foreground text-sm">Status</Text>
+          <Text className="text-muted-foreground text-sm">{t("peers.status")}</Text>
           <Badge text={syncStatus.text} variant={syncStatus.variant} />
         </View>
         <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-muted-foreground text-sm">Connected</Text>
+          <Text className="text-muted-foreground text-sm">
+            {t("peers.connected")}
+          </Text>
           <Text className="text-foreground text-sm font-semibold">
-            {connectedPeers} {connectedPeers === 1 ? "peer" : "peers"}
+            {connectedPeers === 1
+              ? t("peers.peerCountLabel.one", { count: connectedPeers })
+              : t("peers.peerCountLabel.other", { count: connectedPeers })}
           </Text>
         </View>
         <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-muted-foreground text-sm">Block Height</Text>
+          <Text className="text-muted-foreground text-sm">
+            {t("peers.blockHeight")}
+          </Text>
           <Text className="text-foreground text-sm font-semibold">
             {chainHeight > 0 ? chainHeight.toLocaleString() : "—"}
           </Text>
         </View>
         <View className="flex-row items-center justify-between">
-          <Text className="text-muted-foreground text-sm">Network</Text>
+          <Text className="text-muted-foreground text-sm">{t("peers.network")}</Text>
           <Badge
-            text={network === "testnet" ? "Testnet" : "Mainnet"}
+            text={network === "testnet" ? t("peers.testnet") : t("peers.mainnet")}
             variant={network === "testnet" ? "warning" : "info"}
           />
         </View>
       </Card>
 
       {/* Peers list */}
-      <Section title="Known Peers" className="mb-6">
+      <Section title={t("peers.knownPeers")} className="mb-6">
         {peers.length === 0 ? (
           <EmptyState
             icon="server-network-off"
-            title="No peers yet"
-            subtitle="Peers will appear once the wallet connects to the network"
+            title={t("peers.empty.title")}
+            subtitle={t("peers.empty.subtitle")}
           />
         ) : (
           peers.map((peer, idx) => (
@@ -124,7 +138,7 @@ export default function PeersScreen() {
       {/* Add peer button */}
       <View className="mb-6">
         <Button
-          title="Add Peer Manually"
+          title={t("peers.addManually")}
           onPress={() => router.push("/peers/add")}
           variant="outline"
           icon={null}
@@ -132,13 +146,13 @@ export default function PeersScreen() {
       </View>
 
       {/* DNS Seeds */}
-      <Section title="DNS Seeds">
+      <Section title={t("peers.dnsSeeds")}>
         {DNS_SEEDS.map((seed, idx) => (
           <ListItem
             key={seed.host}
             icon="dns"
             title={seed.host}
-            subtitle={`Port ${seed.port}`}
+            subtitle={t("peers.portLabel", { port: seed.port })}
             isLast={idx === DNS_SEEDS.length - 1}
             showChevron={false}
           />

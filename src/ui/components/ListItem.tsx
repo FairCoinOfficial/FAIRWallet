@@ -13,7 +13,12 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 interface ListItemProps {
   title: string;
   subtitle?: string;
-  value?: string;
+  /**
+   * Trailing value. String renders inside the standard muted Text slot;
+   * a React node is rendered as-is so callers can drop in rich content
+   * (e.g. <AmountText>) without needing to switch to `trailing`.
+   */
+  value?: string | React.ReactNode;
   icon?: IconName;
   iconColor?: string;
   iconBg?: string;
@@ -72,8 +77,10 @@ export function ListItem({
       </View>
 
       {/* Right: value + trailing + chevron */}
-      {value ? (
+      {typeof value === "string" ? (
         <Text className="text-muted-foreground text-sm mr-2">{value}</Text>
+      ) : value ? (
+        <View className="mr-2">{value}</View>
       ) : null}
       {trailing}
       {shouldShowChevron ? (

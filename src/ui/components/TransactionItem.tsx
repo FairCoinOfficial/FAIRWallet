@@ -8,13 +8,17 @@ import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { AmountText } from "./AmountText";
+import { COIN_SYMBOL } from "../../core/branding";
+import { t } from "../../i18n";
 
 type TransactionType = "send" | "receive" | "stake" | "masternode_reward";
 
 interface TransactionItemProps {
   txid: string;
   type: TransactionType;
-  amount: string;
+  /** Signed amount in smallest units (m⊜). The absolute value is rendered. */
+  value: bigint;
   address: string;
   timestamp: number;
   confirmations: number;
@@ -24,7 +28,7 @@ interface TypeConfig {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   iconBg: string;
   amountColor: string;
-  label: string;
+  labelKey: string;
   prefix: string;
 }
 
@@ -34,7 +38,7 @@ const STATIC_TYPE_CONFIG: Record<TransactionType, TypeConfig & { iconColor: stri
     iconBg: "bg-red-500/10",
     iconColor: "#f87171",
     amountColor: "text-red-400",
-    label: "Sent",
+    labelKey: "transaction.item.sent",
     prefix: "-",
   },
   receive: {
@@ -42,7 +46,7 @@ const STATIC_TYPE_CONFIG: Record<TransactionType, TypeConfig & { iconColor: stri
     iconBg: "bg-primary/10",
     iconColor: "", // resolved from theme
     amountColor: "text-primary",
-    label: "Received",
+    labelKey: "transaction.item.received",
     prefix: "+",
   },
   stake: {
@@ -50,7 +54,7 @@ const STATIC_TYPE_CONFIG: Record<TransactionType, TypeConfig & { iconColor: stri
     iconBg: "bg-purple-500/10",
     iconColor: "#a78bfa",
     amountColor: "text-purple-400",
-    label: "Staking Reward",
+    labelKey: "transaction.item.stake",
     prefix: "+",
   },
   masternode_reward: {
@@ -58,7 +62,7 @@ const STATIC_TYPE_CONFIG: Record<TransactionType, TypeConfig & { iconColor: stri
     iconBg: "bg-blue-500/10",
     iconColor: "#60a5fa",
     amountColor: "text-blue-400",
-    label: "Masternode Reward",
+    labelKey: "transaction.item.masternodeReward",
     prefix: "+",
   },
 };
@@ -67,10 +71,16 @@ function formatTimeAgo(timestamp: number): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = now - timestamp;
 
-  if (diff < 60) return "Just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  if (diff < 60) return t("transaction.item.justNow");
+  if (diff < 3600) {
+    return t("transaction.item.minutesAgo", { count: Math.floor(diff / 60) });
+  }
+  if (diff < 86400) {
+    return t("transaction.item.hoursAgo", { count: Math.floor(diff / 3600) });
+  }
+  if (diff < 604800) {
+    return t("transaction.item.daysAgo", { count: Math.floor(diff / 86400) });
+  }
 
   const date = new Date(timestamp * 1000);
   const month = date.toLocaleString("en", { month: "short" });
@@ -86,7 +96,7 @@ function truncateAddress(address: string): string {
 export function TransactionItem({
   txid,
   type,
-  amount,
+  value,
   address,
   timestamp,
   confirmations,
@@ -97,6 +107,7 @@ export function TransactionItem({
   const iconColor = type === "receive" ? theme.colors.primary : staticConfig.iconColor;
   const timeAgo = useMemo(() => formatTimeAgo(timestamp), [timestamp]);
   const truncated = useMemo(() => truncateAddress(address), [address]);
+  const absValue = value < 0n ? -value : value;
 
   const isPending = confirmations === 0;
 
@@ -119,7 +130,7 @@ export function TransactionItem({
       {/* Label + address */}
       <View className="flex-1 mr-3">
         <Text className="text-foreground text-sm font-medium" numberOfLines={1}>
-          {staticConfig.label}
+          {t(staticConfig.labelKey)}
         </Text>
         <View className="flex-row items-center mt-0.5">
           <Text className="text-muted-foreground text-xs" numberOfLines={1}>
@@ -128,7 +139,7 @@ export function TransactionItem({
           {isPending ? (
             <View className="ml-2 bg-yellow-500/15 rounded-full px-1.5 py-0.5">
               <Text className="text-yellow-400 text-[9px] font-bold">
-                PENDING
+                {t("transaction.item.pending")}
               </Text>
             </View>
           ) : null}
@@ -137,9 +148,12 @@ export function TransactionItem({
 
       {/* Amount + time */}
       <View className="items-end">
-        <Text className={`text-sm font-semibold ${staticConfig.amountColor}`}>
-          {staticConfig.prefix}{amount}
-        </Text>
+        <AmountText
+          value={absValue}
+          prefix={staticConfig.prefix}
+          suffix={` ${COIN_SYMBOL}`}
+          className={`text-sm font-semibold ${staticConfig.amountColor}`}
+        />
         <Text className="text-muted-foreground text-xs mt-0.5">{timeAgo}</Text>
       </View>
     </Pressable>

@@ -42,7 +42,8 @@ import {
   type PriceData,
 } from "../../src/services/price";
 import { useTheme } from "@oxyhq/bloom/theme";
-import { formatFair } from "../../src/core/format-amount";
+import { BUY_BASE_URL } from "../../src/core/branding";
+import { t } from "../../src/i18n";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -92,9 +93,7 @@ export default function HomeScreen() {
       language,
       country,
     });
-    await WebBrowser.openBrowserAsync(
-      `https://buy.fairco.in/?${params.toString()}`,
-    );
+    await WebBrowser.openBrowserAsync(`${BUY_BASE_URL}/?${params.toString()}`);
   }, [receiveAddress]);
 
   const [price, setPrice] = useState<PriceData | null>(getCachedPrice);
@@ -113,9 +112,16 @@ export default function HomeScreen() {
   const recentTransactions = transactions.slice(0, 10);
 
   const syncState = useMemo(() => {
-    if (connectedPeers === 0) return { dot: "bg-red-400", label: "Offline" };
-    if (isSyncing) return { dot: "bg-yellow-400", label: `Syncing ${Math.round(syncProgress)}%` };
-    return { dot: "bg-primary", label: "Synced" };
+    if (connectedPeers === 0) {
+      return { dot: "bg-red-400", label: t("wallet.sync.offline") };
+    }
+    if (isSyncing) {
+      return {
+        dot: "bg-yellow-400",
+        label: t("wallet.sync.syncing", { progress: Math.round(syncProgress) }),
+      };
+    }
+    return { dot: "bg-primary", label: t("wallet.sync.synced") };
   }, [connectedPeers, isSyncing, syncProgress]);
 
   // ---- Parallax: track scroll, derive translate + scale on the UI thread ----
@@ -188,7 +194,7 @@ export default function HomeScreen() {
         {/* ---- Balance (sits in the gradient fade zone) ---- */}
         <View className="items-center pt-8 pb-6 px-6">
           <BalanceDisplay
-            sats={balance}
+            value={balance}
             priceUsd={price?.usd}
             change24h={price?.change24h}
             size="lg"
@@ -201,27 +207,32 @@ export default function HomeScreen() {
           <View className="flex-row justify-evenly px-4 pb-6">
             <ActionButton
               icon="arrow-up-bold"
-              label="Send"
+              label={t("wallet.send")}
               onPress={() => router.push("/(tabs)/send")}
             />
             <ActionButton
               icon="arrow-down-bold"
-              label="Receive"
+              label={t("wallet.receive")}
               onPress={() => router.push("/(tabs)/receive")}
             />
             <ActionButton
               icon="credit-card-plus"
-              label="Buy"
+              label={t("wallet.buy")}
               onPress={handleBuy}
             />
             <ActionButton
+              icon="map-marker"
+              label={t("wallet.places")}
+              onPress={() => router.push("/map")}
+            />
+            <ActionButton
               icon="account-group"
-              label="Contacts"
+              label={t("wallet.contacts")}
               onPress={() => router.push("/contacts")}
             />
             <ActionButton
               icon="server-network"
-              label="Nodes"
+              label={t("wallet.nodes")}
               onPress={() => router.push("/masternode")}
             />
           </View>
@@ -237,11 +248,14 @@ export default function HomeScreen() {
               </View>
               <View className="flex-row justify-between mt-1">
                 <Text className="text-muted-foreground text-[10px]">
-                  {connectedPeers} {connectedPeers === 1 ? "peer" : "peers"}
+                  {connectedPeers}{" "}
+                  {connectedPeers === 1
+                    ? t("wallet.peer.one")
+                    : t("wallet.peer.other")}
                 </Text>
                 {chainHeight > 0 ? (
                   <Text className="text-muted-foreground text-[10px]">
-                    Block {chainHeight.toLocaleString()}
+                    {t("wallet.block", { height: chainHeight.toLocaleString() })}
                   </Text>
                 ) : null}
               </View>
@@ -253,10 +267,18 @@ export default function HomeScreen() {
             <Divider className="mb-5" />
 
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-foreground text-lg font-semibold">Activity</Text>
+              <Text className="text-foreground text-lg font-semibold">
+                {t("wallet.activity")}
+              </Text>
               {transactions.length > 0 ? (
                 <Text className="text-muted-foreground text-xs">
-                  {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
+                  {transactions.length === 1
+                    ? t("wallet.transactionCount.one", {
+                        count: transactions.length,
+                      })
+                    : t("wallet.transactionCount.other", {
+                        count: transactions.length,
+                      })}
                 </Text>
               ) : null}
             </View>
@@ -264,8 +286,8 @@ export default function HomeScreen() {
             {recentTransactions.length === 0 ? (
               <EmptyState
                 icon="swap-vertical"
-                title="No activity yet"
-                subtitle="Your transactions will appear here"
+                title={t("wallet.activity.empty.title")}
+                subtitle={t("wallet.activity.empty.subtitle")}
               />
             ) : (
               <View className="bg-surface rounded-2xl overflow-hidden">
@@ -274,9 +296,7 @@ export default function HomeScreen() {
                     <TransactionItem
                       txid={tx.txid}
                       type={tx.type}
-                      amount={formatFair(
-                        tx.amount < 0n ? -tx.amount : tx.amount,
-                      )}
+                      value={tx.amount}
                       address={tx.address}
                       timestamp={tx.timestamp}
                       confirmations={tx.confirmations}
@@ -309,13 +329,13 @@ export default function HomeScreen() {
           className="flex-row items-center active:opacity-60"
           onPress={() => router.push("/wallets")}
           accessibilityRole="button"
-          accessibilityLabel="Switch wallet"
+          accessibilityLabel={t("wallet.switchAccessibility")}
         >
           <Text
             className="text-white text-base font-semibold"
             style={TOP_BAR_TEXT_SHADOW}
           >
-            {activeWalletName || "FAIRWallet"}
+            {activeWalletName || t("wallet.defaultName")}
           </Text>
           <MaterialCommunityIcons name="chevron-down" size={18} color="#ffffff" />
         </Pressable>
@@ -323,13 +343,15 @@ export default function HomeScreen() {
         {/* Right: network badge + sync status (tappable → peers) */}
         <View className="flex-row items-center gap-2">
           {network === "testnet" ? (
-            <Badge text="TESTNET" variant="warning" size="sm" />
+            <Badge text={t("wallet.badge.testnet")} variant="warning" size="sm" />
           ) : null}
           <Pressable
             className="flex-row items-center active:opacity-60"
             onPress={() => router.push("/peers")}
             accessibilityRole="button"
-            accessibilityLabel={`Sync status: ${syncState.label}`}
+            accessibilityLabel={t("wallet.syncAccessibility", {
+              label: syncState.label,
+            })}
           >
             <View className={`w-1.5 h-1.5 rounded-full ${syncState.dot} mr-1`} />
             <Text className="text-white text-[11px]" style={TOP_BAR_TEXT_SHADOW}>

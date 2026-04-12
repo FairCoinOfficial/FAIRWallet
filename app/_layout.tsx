@@ -35,10 +35,30 @@ import { parseFairCoinURI } from "../src/core/uri";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { getAutoLockTimeout } from "../src/storage/secure-store";
 import { initLanguage } from "../src/i18n";
+import { useLanguageStore } from "../src/i18n/store";
 import { getItemAsync, setItemAsync } from "../src/storage/kv-store";
+import { startTxNotifier } from "../src/services/tx-notifier";
+import { registerBackgroundSync } from "../src/services/background-sync";
 
-// Module-level initialization
-initLanguage();
+// Module-level initialization. Resolves the persisted or device language,
+// then syncs the reactive store so React components see the correct value.
+const languageInitPromise = initLanguage()
+  .then(() => {
+    useLanguageStore.getState().hydrate();
+  })
+  .catch(() => {
+    // Defaults from `initLanguage` remain in place; `hydrate` is still safe.
+    useLanguageStore.getState().hydrate();
+  });
+
+// Start watching wallet transactions for incoming-payment alerts. Must run
+// before any wallet state is hydrated so the subscriber sees every new tx
+// beyond the initial snapshot.
+startTxNotifier();
+
+// Best-effort background task registration for wake-up payment alerts.
+// Safe on platforms that don't support background tasks (web / electron).
+void registerBackgroundSync();
 
 // Prevent splash from auto-hiding — we hide it manually after loading
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -146,6 +166,8 @@ export default function RootLayout() {
 
   const [mode, setMode] = useState<ThemeMode>("dark");
   const [themeReady, setThemeReady] = useState(false);
+  const [languageReady, setLanguageReady] = useState(false);
+  const language = useLanguageStore((s) => s.language);
 
   const hydrated = useRef(false);
   if (!hydrated.current) {
@@ -155,6 +177,9 @@ export default function RootLayout() {
         setMode(stored);
       }
       setThemeReady(true);
+    });
+    languageInitPromise.then(() => {
+      setLanguageReady(true);
     });
   }
 
@@ -172,7 +197,10 @@ export default function RootLayout() {
           onModeChange={handleModeChange}
         >
           <BottomSheetModalProvider>
-            <AppContent ready={fontsLoaded && themeReady} />
+            <AppContent
+              key={language}
+              ready={fontsLoaded && themeReady && languageReady}
+            />
           </BottomSheetModalProvider>
         </BloomThemeProvider>
       </SafeAreaProvider>
@@ -213,6 +241,9 @@ function AppContent({ ready }: { ready: boolean }) {
         <Stack.Screen name="export-key" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="coin-control" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="peers" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="chain" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="language" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="map" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="transaction/[txid]" options={{ headerShown: false }} />
       </Stack>
     </View>

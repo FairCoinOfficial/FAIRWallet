@@ -25,6 +25,7 @@ import { ContactAvatar, EmptyState } from "../src/ui/components";
 import { QRScanner } from "../src/ui/components/QRScanner";
 import { useTheme } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
+import { t } from "../src/i18n";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -197,7 +198,7 @@ function ContactForm({
             <Pressable
               onPress={handleClose}
               className="w-11 h-11 items-center justify-center rounded-full active:bg-surface"
-              accessibilityLabel="Close"
+              accessibilityLabel={t("contacts.closeAccessibility")}
             >
               <MaterialCommunityIcons
                 name="close"
@@ -206,7 +207,7 @@ function ContactForm({
               />
             </Pressable>
             <Text className="flex-1 text-foreground text-lg font-semibold ml-2">
-              {editingContact ? "Edit contact" : "New contact"}
+              {editingContact ? t("contacts.edit") : t("contacts.newContact")}
             </Text>
             <Pressable
               onPress={handleSave}
@@ -214,14 +215,14 @@ function ContactForm({
               className={`h-11 px-5 rounded-full items-center justify-center ${
                 canSave ? "bg-primary active:opacity-80" : "bg-muted opacity-60"
               }`}
-              accessibilityLabel="Save contact"
+              accessibilityLabel={t("contacts.saveAccessibility")}
             >
               <Text
                 className={`text-sm font-semibold ${
                   canSave ? "text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
-                Save
+                {t("common.save")}
               </Text>
             </Pressable>
           </View>
@@ -242,11 +243,11 @@ function ContactForm({
             {/* Form fields */}
             <View className="mt-2">
               <FormField
-                label="Name"
+                label={t("contacts.field.name")}
                 icon="account-outline"
                 value={name}
                 onChangeText={setName}
-                placeholder="Contact name"
+                placeholder={t("contacts.field.namePlaceholder")}
                 autoCapitalize="words"
                 autoCorrect={false}
                 focused={focusedField === "name"}
@@ -255,11 +256,11 @@ function ContactForm({
               />
 
               <FormField
-                label="Address"
+                label={t("contacts.field.address")}
                 icon="key-outline"
                 value={address}
                 onChangeText={setAddress}
-                placeholder="FairCoin address"
+                placeholder={t("contacts.field.addressPlaceholder")}
                 autoCapitalize="none"
                 autoCorrect={false}
                 focused={focusedField === "address"}
@@ -270,7 +271,7 @@ function ContactForm({
                     <Pressable
                       onPress={handlePaste}
                       className="w-10 h-10 rounded-full items-center justify-center active:bg-surface"
-                      accessibilityLabel="Paste address from clipboard"
+                      accessibilityLabel={t("contacts.pasteAccessibility")}
                     >
                       <MaterialCommunityIcons
                         name="content-paste"
@@ -281,7 +282,7 @@ function ContactForm({
                     <Pressable
                       onPress={() => setShowQRScanner(true)}
                       className="w-10 h-10 rounded-full items-center justify-center active:bg-surface"
-                      accessibilityLabel="Scan address from QR code"
+                      accessibilityLabel={t("contacts.scanAccessibility")}
                     >
                       <MaterialCommunityIcons
                         name="qrcode-scan"
@@ -294,11 +295,11 @@ function ContactForm({
               />
 
               <FormField
-                label="Notes"
+                label={t("contacts.field.notes")}
                 icon="note-text-outline"
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="Optional notes"
+                placeholder={t("contacts.field.notesPlaceholder")}
                 autoCapitalize="sentences"
                 multiline
                 focused={focusedField === "notes"}
@@ -318,9 +319,9 @@ function ContactForm({
 
       <Prompt.Basic
         control={clipboardErrorControl}
-        title="Clipboard Error"
-        description="Failed to read from clipboard."
-        confirmButtonCta="OK"
+        title={t("contacts.clipboardError.title")}
+        description={t("contacts.clipboardError.description")}
+        confirmButtonCta={t("common.ok")}
         onConfirm={() => {}}
         showCancel={false}
       />
@@ -514,7 +515,7 @@ export default function ContactsScreen() {
           <Pressable
             onPress={() => router.back()}
             className="w-11 h-11 items-center justify-center rounded-full active:bg-surface"
-            accessibilityLabel="Back"
+            accessibilityLabel={t("contacts.backAccessibility")}
           >
             <MaterialCommunityIcons
               name="arrow-left"
@@ -523,12 +524,12 @@ export default function ContactsScreen() {
             />
           </Pressable>
           <Text className="flex-1 text-foreground text-lg font-semibold ml-2">
-            Contacts
+            {t("contacts.title")}
           </Text>
           <Pressable
             onPress={handleAddPress}
             className="w-11 h-11 items-center justify-center rounded-full active:bg-surface"
-            accessibilityLabel="Add contact"
+            accessibilityLabel={t("contacts.addAccessibility")}
           >
             <MaterialCommunityIcons
               name="plus"
@@ -548,7 +549,7 @@ export default function ContactsScreen() {
             />
             <TextInput
               className="flex-1 text-foreground text-base ml-3 py-2"
-              placeholder="Search contacts"
+              placeholder={t("contacts.searchPill")}
               placeholderTextColor={theme.colors.textSecondary}
               value={searchQuery}
               onChangeText={handleSearch}
@@ -560,7 +561,7 @@ export default function ContactsScreen() {
               <Pressable
                 onPress={handleClearSearch}
                 className="w-8 h-8 items-center justify-center rounded-full active:bg-background"
-                accessibilityLabel="Clear search"
+                accessibilityLabel={t("contacts.clearSearchAccessibility")}
               >
                 <MaterialCommunityIcons
                   name="close-circle"
@@ -579,10 +580,10 @@ export default function ContactsScreen() {
               icon="book-open-variant"
               title={
                 searchQuery
-                  ? "No contacts match your search"
-                  : "No contacts yet"
+                  ? t("contacts.emptySearch")
+                  : t("contacts.empty")
               }
-              subtitle={searchQuery ? undefined : "Add one to get started"}
+              subtitle={searchQuery ? undefined : t("contacts.emptyAddOne")}
             />
           </View>
         ) : (
@@ -617,17 +618,17 @@ export default function ContactsScreen() {
         </Prompt.Content>
         <Prompt.Actions>
           <Prompt.Action
-            cta="Edit"
+            cta={t("common.edit")}
             onPress={handleLongPressEdit}
             color="primary"
           />
           <Prompt.Action
-            cta="Copy Address"
+            cta={t("contacts.copyAddress")}
             onPress={handleLongPressCopy}
             color="primary_subtle"
           />
           <Prompt.Action
-            cta="Delete"
+            cta={t("common.delete")}
             onPress={handleLongPressDelete}
             color="negative"
           />
@@ -638,13 +639,15 @@ export default function ContactsScreen() {
       {/* Delete contact confirmation prompt */}
       <Prompt.Basic
         control={deleteContactControl}
-        title="Delete Contact"
+        title={t("contacts.delete.title")}
         description={
           pendingDeleteContact
-            ? `Are you sure you want to delete "${pendingDeleteContact.name}"?`
+            ? t("contacts.delete.description", {
+                name: pendingDeleteContact.name,
+              })
             : ""
         }
-        confirmButtonCta="Delete"
+        confirmButtonCta={t("common.delete")}
         confirmButtonColor="negative"
         onConfirm={() => {
           if (pendingDeleteContact) {

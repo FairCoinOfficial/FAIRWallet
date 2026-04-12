@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "types": ["bun-types"],
     "paths": {
       "@/*": ["./src/*"],
       "@app/*": ["./app/*"]
@@ -13,6 +14,7 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    "image-types.d.ts"
   ]
 }

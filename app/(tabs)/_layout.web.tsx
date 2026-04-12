@@ -40,9 +40,7 @@ import { t } from "../../src/i18n";
 import { useTheme } from "@oxyhq/bloom/theme";
 
 const MEDIUM_BREAKPOINT = 600;
-const ULTRAWIDE_BREAKPOINT = 1400;
 const RAIL_WIDTH = 80;
-const CONTENT_MAX_WIDTH = 1200;
 const RAIL_INDICATOR_WIDTH = 56;
 const RAIL_INDICATOR_HEIGHT = 32;
 const RAIL_ICON_SIZE = 24;
@@ -71,7 +69,6 @@ export default function TabLayout() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const showRail = width >= MEDIUM_BREAKPOINT;
-  const isUltrawide = width >= ULTRAWIDE_BREAKPOINT;
   const pathname = usePathname();
 
   const tabsStyle: StyleProp<ViewStyle> = {
@@ -80,7 +77,6 @@ export default function TabLayout() {
     minHeight: 0,
   };
 
-  const slotContainerStyle: StyleProp<ViewStyle> = styles.slotContainer;
 
   const tabs: readonly TabDef[] = [
     { name: "index", href: "/", icon: "wallet", label: t("wallet.title") },
@@ -109,6 +105,12 @@ export default function TabLayout() {
     const color = active ? theme.colors.primary : theme.colors.textSecondary;
 
     if (showRail) {
+      const indicatorBg = active
+        ? theme.colors.primarySubtle
+        : "transparent";
+      const iconColor = active
+        ? theme.colors.primarySubtleForeground
+        : theme.colors.textSecondary;
       return (
         <TabTrigger
           key={tab.name}
@@ -120,15 +122,13 @@ export default function TabLayout() {
             <View
               style={[
                 styles.railIndicator,
-                active && {
-                  backgroundColor: `${theme.colors.primary}1A`,
-                },
+                { backgroundColor: indicatorBg },
               ]}
             >
               <MaterialCommunityIcons
                 name={tab.icon}
                 size={RAIL_ICON_SIZE}
-                color={color}
+                color={iconColor}
               />
             </View>
           </View>
@@ -170,15 +170,8 @@ export default function TabLayout() {
             >
               {tabs.map(renderTrigger)}
             </TabList>
-            <View style={slotContainerStyle}>
-              <View
-                style={[
-                  styles.slotInner,
-                  isUltrawide && styles.slotInnerUltrawide,
-                ]}
-              >
-                <TabSlot />
-              </View>
+            <View style={styles.slotContainer}>
+              <TabSlot />
             </View>
           </>
         ) : (
@@ -249,30 +242,13 @@ const styles = StyleSheet.create({
 
   // Wrapper around <TabSlot /> that owns the flex sizing. Without this the
   // default TabSlot style (`flexShrink: 0`) prevents react-native-web's
-  // `<ScrollView>` from receiving a bounded height. We also center children
-  // horizontally so the inner cap-width column on ultrawide displays sits in
-  // the middle of the available space (not vertically centered, which is what
-  // `alignSelf: 'center'` would do inside a row-direction parent).
+  // `<ScrollView>` from receiving a bounded height. Always full width and
+  // top-aligned so screens fill the available area on every viewport.
   slotContainer: {
     flex: 1,
     minHeight: 0,
     minWidth: 0,
     alignSelf: "stretch",
-    alignItems: "center",
-  },
-  // Inner wrapper that holds the actual <TabSlot />. Always full width on
-  // smaller screens, capped to CONTENT_MAX_WIDTH on ultrawide so cards and
-  // text don't stretch across the viewport. Content is top-aligned because
-  // the wrapper itself is a flex column with the default `justifyContent:
-  // 'flex-start'`.
-  slotInner: {
-    flex: 1,
-    width: "100%",
-    minHeight: 0,
-    minWidth: 0,
-  },
-  slotInnerUltrawide: {
-    maxWidth: CONTENT_MAX_WIDTH,
   },
 
   // ── Bottom tab bar (< 600px) ──────────────────────────────────────────────

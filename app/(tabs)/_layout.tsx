@@ -7,6 +7,7 @@ import { ThemeProvider } from "@react-navigation/native";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useMemo } from "react";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { t } from "../../src/i18n";
 
 export default function TabLayout() {
   const theme = useTheme();
@@ -54,7 +55,7 @@ export default function TabLayout() {
             sf={{ default: "creditcard", selected: "creditcard.fill" }}
             md="wallet"
           />
-          <NativeTabs.Trigger.Label>Wallet</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{t("wallet.title")}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger
@@ -65,7 +66,7 @@ export default function TabLayout() {
             sf={{ default: "arrow.up.circle", selected: "arrow.up.circle.fill" }}
             md="arrow_upward"
           />
-          <NativeTabs.Trigger.Label>Send</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{t("wallet.send")}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger
@@ -76,7 +77,7 @@ export default function TabLayout() {
             sf={{ default: "arrow.down.circle", selected: "arrow.down.circle.fill" }}
             md="arrow_downward"
           />
-          <NativeTabs.Trigger.Label>Receive</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{t("wallet.receive")}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger
@@ -87,7 +88,7 @@ export default function TabLayout() {
             sf={{ default: "gearshape", selected: "gearshape.fill" }}
             md="settings"
           />
-          <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{t("wallet.settings")}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     </ThemeProvider>

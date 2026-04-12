@@ -10,6 +10,8 @@ import * as Prompt from "@oxyhq/bloom/prompt";
 import { getDatabase } from "../../src/wallet/wallet-store";
 import { Card } from "../../src/ui/components/Card";
 import { Button } from "../../src/ui/components/Button";
+import { COIN_NAME } from "../../src/core/branding";
+import { t } from "../../src/i18n";
 
 const DEFAULT_PORT = "46372";
 
@@ -70,15 +72,15 @@ export default function AddPeerScreen() {
     const trimmedPort = port.trim() || DEFAULT_PORT;
 
     if (!trimmedIp) {
-      setError("Please enter an IP address.");
+      setError(t("peers.add.error.ipRequired"));
       return;
     }
     if (!isValidIPv4(trimmedIp)) {
-      setError("Please enter a valid IPv4 address (e.g. 192.168.1.1).");
+      setError(t("peers.add.error.ipInvalid"));
       return;
     }
     if (!isValidPort(trimmedPort)) {
-      setError("Please enter a valid port number (1–65535).");
+      setError(t("peers.add.error.portInvalid"));
       return;
     }
 
@@ -91,8 +93,10 @@ export default function AddPeerScreen() {
     }
 
     setLoading(false);
-    showMessage("Peer Added", `${trimmedIp}:${trimmedPort}`, () =>
-      router.back(),
+    showMessage(
+      t("peers.add.success.title"),
+      `${trimmedIp}:${trimmedPort}`,
+      () => router.back(),
     );
   }, [ip, port, router, showMessage]);
 
@@ -104,15 +108,16 @@ export default function AddPeerScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text className="text-muted-foreground text-sm mb-6">
-          Enter the IP address and port of a FairCoin node to connect to it
-          directly. The default port is {DEFAULT_PORT}.
+          {t("peers.add.description", { coin: COIN_NAME, port: DEFAULT_PORT })}
         </Text>
 
         <Card className="p-4 mb-6">
-          <Text className="text-muted-foreground text-xs mb-1">IP Address</Text>
+          <Text className="text-muted-foreground text-xs mb-1">
+            {t("peers.add.ipLabel")}
+          </Text>
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-4"
-            placeholder="192.168.1.1"
+            placeholder={t("peers.add.ipPlaceholder")}
             placeholderTextColor={theme.colors.textSecondary}
             value={ip}
             onChangeText={(text) => {
@@ -125,7 +130,9 @@ export default function AddPeerScreen() {
             returnKeyType="next"
           />
 
-          <Text className="text-muted-foreground text-xs mb-1">Port</Text>
+          <Text className="text-muted-foreground text-xs mb-1">
+            {t("peers.add.portLabel")}
+          </Text>
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base"
             placeholder={DEFAULT_PORT}
@@ -147,7 +154,7 @@ export default function AddPeerScreen() {
         ) : null}
 
         <Button
-          title="Add Peer"
+          title={t("peers.add.cta")}
           onPress={handleAdd}
           variant="primary"
           loading={loading}
@@ -159,7 +166,7 @@ export default function AddPeerScreen() {
         control={messageControl}
         title={message?.title ?? ""}
         description={message?.description ?? ""}
-        confirmButtonCta="OK"
+        confirmButtonCta={t("common.ok")}
         onConfirm={() => {
           const cb = message?.onConfirm;
           setMessage(null);

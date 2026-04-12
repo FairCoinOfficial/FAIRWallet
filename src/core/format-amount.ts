@@ -1,16 +1,18 @@
 /**
  * Shared FAIR amount formatting utilities.
  *
- * All amounts in FAIRWallet are stored as `bigint` satoshis
- * (1 FAIR = 100,000,000 sats). These helpers convert between
- * the raw satoshi representation and human-readable FAIR strings.
+ * All amounts in FAIRWallet are stored as `bigint` base units in m⊜
+ * (1 FAIR = 100,000,000 m⊜, the same smallest-unit convention that
+ * Bitcoin uses for satoshis). These helpers convert between the raw
+ * base-unit representation and human-readable FAIR strings.
  *
- * Use `formatSats` when full precision matters (copy, confirmation
+ * Use `formatUnits` when full precision matters (copy, confirmation
  * dialogs, verification rows). Use `formatFair` for display-oriented
  * UI where trailing zeros would be visual noise.
  */
 
-const SATS_PER_FAIR = 100_000_000n;
+import { UNITS_PER_COIN } from "./branding";
+
 const DECIMALS = 8;
 
 /**
@@ -23,23 +25,24 @@ function withThousandsSeparators(digits: string): string {
 }
 
 /**
- * Format satoshis as a FAIR decimal string with full 8-decimal precision.
- * Used for precise displays, copy-to-clipboard, and confirmation dialogs.
+ * Format smallest units (m⊜) as a FAIR decimal string with full
+ * 8-decimal precision. Used for precise displays, copy-to-clipboard,
+ * and confirmation dialogs.
  *
  * Example: 150000000n -> "1.50000000"
  */
-export function formatSats(sats: bigint): string {
-  const negative = sats < 0n;
-  const abs = negative ? -sats : sats;
-  const whole = abs / SATS_PER_FAIR;
-  const frac = abs % SATS_PER_FAIR;
+export function formatUnits(value: bigint): string {
+  const negative = value < 0n;
+  const abs = negative ? -value : value;
+  const whole = abs / UNITS_PER_COIN;
+  const frac = abs % UNITS_PER_COIN;
   const result = `${whole.toString()}.${frac.toString().padStart(DECIMALS, "0")}`;
   return negative ? `-${result}` : result;
 }
 
 /**
- * Format satoshis as a trimmed, human-readable FAIR string with
- * thousands separators. Trailing zeros in the decimal are stripped;
+ * Format smallest units (m⊜) as a trimmed, human-readable FAIR string
+ * with thousands separators. Trailing zeros in the decimal are stripped;
  * integer values render with no decimal point.
  *
  * Examples:
@@ -49,11 +52,11 @@ export function formatSats(sats: bigint): string {
  *   1n              -> "0.00000001"
  *   0n              -> "0"
  */
-export function formatFair(sats: bigint): string {
-  const negative = sats < 0n;
-  const abs = negative ? -sats : sats;
-  const whole = abs / SATS_PER_FAIR;
-  const frac = abs % SATS_PER_FAIR;
+export function formatFair(value: bigint): string {
+  const negative = value < 0n;
+  const abs = negative ? -value : value;
+  const whole = abs / UNITS_PER_COIN;
+  const frac = abs % UNITS_PER_COIN;
 
   const wholeStr = withThousandsSeparators(whole.toString());
   const fracStr = frac.toString().padStart(DECIMALS, "0").replace(/0+$/, "");
@@ -63,14 +66,14 @@ export function formatFair(sats: bigint): string {
 }
 
 /**
- * Parse a FAIR decimal string to satoshis using string-based arithmetic
- * to avoid floating-point precision issues.
+ * Parse a FAIR decimal string to smallest units (m⊜) using string-based
+ * arithmetic to avoid floating-point precision issues.
  *
  * Returns `null` for empty, malformed, or negative input.
  *
  * Example: "1.5" -> 150000000n
  */
-export function parseFairToSats(input: string): bigint | null {
+export function parseFairToUnits(input: string): bigint | null {
   const trimmed = input.trim();
   if (trimmed === "" || trimmed === ".") return null;
 
@@ -85,7 +88,7 @@ export function parseFairToSats(input: string): bigint | null {
   try {
     const wholeNum = BigInt(wholePart === "" ? "0" : wholePart);
     const fracNum = BigInt(fracPart === "" ? "0" : fracPart);
-    return wholeNum * SATS_PER_FAIR + fracNum;
+    return wholeNum * UNITS_PER_COIN + fracNum;
   } catch {
     return null;
   }

@@ -8,24 +8,23 @@
 import { useMemo } from "react";
 import { View, Text } from "react-native";
 import { Badge } from "./Badge";
-import { formatFairAmount, formatFiatAmount } from "../../i18n";
+import { AmountText } from "./AmountText";
+import { formatFiatAmount } from "../../i18n";
 import { FONT_PHUDU_LIGHT, FONT_PHUDU_BLACK } from "../../utils/fonts";
-
-const SATS_PER_FAIR = 100_000_000n;
-const FAIR_SYMBOL = "\u229C"; // ⊜
+import { COIN_SYMBOL, UNITS_PER_COIN } from "../../core/branding";
 
 type BalanceSize = "sm" | "md" | "lg";
 
 interface BalanceDisplayProps {
-  sats: bigint;
+  value: bigint;
   priceUsd?: number | null;
   change24h?: number | null;
   size?: BalanceSize;
   showFiatPrimary?: boolean;
 }
 
-function satsToUsd(sats: bigint, priceUsd: number): number {
-  const fair = Number(sats) / Number(SATS_PER_FAIR);
+function coinValueToUsd(value: bigint, priceUsd: number): number {
+  const fair = Number(value) / Number(UNITS_PER_COIN);
   return fair * priceUsd;
 }
 
@@ -53,18 +52,16 @@ const SIZE_SECONDARY: Record<BalanceSize, number> = {
 };
 
 export function BalanceDisplay({
-  sats,
+  value,
   priceUsd,
   change24h,
   size = "lg",
   showFiatPrimary = false,
 }: BalanceDisplayProps) {
-  const fairFormatted = useMemo(() => formatFairAmount(sats), [sats]);
-
   const usdValue = useMemo(() => {
     if (priceUsd == null || priceUsd === 0) return null;
-    return satsToUsd(sats, priceUsd);
-  }, [sats, priceUsd]);
+    return coinValueToUsd(value, priceUsd);
+  }, [value, priceUsd]);
 
   const usdFormatted = useMemo(() => {
     if (usdValue === null) return null;
@@ -95,12 +92,12 @@ export function BalanceDisplay({
           {usdFormatted}
         </Text>
 
-        <Text
+        <AmountText
+          value={value}
+          prefix={`${COIN_SYMBOL} `}
           className="text-muted-foreground mt-1"
           style={{ fontFamily: FONT_PHUDU_LIGHT, fontSize: secondary }}
-        >
-          {FAIR_SYMBOL} {fairFormatted}
-        </Text>
+        />
 
         {changeInfo ? (
           <View className="mt-3">
@@ -119,14 +116,13 @@ export function BalanceDisplay({
           className="text-foreground mr-1"
           style={{ fontFamily: FONT_PHUDU_LIGHT, fontSize: symbol }}
         >
-          {FAIR_SYMBOL}
+          {COIN_SYMBOL}
         </Text>
-        <Text
+        <AmountText
+          value={value}
           className="text-foreground tracking-tight"
           style={{ fontFamily: FONT_PHUDU_BLACK, fontSize: primary }}
-        >
-          {fairFormatted}
-        </Text>
+        />
       </View>
 
       {usdFormatted !== null ? (

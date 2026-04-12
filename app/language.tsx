@@ -1,0 +1,206 @@
+/**
+ * Language picker screen.
+ *
+ * Revolut-inspired flow: searchable list of all supported languages with the
+ * current selection marked by a check icon. Presented as a modal from both
+ * the welcome screen and the settings screen.
+ */
+
+import { useCallback, useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  FlatList,
+  type ListRenderItem,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTheme } from "@oxyhq/bloom/theme";
+import { EmptyState, ScreenHeader } from "../src/ui/components";
+import { SUPPORTED_LANGUAGES, t, type LanguageOption } from "../src/i18n";
+import { useLanguageStore } from "../src/i18n/store";
+
+const CONTENT_MAX_WIDTH_CLASS = "w-full max-w-[600px] mx-auto";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function matchesQuery(option: LanguageOption, query: string): boolean {
+  if (!query) return true;
+  const needle = query.toLowerCase();
+  return (
+    option.nativeName.toLowerCase().includes(needle) ||
+    option.englishName.toLowerCase().includes(needle) ||
+    option.code.toLowerCase().includes(needle)
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Row
+// ---------------------------------------------------------------------------
+
+interface LanguageRowProps {
+  option: LanguageOption;
+  selected: boolean;
+  onPress: (code: string) => void;
+}
+
+function LanguageRow({ option, selected, onPress }: LanguageRowProps) {
+  const theme = useTheme();
+
+  const handlePress = useCallback(() => {
+    onPress(option.code);
+  }, [onPress, option.code]);
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      className="flex-row items-center px-5 py-3 min-h-[64px] active:bg-surface"
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={t("language.selectAccessibility", {
+        name: option.englishName,
+      })}
+    >
+      <Text className="text-3xl mr-4" accessibilityElementsHidden>
+        {option.flag}
+      </Text>
+      <View className="flex-1">
+        <Text
+          className="text-foreground text-base font-medium"
+          numberOfLines={1}
+        >
+          {option.nativeName}
+        </Text>
+        <Text className="text-muted-foreground text-[13px]" numberOfLines={1}>
+          {option.englishName}
+        </Text>
+      </View>
+      <View className="w-6 items-center justify-center ml-3">
+        {selected ? (
+          <MaterialCommunityIcons
+            name="check"
+            size={22}
+            color={theme.colors.primary}
+          />
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
+
+export default function LanguageScreen() {
+  const router = useRouter();
+  const theme = useTheme();
+  const language = useLanguageStore((s) => s.language);
+  const setLanguage = useLanguageStore((s) => s.setLanguage);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(
+    () =>
+      SUPPORTED_LANGUAGES.filter((option) => matchesQuery(option, query)),
+    [query],
+  );
+
+  const handleBack = useCallback(() => {
+    router.back();
+  }, [router]);
+
+  const handleSelect = useCallback(
+    async (code: string) => {
+      if (code !== language) {
+        await setLanguage(code);
+      }
+      router.back();
+    },
+    [language, setLanguage, router],
+  );
+
+  const handleClearQuery = useCallback(() => {
+    setQuery("");
+  }, []);
+
+  const renderItem = useCallback<ListRenderItem<LanguageOption>>(
+    ({ item }) => (
+      <LanguageRow
+        option={item}
+        selected={item.code === language}
+        onPress={handleSelect}
+      />
+    ),
+    [language, handleSelect],
+  );
+
+  const keyExtractor = useCallback(
+    (item: LanguageOption) => item.code,
+    [],
+  );
+
+  return (
+    <SafeAreaView
+      className="flex-1 bg-background"
+      edges={["top", "bottom", "left", "right"]}
+    >
+      <View className={`flex-1 ${CONTENT_MAX_WIDTH_CLASS}`}>
+        <ScreenHeader title={t("language.title")} onBack={handleBack} />
+
+        {/* Search pill */}
+        <View className="px-4 pt-1 pb-3">
+          <View className="flex-row items-center bg-surface px-4 rounded-full min-h-[48px]">
+            <MaterialCommunityIcons
+              name="magnify"
+              size={22}
+              color={theme.colors.textSecondary}
+            />
+            <TextInput
+              className="flex-1 text-foreground text-base ml-3 py-2"
+              placeholder={t("language.searchPlaceholder")}
+              placeholderTextColor={theme.colors.textSecondary}
+              value={query}
+              onChangeText={setQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {query.length > 0 ? (
+              <Pressable
+                onPress={handleClearQuery}
+                className="w-8 h-8 items-center justify-center rounded-full active:bg-background"
+                accessibilityLabel={t("language.clearSearchAccessibility")}
+              >
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  size={18}
+                  color={theme.colors.textSecondary}
+                />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
+        {filtered.length === 0 ? (
+          <View className="flex-1 items-center justify-center px-8">
+            <EmptyState icon="magnify" title={t("language.noResults")} />
+          </View>
+        ) : (
+          <FlatList
+            data={filtered}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            className="flex-1"
+            contentContainerClassName="pb-8"
+            keyboardShouldPersistTaps="handled"
+          />
+        )}
+      </View>
+    </SafeAreaView>
+  );
+}

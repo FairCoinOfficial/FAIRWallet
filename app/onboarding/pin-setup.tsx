@@ -4,13 +4,14 @@
  */
 
 import { useCallback, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { savePin } from "../../src/storage/secure-store";
 import { PinPad } from "../../src/ui/components/PinPad";
 import { PinDots } from "../../src/ui/components/PinDots";
 import { hapticSuccess } from "../../src/utils/haptics";
+import { t } from "../../src/i18n";
 
 const PIN_LENGTH = 6;
 
@@ -24,11 +25,14 @@ export default function PinSetupScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const title = phase === "create" ? "Create a passcode" : "Confirm your passcode";
+  const title =
+    phase === "create"
+      ? t("onboarding.pin.create.title")
+      : t("onboarding.pin.confirm.title");
   const subtitle =
     phase === "create"
-      ? "This passcode will protect your wallet"
-      : "Re-enter your passcode to confirm";
+      ? t("onboarding.pin.create.subtitle")
+      : t("onboarding.pin.confirm.subtitle");
 
   const handleDigitPress = useCallback(
     (digit: string) => {
@@ -59,13 +63,13 @@ export default function PinSetupScreen() {
                     const msg =
                       err instanceof Error
                         ? err.message
-                        : "Failed to save PIN";
+                        : t("onboarding.pin.saveError");
                     setError(msg);
                     setSaving(false);
                     setPin("");
                   });
               } else {
-                setError("Passcodes don\u2019t match. Let\u2019s try again.");
+                setError(t("onboarding.pin.mismatch"));
                 setPin("");
                 setFirstPin("");
                 setPhase("create");
@@ -91,7 +95,14 @@ export default function PinSetupScreen() {
       <View className="flex-1 items-center justify-between px-6 pt-16 pb-8">
         {/* Header + dots */}
         <View className="items-center flex-1 justify-center">
-          <Text className="text-primary text-5xl mb-8">{"\u229C"}</Text>
+          <Image
+            source={require("../../assets/icon.png")}
+            style={{ width: 88, height: 88, marginBottom: 24, borderRadius: 20 }}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+            accessibilityRole="image"
+            accessibilityLabel={t("onboarding.logoAccessibility")}
+          />
 
           <Text className="text-foreground text-xl font-semibold mb-2">
             {title}

@@ -28,6 +28,7 @@ import {
 } from "../src/ui/components";
 import { useTheme } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
+import { t } from "../src/i18n";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -70,18 +71,18 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
     const trimmedMnemonic = mnemonic.trim();
 
     if (!trimmedName) {
-      setError("Please enter a wallet name.");
+      setError(t("wallets.import.error.nameRequired"));
       return;
     }
 
     if (!trimmedMnemonic) {
-      setError("Please enter the recovery phrase.");
+      setError(t("wallets.import.error.phraseRequired"));
       return;
     }
 
     const words = trimmedMnemonic.split(/\s+/);
     if (words.length !== 12 && words.length !== 24) {
-      setError("Recovery phrase must be 12 or 24 words.");
+      setError(t("wallets.import.error.wordCount"));
       return;
     }
 
@@ -101,13 +102,15 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <Card className="p-6 w-full max-w-sm">
           <Text className="text-foreground text-lg font-bold mb-4 text-center">
-            Import Wallet
+            {t("wallets.import.title")}
           </Text>
 
-          <Text className="text-muted-foreground text-xs mb-1">Wallet Name</Text>
+          <Text className="text-muted-foreground text-xs mb-1">
+            {t("wallets.import.nameLabel")}
+          </Text>
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
-            placeholder="My Wallet"
+            placeholder={t("wallets.import.namePlaceholder")}
             placeholderTextColor={theme.colors.textSecondary}
             value={name}
             onChangeText={setName}
@@ -115,10 +118,12 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
             autoCorrect={false}
           />
 
-          <Text className="text-muted-foreground text-xs mb-1">Recovery Phrase</Text>
+          <Text className="text-muted-foreground text-xs mb-1">
+            {t("wallets.import.phraseLabel")}
+          </Text>
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
-            placeholder="Enter 12 or 24 word recovery phrase"
+            placeholder={t("wallets.import.phrasePlaceholder")}
             placeholderTextColor={theme.colors.textSecondary}
             value={mnemonic}
             onChangeText={setMnemonic}
@@ -136,8 +141,16 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
           ) : null}
 
           <View className="gap-3">
-            <Button title="Import" onPress={handleImport} variant="primary" />
-            <Button title="Cancel" onPress={handleCancel} variant="secondary" />
+            <Button
+              title={t("wallets.import.cta")}
+              onPress={handleImport}
+              variant="primary"
+            />
+            <Button
+              title={t("common.cancel")}
+              onPress={handleCancel}
+              variant="secondary"
+            />
           </View>
         </Card>
       </View>
@@ -173,17 +186,17 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
     const trimmedXpub = xpub.trim();
 
     if (!trimmedName) {
-      setError("Please enter a wallet name.");
+      setError(t("wallets.watchOnly.error.nameRequired"));
       return;
     }
 
     if (!trimmedXpub) {
-      setError("Please enter the extended public key (xpub).");
+      setError(t("wallets.watchOnly.error.xpubRequired"));
       return;
     }
 
     if (!trimmedXpub.startsWith("xpub") && !trimmedXpub.startsWith("tpub")) {
-      setError("Extended public key must start with 'xpub' or 'tpub'.");
+      setError(t("wallets.watchOnly.error.xpubFormat"));
       return;
     }
 
@@ -203,13 +216,15 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <Card className="p-6 w-full max-w-sm">
           <Text className="text-foreground text-lg font-bold mb-4 text-center">
-            Watch-Only Wallet
+            {t("wallets.watchOnly.title")}
           </Text>
 
-          <Text className="text-muted-foreground text-xs mb-1">Wallet Name</Text>
+          <Text className="text-muted-foreground text-xs mb-1">
+            {t("wallets.watchOnly.nameLabel")}
+          </Text>
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
-            placeholder="My Watch Wallet"
+            placeholder={t("wallets.watchOnly.namePlaceholder")}
             placeholderTextColor={theme.colors.textSecondary}
             value={name}
             onChangeText={setName}
@@ -218,11 +233,11 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
           />
 
           <Text className="text-muted-foreground text-xs mb-1">
-            Extended Public Key (xpub)
+            {t("wallets.watchOnly.xpubLabel")}
           </Text>
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
-            placeholder="xpub..."
+            placeholder={t("wallets.watchOnly.xpubPlaceholder")}
             placeholderTextColor={theme.colors.textSecondary}
             value={xpub}
             onChangeText={setXpub}
@@ -241,11 +256,15 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
 
           <View className="gap-3">
             <Button
-              title="Import Watch-Only"
+              title={t("wallets.watchOnly.cta")}
               onPress={handleImport}
               variant="primary"
             />
-            <Button title="Cancel" onPress={handleCancel} variant="secondary" />
+            <Button
+              title={t("common.cancel")}
+              onPress={handleCancel}
+              variant="secondary"
+            />
           </View>
         </Card>
       </View>
@@ -277,7 +296,7 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
   const handleCreate = useCallback(() => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("Please enter a wallet name.");
+      setError(t("wallets.create.error.nameRequired"));
       return;
     }
 
@@ -296,13 +315,15 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <Card className="p-6 w-full max-w-sm">
           <Text className="text-foreground text-lg font-bold mb-4 text-center">
-            Create New Wallet
+            {t("wallets.create.title")}
           </Text>
 
-          <Text className="text-muted-foreground text-xs mb-1">Wallet Name</Text>
+          <Text className="text-muted-foreground text-xs mb-1">
+            {t("wallets.create.nameLabel")}
+          </Text>
           <TextInput
             className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
-            placeholder="My Wallet"
+            placeholder={t("wallets.create.namePlaceholder")}
             placeholderTextColor={theme.colors.textSecondary}
             value={name}
             onChangeText={setName}
@@ -317,8 +338,16 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
           ) : null}
 
           <View className="gap-3">
-            <Button title="Create" onPress={handleCreate} variant="primary" />
-            <Button title="Cancel" onPress={handleCancel} variant="secondary" />
+            <Button
+              title={t("wallets.create.cta")}
+              onPress={handleCreate}
+              variant="primary"
+            />
+            <Button
+              title={t("common.cancel")}
+              onPress={handleCancel}
+              variant="secondary"
+            />
           </View>
         </Card>
       </View>
@@ -342,10 +371,9 @@ function MnemonicModal({ control, mnemonic, onDismiss }: MnemonicModalProps) {
   return (
     <Prompt.Outer control={control} onClose={onDismiss}>
       <Prompt.Content>
-        <Prompt.TitleText>Recovery Phrase</Prompt.TitleText>
+        <Prompt.TitleText>{t("wallets.mnemonic.title")}</Prompt.TitleText>
         <Prompt.DescriptionText>
-          Write down these words in order. They are the only way to recover
-          this wallet.
+          {t("wallets.mnemonic.description")}
         </Prompt.DescriptionText>
         <View className="flex-row flex-wrap justify-center gap-2 mt-2">
           {words.map((word, idx) => (
@@ -363,7 +391,7 @@ function MnemonicModal({ control, mnemonic, onDismiss }: MnemonicModalProps) {
       </Prompt.Content>
       <Prompt.Actions>
         <Prompt.Action
-          cta="I've Written It Down"
+          cta={t("wallets.mnemonic.cta")}
           onPress={onDismiss}
           color="primary"
         />
@@ -453,7 +481,7 @@ export default function WalletsScreen() {
         setNewMnemonic(mnemonic);
         mnemonicControl.open();
       } catch {
-        showMessage("Error", "Failed to create wallet. Please try again.");
+        showMessage(t("common.error"), t("wallets.create.error.failed"));
       }
     },
     [createNewWallet, mnemonicControl, showMessage],
@@ -467,8 +495,8 @@ export default function WalletsScreen() {
         router.back();
       } catch {
         showMessage(
-          "Import Failed",
-          "Could not import wallet. Check your recovery phrase and try again.",
+          t("wallets.import.failed.title"),
+          t("wallets.import.failed.description"),
         );
       }
     },
@@ -510,13 +538,13 @@ export default function WalletsScreen() {
       try {
         await importWatchOnly(name, xpub);
         showMessage(
-          "Watch-Only Wallet",
-          "Watch-only wallet imported. You can view balances and addresses, but sending is disabled.",
+          t("wallets.watchOnly.imported.title"),
+          t("wallets.watchOnly.imported.description"),
         );
       } catch {
         showMessage(
-          "Import Failed",
-          "Could not import watch-only wallet. Check your xpub and try again.",
+          t("wallets.watchOnly.failed.title"),
+          t("wallets.watchOnly.failed.description"),
         );
       }
     },
@@ -531,7 +559,7 @@ export default function WalletsScreen() {
       >
         <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text className="text-muted-foreground text-sm mt-4">
-          {switching ? "Switching wallet..." : "Loading..."}
+          {switching ? t("wallets.switching") : t("wallets.loading")}
         </Text>
       </SafeAreaView>
     );
@@ -543,8 +571,12 @@ export default function WalletsScreen() {
       edges={["top", "bottom", "left", "right"]}
     >
       <ScreenHeader
-        title="Wallets"
-        subtitle={`${wallets.length} wallet${wallets.length !== 1 ? "s" : ""} - Tap to switch, long-press to delete`}
+        title={t("wallets.title")}
+        subtitle={
+          wallets.length === 1
+            ? t("wallets.subtitle.one", { count: wallets.length })
+            : t("wallets.subtitle.other", { count: wallets.length })
+        }
         onBack={() => router.back()}
       />
       <ScrollView
@@ -556,8 +588,8 @@ export default function WalletsScreen() {
           {wallets.length === 0 ? (
             <EmptyState
               icon="wallet"
-              title="No wallets found"
-              subtitle="Create or import one below"
+              title={t("wallets.empty.title")}
+              subtitle={t("wallets.empty.subtitle")}
             />
           ) : (
             wallets.map((wallet, idx) => {
@@ -569,14 +601,16 @@ export default function WalletsScreen() {
                   iconBg={isActive ? "bg-green-500/15" : "bg-primary/10"}
                   iconColor={isActive ? theme.colors.success : theme.colors.tint}
                   title={wallet.name}
-                  subtitle={`Created ${formatDate(wallet.createdAt)}`}
+                  subtitle={t("wallets.createdOn", {
+                    date: formatDate(wallet.createdAt),
+                  })}
                   isLast={idx === wallets.length - 1}
                   onPress={() => {
                     if (!isActive) handleSwitch(wallet.id);
                   }}
                   trailing={
                     isActive ? (
-                      <Badge text="Active" variant="success" />
+                      <Badge text={t("wallets.active")} variant="success" />
                     ) : undefined
                   }
                 />
@@ -588,17 +622,17 @@ export default function WalletsScreen() {
         {/* Action buttons */}
         <View className="gap-3">
           <Button
-            title="Create New Wallet"
+            title={t("wallets.createCta")}
             onPress={handleOpenCreate}
             variant="primary"
           />
           <Button
-            title="Import Wallet"
+            title={t("wallets.importCta")}
             onPress={handleOpenImport}
             variant="outline"
           />
           <Button
-            title="Watch Only (xpub)"
+            title={t("wallets.watchOnlyCta")}
             onPress={handleOpenWatchOnly}
             variant="outline"
           />
@@ -629,13 +663,15 @@ export default function WalletsScreen() {
 
       <Prompt.Basic
         control={deleteWalletControl}
-        title="Delete Wallet"
+        title={t("wallets.delete.title")}
         description={
           pendingDeleteWallet
-            ? `Are you sure you want to delete "${pendingDeleteWallet.name}"? This action cannot be undone. Make sure you have the recovery phrase backed up.`
+            ? t("wallets.delete.description", {
+                name: pendingDeleteWallet.name,
+              })
             : ""
         }
-        confirmButtonCta="Delete"
+        confirmButtonCta={t("common.delete")}
         confirmButtonColor="negative"
         onConfirm={async () => {
           if (pendingDeleteWallet) {
@@ -647,15 +683,14 @@ export default function WalletsScreen() {
 
       <Prompt.Outer control={cannotDeleteControl}>
         <Prompt.Content>
-          <Prompt.TitleText>Cannot Delete</Prompt.TitleText>
+          <Prompt.TitleText>{t("wallets.cannotDelete.title")}</Prompt.TitleText>
           <Prompt.DescriptionText>
-            You must have at least one wallet. Create a new wallet before
-            deleting this one.
+            {t("wallets.cannotDelete.description")}
           </Prompt.DescriptionText>
         </Prompt.Content>
         <Prompt.Actions>
           <Prompt.Action
-            cta="OK"
+            cta={t("common.ok")}
             onPress={() => cannotDeleteControl.close()}
             color="primary"
           />
@@ -666,7 +701,7 @@ export default function WalletsScreen() {
         control={messageControl}
         title={message?.title ?? ""}
         description={message?.description ?? ""}
-        confirmButtonCta="OK"
+        confirmButtonCta={t("common.ok")}
         onConfirm={() => setMessage(null)}
         showCancel={false}
       />

@@ -16,6 +16,7 @@ import {
   type WalletTransaction,
 } from "../../src/wallet/wallet-store";
 import {
+  AmountText,
   Section,
   ListItem,
   Card,
@@ -27,7 +28,9 @@ import {
 import type { ContactRow } from "../../src/storage/database";
 import { useTheme } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
-import { formatSats, formatFair } from "../../src/core/format-amount";
+import { formatUnits } from "../../src/core/format-amount";
+import { COIN_TICKER, explorerTxUrl } from "../../src/core/branding";
+import { t } from "../../src/i18n";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -57,12 +60,21 @@ interface TypeBadgeConfig {
   variant: "success" | "warning" | "error" | "info";
 }
 
-const TYPE_BADGE: Record<TransactionType, TypeBadgeConfig> = {
-  send: { label: "Sent", variant: "error" },
-  receive: { label: "Received", variant: "success" },
-  stake: { label: "Stake", variant: "warning" },
-  masternode_reward: { label: "Masternode Reward", variant: "success" },
-};
+function getTypeBadge(type: TransactionType): TypeBadgeConfig {
+  switch (type) {
+    case "send":
+      return { label: t("transaction.type.sent"), variant: "error" };
+    case "receive":
+      return { label: t("transaction.type.received"), variant: "success" };
+    case "stake":
+      return { label: t("transaction.type.stake"), variant: "warning" };
+    case "masternode_reward":
+      return {
+        label: t("transaction.type.masternodeReward"),
+        variant: "success",
+      };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Main screen
@@ -126,25 +138,34 @@ export default function TransactionDetailScreen() {
     const db = getDatabase();
     if (db) {
       db.setTxNote(txid, note.trim());
-      showMessage("Saved", "Transaction note saved");
+      showMessage(
+        t("transaction.savedNote.title"),
+        t("transaction.savedNote.description"),
+      );
     }
   }, [txid, note, showMessage]);
 
   const handleViewExplorer = useCallback(() => {
     if (!txid) return;
-    Linking.openURL(`https://explorer.fairco.in/tx/${txid}`);
+    Linking.openURL(explorerTxUrl(txid));
   }, [txid]);
 
   const handleCopyTxid = useCallback(() => {
     if (!txid) return;
     Clipboard.setStringAsync(txid);
-    showMessage("Copied", "Transaction ID copied to clipboard");
+    showMessage(
+      t("transaction.txidCopied.title"),
+      t("transaction.txidCopied.description"),
+    );
   }, [txid, showMessage]);
 
   const handleCopyAddress = useCallback(() => {
     if (!transaction) return;
     Clipboard.setStringAsync(transaction.address);
-    showMessage("Copied", "Address copied to clipboard");
+    showMessage(
+      t("transaction.addressCopied.title"),
+      t("transaction.addressCopied.description"),
+    );
   }, [transaction, showMessage]);
 
   const handleAddToContacts = useCallback(() => {
@@ -160,12 +181,12 @@ export default function TransactionDetailScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <EmptyState
             icon="file-find"
-            title="Transaction not found"
-            subtitle="This transaction could not be loaded"
+            title={t("transaction.notFound.title")}
+            subtitle={t("transaction.notFound.subtitle")}
           />
           <View className="mt-4">
             <Button
-              title="Go Back"
+              title={t("transaction.goBack")}
               onPress={() => router.back()}
               variant="secondary"
             />
@@ -175,12 +196,11 @@ export default function TransactionDetailScreen() {
     );
   }
 
-  const badgeConfig = TYPE_BADGE[transaction.type];
+  const badgeConfig = getTypeBadge(transaction.type);
   const isPositive = transaction.amount >= 0n;
   const amountSign = isPositive ? "+" : "-";
   const absAmount = transaction.amount < 0n ? -transaction.amount : transaction.amount;
-  const amountDisplay = formatFair(absAmount);
-  const amountExact = formatSats(absAmount);
+  const amountExact = formatUnits(absAmount);
   const amountColor = isPositive ? "text-primary" : "text-red-400";
   const isConfirmed = transaction.confirmations >= 6;
 
@@ -190,7 +210,7 @@ export default function TransactionDetailScreen() {
       edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
-      <ScreenHeader title="Transaction" />
+      <ScreenHeader title={t("transaction.title")} />
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-5 pt-4 pb-8"
@@ -206,58 +226,62 @@ export default function TransactionDetailScreen() {
 
         {/* Amount */}
         <View className="items-center mb-6">
-          <Text
+          <AmountText
+            value={absAmount}
+            prefix={amountSign}
             className={`text-3xl font-bold ${amountColor}`}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.5}
-          >
-            {amountSign}
-            {amountDisplay}
-          </Text>
-          <Text className="text-muted-foreground text-base mt-1">FAIR</Text>
+          />
+          <Text className="text-muted-foreground text-base mt-1">{COIN_TICKER}</Text>
         </View>
 
         {/* Details */}
-        <Section title="Details" className="mb-6">
+        <Section title={t("transaction.details")} className="mb-6">
           <ListItem
             icon="check-circle"
             iconBg={isConfirmed ? "bg-green-500/15" : "bg-yellow-500/15"}
             iconColor={isConfirmed ? theme.colors.success : theme.colors.warning}
-            title="Status"
-            value={`${isConfirmed ? "Confirmed" : "Pending"} (${transaction.confirmations})`}
+            title={t("transaction.status")}
+            value={t("transaction.statusValue", {
+              status: isConfirmed
+                ? t("transaction.status.confirmed")
+                : t("transaction.status.pending"),
+              count: transaction.confirmations,
+            })}
             isLast={false}
           />
           <ListItem
             icon="scale-balance"
-            title="Amount"
-            value={`${amountSign}${amountExact} FAIR`}
+            title={t("transaction.amount")}
+            value={`${amountSign}${amountExact} ${COIN_TICKER}`}
             isLast={false}
           />
           <ListItem
             icon="identifier"
-            title="Transaction ID"
+            title={t("transaction.txid")}
             subtitle={txid ?? ""}
             onPress={handleCopyTxid}
             isLast={false}
           />
           <ListItem
             icon="clock-outline"
-            title="Date"
+            title={t("transaction.date")}
             value={formatTimestamp(transaction.timestamp)}
             isLast={false}
           />
           {transaction.type === "send" ? (
             <ListItem
               icon="currency-usd"
-              title="Fee"
-              value="Included in total"
+              title={t("transaction.fee")}
+              value={t("transaction.feeIncluded")}
               isLast={false}
             />
           ) : null}
           <ListItem
             icon="map-marker"
-            title="Address"
+            title={t("transaction.address")}
             subtitle={
               contact
                 ? `${contact.name} (${truncateAddress(transaction.address)})`
@@ -269,11 +293,11 @@ export default function TransactionDetailScreen() {
         </Section>
 
         {/* Transaction note */}
-        <Section title="Note" className="mb-6">
+        <Section title={t("transaction.note")} className="mb-6">
           <Card className="p-3">
             <TextInput
               className="text-foreground text-sm"
-              placeholder="Add a note for this transaction..."
+              placeholder={t("transaction.notePlaceholder")}
               placeholderTextColor={theme.colors.textSecondary}
               value={note}
               onChangeText={setNote}
@@ -283,7 +307,7 @@ export default function TransactionDetailScreen() {
           </Card>
           <View className="mt-3">
             <Button
-              title="Save Note"
+              title={t("transaction.saveNote")}
               onPress={handleSaveNote}
               variant="secondary"
               size="sm"
@@ -294,7 +318,7 @@ export default function TransactionDetailScreen() {
         {/* Actions */}
         <View className="gap-3">
           <Button
-            title="View on Explorer"
+            title={t("transaction.viewExplorer")}
             onPress={handleViewExplorer}
             variant="secondary"
             icon={
@@ -306,7 +330,7 @@ export default function TransactionDetailScreen() {
             }
           />
           <Button
-            title="Copy Transaction ID"
+            title={t("transaction.copyTxid")}
             onPress={handleCopyTxid}
             variant="ghost"
             size="sm"
@@ -320,7 +344,7 @@ export default function TransactionDetailScreen() {
           />
           {!contact && contactChecked ? (
             <Button
-              title="Add Address to Contacts"
+              title={t("transaction.addToContacts")}
               onPress={handleAddToContacts}
               variant="outline"
               icon={
@@ -339,7 +363,7 @@ export default function TransactionDetailScreen() {
         control={messageControl}
         title={message?.title ?? ""}
         description={message?.description ?? ""}
-        confirmButtonCta="OK"
+        confirmButtonCta={t("common.ok")}
         onConfirm={() => setMessage(null)}
         showCancel={false}
       />

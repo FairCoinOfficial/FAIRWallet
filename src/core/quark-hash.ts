@@ -23,6 +23,7 @@
  * Projet RNRT SAPHIR)
  */
 
+import { blake512 as nobleBlake512 } from "@noble/hashes/blake1";
 import { keccak_512 } from "@noble/hashes/sha3";
 import { sha256 } from "@noble/hashes/sha256";
 import { BufferWriter } from "./encoding";
@@ -221,7 +222,20 @@ function blake512Compress(
   }
 }
 
+/**
+ * BLAKE-512 hash — thin wrapper around @noble/hashes/blake1 `blake512`.
+ *
+ * NOTE: the pure-TS implementation that previously lived here was broken:
+ * for many input lengths (including the 80-byte block header) it collapsed
+ * to a constant value, making Quark hash not actually depend on the block
+ * header content. The original implementation is preserved below as
+ * `_legacyBlake512Broken` for reference but is no longer used.
+ */
 function blake512(data: Uint8Array): Uint8Array {
+  return nobleBlake512(data);
+}
+
+function _legacyBlake512Broken(data: Uint8Array): Uint8Array {
   const h = [...BLAKE512_IV];
   const s = [0n, 0n, 0n, 0n];
   let t0 = 0n;

@@ -3,6 +3,8 @@
  */
 
 export { ActionButton } from "./ActionButton";
+export { AmountInput } from "./AmountInput";
+export { AmountText } from "./AmountText";
 export { Badge } from "./Badge";
 export { BalanceDisplay } from "./BalanceDisplay";
 export { Button } from "./Button";

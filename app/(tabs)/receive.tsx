@@ -11,10 +11,11 @@ import {
   Pressable,
   ActivityIndicator,
   ScrollView,
-  Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
+import * as Sharing from "expo-sharing";
+import { File, Paths } from "expo-file-system";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import QRCode from "react-native-qrcode-svg";
 import * as Prompt from "@oxyhq/bloom/prompt";
@@ -59,7 +60,10 @@ export default function ReceiveScreen() {
 
   const handleCopy = useCallback(async () => {
     await Clipboard.setStringAsync(displayAddress);
-    showMessage("Copied", "Address copied to clipboard");
+    showMessage(
+      t("receive.addressCopied.title"),
+      t("receive.addressCopied.description"),
+    );
   }, [displayAddress, showMessage]);
 
   const handleNewAddress = useCallback(() => {
@@ -69,11 +73,31 @@ export default function ReceiveScreen() {
 
   const handleShare = useCallback(async () => {
     const uri = `faircoin:${displayAddress}`;
-    await Share.share({
-      message: `Pay me with FairCoin:\n${uri}`,
-      title: "FairCoin Payment Request",
+    const payload = t("receive.shareMessage", { uri });
+
+    // On platforms without a native share sheet (web, electron) fall back to
+    // copying the payment request to the clipboard.
+    if (!(await Sharing.isAvailableAsync())) {
+      await Clipboard.setStringAsync(payload);
+      showMessage(
+        t("receive.addressCopied.title"),
+        t("receive.addressCopied.description"),
+      );
+      return;
+    }
+
+    // expo-sharing requires a file URI, so write the payment request to a
+    // temporary text file in the cache directory and share that.
+    const file = new File(Paths.cache, "fairwallet-payment-request.txt");
+    if (file.exists) file.delete();
+    file.create();
+    file.write(payload);
+    await Sharing.shareAsync(file.uri, {
+      mimeType: "text/plain",
+      dialogTitle: t("receive.paymentRequestTitle"),
+      UTI: "public.plain-text",
     });
-  }, [displayAddress]);
+  }, [displayAddress, showMessage]);
 
   const handleSelectAddress = useCallback((address: string) => {
     setSelectedAddress(address);
@@ -83,7 +107,10 @@ export default function ReceiveScreen() {
   const handleCopyAddress = useCallback(
     async (address: string) => {
       await Clipboard.setStringAsync(address);
-      showMessage("Copied", "Address copied to clipboard");
+      showMessage(
+        t("receive.addressCopied.title"),
+        t("receive.addressCopied.description"),
+      );
     },
     [showMessage],
   );
@@ -110,7 +137,7 @@ export default function ReceiveScreen() {
         <View className="flex-1 items-center justify-center px-6">
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text className="text-muted-foreground text-sm mt-4">
-            Generating receive address...
+            {t("receive.generating")}
           </Text>
         </View>
       </View>
@@ -140,7 +167,7 @@ export default function ReceiveScreen() {
               {t("receive.title")}
             </Text>
             <Text className="text-muted-foreground text-sm mt-1 text-center">
-              Share this address to receive FairCoin
+              {t("receive.subtitle")}
             </Text>
           </View>
 
@@ -165,7 +192,7 @@ export default function ReceiveScreen() {
           {/* Address display with copy */}
           <Card className="p-4">
             <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-2">
-              Your address
+              {t("receive.yourAddress")}
             </Text>
             <View className="flex-row items-center">
               <Pressable
@@ -220,8 +247,8 @@ export default function ReceiveScreen() {
                 />
                 <Text className="text-foreground text-sm font-semibold ml-2">
                   {showAllAddresses
-                    ? "Hide list"
-                    : `All (${addresses.length})`}
+                    ? t("receive.hideList")
+                    : t("receive.allAddresses", { count: addresses.length })}
                 </Text>
               </Pressable>
             ) : null}
@@ -286,7 +313,7 @@ export default function ReceiveScreen() {
         control={messageControl}
         title={message?.title ?? ""}
         description={message?.description ?? ""}
-        confirmButtonCta="OK"
+        confirmButtonCta={t("common.ok")}
         onConfirm={() => setMessage(null)}
         showCancel={false}
       />

@@ -55,7 +55,20 @@
           "backgroundColor": "#1b1e09"
         }
       }],
-      ["expo-camera", { "cameraPermission": "FAIRWallet needs camera access to scan QR codes." }]
+      ["expo-camera", { "cameraPermission": "FAIRWallet needs camera access to scan QR codes." }],
+      ["expo-location", {
+        "locationWhenInUsePermission": "FAIRWallet uses your location to show nearby places that accept FairCoin."
+      }],
+      "@maplibre/maplibre-react-native",
+      ["expo-notifications", {
+        "color": "#1b1e09",
+        "sounds": [
+          "./assets/sounds/sent.mp3",
+          "./assets/sounds/received.mp3",
+          "./assets/sounds/unlocked.mp3"
+        ],
+        "enableBackgroundRemoteNotifications": false
+      }]
     ],
     "experiments": {
       "typedRoutes": true

@@ -10,9 +10,9 @@
 import { useCallback, useState } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import { Redirect, useFocusEffect } from "expo-router";
-import { useTheme } from "@oxyhq/bloom/theme";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { getMnemonic, hasPin } from "../src/storage/secure-store";
+import { t } from "../src/i18n";
 
 type AppState = "checking" | "onboarding" | "locked" | "ready" | "error";
 
@@ -51,7 +51,7 @@ export default function IndexScreen() {
           }
         } catch (err: unknown) {
           const msg =
-            err instanceof Error ? err.message : "Failed to load wallet";
+            err instanceof Error ? err.message : t("index.error.load");
           if (!cancelled) {
             setErrorMsg(msg);
             setAppState("error");
@@ -84,7 +84,7 @@ export default function IndexScreen() {
           {errorMsg}
         </Text>
         <Text className="text-muted-foreground text-sm text-center">
-          Try restarting the app or wiping and restoring your wallet.
+          {t("index.error.help")}
         </Text>
       </View>
     );
@@ -94,7 +94,7 @@ export default function IndexScreen() {
     <View className="flex-1 bg-background items-center justify-center">
       <ActivityIndicator size="large" color="#9ffb50" />
       <Text className="text-muted-foreground text-sm mt-4">
-        Loading wallet...
+        {t("index.loading")}
       </Text>
     </View>
   );

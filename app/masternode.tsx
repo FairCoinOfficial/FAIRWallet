@@ -21,6 +21,7 @@ import {
 } from "../src/ui/components";
 import { useTheme } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
+import { t } from "../src/i18n";
 
 function truncateTxid(txid: string): string {
   if (txid.length <= 20) return txid;
@@ -118,15 +119,13 @@ export default function MasternodeScreen() {
 
   const handleIpModalConfirm = useCallback(() => {
     if (!ipPortInput.trim()) {
-      setIpModalError("Please enter an IP:port address.");
+      setIpModalError(t("masternode.ipModal.error.empty"));
       return;
     }
 
     const parsed = parseIpPort(ipPortInput);
     if (!parsed) {
-      setIpModalError(
-        "Please enter a valid IPv4:port (e.g. 203.0.113.50:46372).",
-      );
+      setIpModalError(t("masternode.ipModal.error.invalid"));
       return;
     }
 
@@ -145,7 +144,7 @@ export default function MasternodeScreen() {
       className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
     >
-      <ScreenHeader title="Masternode" onBack={() => router.back()} />
+      <ScreenHeader title={t("masternode.title")} onBack={() => router.back()} />
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-5 pt-4 pb-8"
@@ -153,23 +152,20 @@ export default function MasternodeScreen() {
         {/* Requirements info card */}
         <Card className="mb-6 p-4">
           <Text className="text-foreground text-base font-semibold mb-2">
-            Masternode Requirements
+            {t("masternode.requirements.title")}
           </Text>
           <Text className="text-muted-foreground text-sm leading-5">
-            A FairCoin masternode requires exactly 5,000 FAIR as collateral in a
-            single UTXO. The collateral must have at least 15 confirmations.
-            Running a masternode earns you additional rewards for supporting the
-            network.
+            {t("masternode.requirements.description")}
           </Text>
         </Card>
 
         {/* Eligible UTXOs */}
-        <Section title="Collateral Candidates" className="mb-6">
+        <Section title={t("masternode.candidates")} className="mb-6">
           {eligibleUtxos.length === 0 ? (
             <EmptyState
               icon="server"
-              title="No eligible UTXOs"
-              subtitle="Send exactly 5,000 FAIR to one of your addresses to create a masternode collateral"
+              title={t("masternode.empty.title")}
+              subtitle={t("masternode.empty.subtitle")}
             />
           ) : (
             eligibleUtxos.map((utxo, idx) => {
@@ -199,7 +195,11 @@ export default function MasternodeScreen() {
 
         {/* Start masternode button */}
         <Button
-          title={isBroadcasting ? "Broadcasting..." : "Start Masternode"}
+          title={
+            isBroadcasting
+              ? t("masternode.broadcasting")
+              : t("masternode.startCta")
+          }
           onPress={handleStartMasternode}
           variant="primary"
           disabled={eligibleUtxos.length === 0}
@@ -208,7 +208,7 @@ export default function MasternodeScreen() {
 
         {!firstEligible && eligibleUtxos.length > 0 ? (
           <Text className="text-yellow-400 text-xs text-center mt-4">
-            Waiting for at least 15 confirmations on a collateral UTXO
+            {t("masternode.waiting")}
           </Text>
         ) : null}
       </ScrollView>
@@ -223,16 +223,15 @@ export default function MasternodeScreen() {
         <View className="flex-1 bg-black/70 items-center justify-center px-8">
           <Card className="p-6 w-full max-w-sm">
             <Text className="text-foreground text-lg font-bold mb-2 text-center">
-              Masternode IP Address
+              {t("masternode.ipModal.title")}
             </Text>
             <Text className="text-muted-foreground text-sm mb-4 text-center">
-              Enter the IP:port of your masternode server (e.g.
-              203.0.113.50:46372)
+              {t("masternode.ipModal.description")}
             </Text>
 
             <TextInput
               className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
-              placeholder="203.0.113.50:46372"
+              placeholder={t("masternode.ipModal.placeholder")}
               placeholderTextColor={theme.colors.textSecondary}
               value={ipPortInput}
               onChangeText={setIpPortInput}
@@ -249,12 +248,12 @@ export default function MasternodeScreen() {
 
             <View className="gap-3">
               <Button
-                title="Confirm"
+                title={t("common.confirm")}
                 onPress={handleIpModalConfirm}
                 variant="primary"
               />
               <Button
-                title="Cancel"
+                title={t("common.cancel")}
                 onPress={handleIpModalCancel}
                 variant="secondary"
               />
@@ -266,14 +265,14 @@ export default function MasternodeScreen() {
       {/* Not ready prompt: shown when there is no eligible collateral UTXO */}
       <Prompt.Outer control={notReadyControl}>
         <Prompt.Content>
-          <Prompt.TitleText>Not Ready</Prompt.TitleText>
+          <Prompt.TitleText>{t("masternode.notReady.title")}</Prompt.TitleText>
           <Prompt.DescriptionText>
-            No collateral UTXO with at least 15 confirmations found.
+            {t("masternode.notReady.description")}
           </Prompt.DescriptionText>
         </Prompt.Content>
         <Prompt.Actions>
           <Prompt.Action
-            cta="OK"
+            cta={t("common.ok")}
             onPress={() => notReadyControl.close()}
             color="primary"
           />
@@ -283,40 +282,40 @@ export default function MasternodeScreen() {
       {/* Confirm masternode start prompt: shows collateral details */}
       <Prompt.Outer control={confirmStartControl}>
         <Prompt.Content>
-          <Prompt.TitleText>Confirm Masternode Start</Prompt.TitleText>
+          <Prompt.TitleText>{t("masternode.confirm.title")}</Prompt.TitleText>
           {firstEligible && pendingMasternode ? (
             <View className="mt-2 mb-2">
               <Text className="text-muted-foreground text-sm mb-1">
-                Collateral:{" "}
+                {t("masternode.confirm.collateral")}{" "}
                 <Text className="text-foreground">
                   {truncateTxid(firstEligible.txid)}:{firstEligible.vout}
                 </Text>
               </Text>
               <Text className="text-muted-foreground text-sm mb-1">
-                Address:{" "}
+                {t("masternode.confirm.address")}{" "}
                 <Text className="text-foreground">{firstEligible.address}</Text>
               </Text>
               <Text className="text-muted-foreground text-sm mb-1">
-                Confirmations:{" "}
+                {t("masternode.confirm.confirmations")}{" "}
                 <Text className="text-foreground">
                   {firstEligible.confirmations}
                 </Text>
               </Text>
               <Text className="text-muted-foreground text-sm mb-3">
-                Masternode IP:{" "}
+                {t("masternode.confirm.ip")}{" "}
                 <Text className="text-foreground">
                   {pendingMasternode.ip}:{pendingMasternode.port}
                 </Text>
               </Text>
               <Text className="text-muted-foreground text-xs">
-                This will broadcast a masternode announcement to the network.
+                {t("masternode.confirm.note")}
               </Text>
             </View>
           ) : null}
         </Prompt.Content>
         <Prompt.Actions>
           <Prompt.Action
-            cta="Start Masternode"
+            cta={t("masternode.startCta")}
             onPress={() => {
               if (!pendingMasternode) return;
               const parsed = pendingMasternode;
@@ -333,7 +332,7 @@ export default function MasternodeScreen() {
             color="primary"
           />
           <Prompt.Action
-            cta="Cancel"
+            cta={t("common.cancel")}
             onPress={() => {
               setPendingMasternode(null);
             }}
@@ -345,16 +344,21 @@ export default function MasternodeScreen() {
       {/* Broadcast sent prompt: info-only result dialog */}
       <Prompt.Outer control={broadcastSentControl}>
         <Prompt.Content>
-          <Prompt.TitleText>Masternode Broadcast Sent</Prompt.TitleText>
+          <Prompt.TitleText>
+            {t("masternode.broadcastSent.title")}
+          </Prompt.TitleText>
           <Prompt.DescriptionText>
             {broadcastResult
-              ? `Masternode broadcast for ${broadcastResult.ip}:${broadcastResult.port} has been queued. It may take a few minutes for the network to recognize your masternode.`
+              ? t("masternode.broadcastSent.description", {
+                  ip: broadcastResult.ip,
+                  port: broadcastResult.port,
+                })
               : ""}
           </Prompt.DescriptionText>
         </Prompt.Content>
         <Prompt.Actions>
           <Prompt.Action
-            cta="OK"
+            cta={t("common.ok")}
             onPress={() => setBroadcastResult(null)}
             color="primary"
           />

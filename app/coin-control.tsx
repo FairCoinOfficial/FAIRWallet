@@ -12,6 +12,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Prompt from "@oxyhq/bloom/prompt";
 import { useWalletStore, getDatabase } from "../src/wallet/wallet-store";
 import {
+  AmountText,
   Section,
   ListItem,
   Card,
@@ -21,7 +22,8 @@ import {
 } from "../src/ui/components";
 import { ScrollView } from "react-native";
 import { useTheme } from "@oxyhq/bloom/theme";
-import { formatSats } from "../src/core/format-amount";
+import { COIN_TICKER } from "../src/core/branding";
+import { t } from "../src/i18n";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -139,9 +141,12 @@ export default function CoinControlScreen() {
       }
     }
     setSelectedUTXOs(selectedUtxos);
+    const count = selectedUtxos.length;
     showMessage(
-      "Coin Control",
-      `${selectedUtxos.length} UTXO${selectedUtxos.length !== 1 ? "s" : ""} selected for next transaction.`,
+      t("coinControl.applied.title"),
+      count === 1
+        ? t("coinControl.applied.description.one", { count })
+        : t("coinControl.applied.description.other", { count }),
     );
   }, [utxos, selected, setSelectedUTXOs, showMessage]);
 
@@ -165,8 +170,12 @@ export default function CoinControlScreen() {
       onLayout={handleLayout}
     >
       <ScreenHeader
-        title="Coin Control"
-        subtitle={`${utxos.length} UTXO${utxos.length !== 1 ? "s" : ""} available`}
+        title={t("coinControl.title")}
+        subtitle={
+          utxos.length === 1
+            ? t("coinControl.subtitle.one", { count: utxos.length })
+            : t("coinControl.subtitle.other", { count: utxos.length })
+        }
         onBack={() => router.back()}
       />
       <ScrollView className="flex-1" contentContainerClassName="px-5 pb-4">
@@ -176,23 +185,27 @@ export default function CoinControlScreen() {
             className="bg-surface border border-border rounded-lg px-3 py-1.5"
             onPress={handleSelectAll}
           >
-            <Text className="text-primary text-xs">Select All</Text>
+            <Text className="text-primary text-xs">
+              {t("coinControl.selectAll")}
+            </Text>
           </Pressable>
           <Pressable
             className="bg-surface border border-border rounded-lg px-3 py-1.5"
             onPress={handleClear}
           >
-            <Text className="text-muted-foreground text-xs">Clear</Text>
+            <Text className="text-muted-foreground text-xs">
+              {t("coinControl.clear")}
+            </Text>
           </Pressable>
         </View>
 
         {/* UTXO list */}
-        <Section title="Unspent Outputs" className="mb-4">
+        <Section title={t("coinControl.unspentOutputs")} className="mb-4">
           {utxos.length === 0 ? (
             <EmptyState
               icon="database-off"
-              title="No unspent outputs"
-              subtitle="No UTXOs found in this wallet"
+              title={t("coinControl.empty.title")}
+              subtitle={t("coinControl.empty.subtitle")}
             />
           ) : (
             utxos.map((utxo, idx) => {
@@ -203,7 +216,14 @@ export default function CoinControlScreen() {
                   key={`utxo-${idx}-${key}`}
                   title={`${truncateTxid(utxo.txid)}:${utxo.vout}`}
                   subtitle={`${utxo.address.slice(0, 12)}...`}
-                  value={`${formatSats(utxo.value)} FAIR`}
+                  value={
+                    <AmountText
+                      value={utxo.value}
+                      fixedDecimalScale
+                      suffix={` ${COIN_TICKER}`}
+                      className="text-muted-foreground text-sm"
+                    />
+                  }
                   isLast={idx === utxos.length - 1}
                   onPress={() => handleToggle(utxo.txid, utxo.vout)}
                   showChevron={false}
@@ -235,12 +255,16 @@ export default function CoinControlScreen() {
           <Card className="p-4 mb-4">
             <View className="flex-row items-center justify-between">
               <Text className="text-muted-foreground text-sm">
-                Selected: {selectedCount} UTXO
-                {selectedCount !== 1 ? "s" : ""}
+                {selectedCount === 1
+                  ? t("coinControl.selected.one", { count: selectedCount })
+                  : t("coinControl.selected.other", { count: selectedCount })}
               </Text>
-              <Text className="text-primary text-sm font-semibold">
-                {formatSats(selectedTotal)} FAIR
-              </Text>
+              <AmountText
+                value={selectedTotal}
+                fixedDecimalScale
+                suffix={` ${COIN_TICKER}`}
+                className="text-primary text-sm font-semibold"
+              />
             </View>
           </Card>
         ) : null}
@@ -251,8 +275,10 @@ export default function CoinControlScreen() {
         <Button
           title={
             selectedCount > 0
-              ? `Use ${selectedCount} UTXO${selectedCount !== 1 ? "s" : ""} for Next Transaction`
-              : "Select UTXOs"
+              ? selectedCount === 1
+                ? t("coinControl.useCta.one", { count: selectedCount })
+                : t("coinControl.useCta.other", { count: selectedCount })
+              : t("coinControl.selectCta")
           }
           onPress={handleApply}
           variant="primary"
@@ -264,7 +290,7 @@ export default function CoinControlScreen() {
         control={messageControl}
         title={message?.title ?? ""}
         description={message?.description ?? ""}
-        confirmButtonCta="OK"
+        confirmButtonCta={t("common.ok")}
         onConfirm={() => {
           setMessage(null);
           router.back();

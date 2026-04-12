@@ -15,6 +15,9 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
+import * as DocumentPicker from "expo-document-picker";
+import * as Sharing from "expo-sharing";
+import { File, Paths } from "expo-file-system";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import {
@@ -36,6 +39,8 @@ import {
   SettingsListGroup,
   SettingsListItem,
 } from "@oxyhq/bloom/settings-list";
+import { findLanguageOption, t } from "../../src/i18n";
+import { useLanguageStore } from "../../src/i18n/store";
 
 const APP_VERSION = "1.0.0";
 const PIN_LENGTH = 6;
@@ -103,13 +108,13 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
                 setError(null);
                 onSuccess();
               } else {
-                setError("Wrong PIN. Try again.");
+                setError(t("settings.pin.wrong"));
                 setPin("");
               }
               setVerifying(false);
             })
             .catch(() => {
-              setError("Verification failed. Try again.");
+              setError(t("settings.pin.verificationFailed"));
               setPin("");
               setVerifying(false);
             });
@@ -140,7 +145,7 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
             {title}
           </Text>
           <Text className="text-muted-foreground text-sm mb-4 text-center">
-            Enter your 6-digit PIN
+            {t("settings.pin.enterDescription")}
           </Text>
 
           <View className="items-center mb-4">
@@ -165,7 +170,11 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
             />
           </View>
 
-          <Button title="Cancel" onPress={handleCancel} variant="secondary" />
+          <Button
+            title={t("common.cancel")}
+            onPress={handleCancel}
+            variant="secondary"
+          />
         </Card>
       </View>
     </Modal>
@@ -188,9 +197,9 @@ function RecoveryModal({ control, mnemonic, onDismiss }: RecoveryModalProps) {
   return (
     <Prompt.Outer control={control} onClose={onDismiss}>
       <Prompt.Content>
-        <Prompt.TitleText>Recovery Phrase</Prompt.TitleText>
+        <Prompt.TitleText>{t("settings.recovery.title")}</Prompt.TitleText>
         <Prompt.DescriptionText>
-          Keep these words safe and never share them.
+          {t("settings.recovery.description")}
         </Prompt.DescriptionText>
         <View className="flex-row flex-wrap justify-center gap-2 mt-2">
           {words.map((word, idx) => (
@@ -207,7 +216,7 @@ function RecoveryModal({ control, mnemonic, onDismiss }: RecoveryModalProps) {
         </View>
       </Prompt.Content>
       <Prompt.Actions>
-        <Prompt.Action cta="Done" onPress={onDismiss} color="primary" />
+        <Prompt.Action cta={t("common.done")} onPress={onDismiss} color="primary" />
       </Prompt.Actions>
     </Prompt.Outer>
   );
@@ -221,14 +230,16 @@ function AppearancePicker() {
   const { theme, mode, setMode } = useBloomTheme();
 
   const modes: Array<{ value: ThemeMode; label: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"] }> = [
-    { value: "light", label: "Light", icon: "white-balance-sunny" },
-    { value: "dark", label: "Dark", icon: "moon-waning-crescent" },
-    { value: "system", label: "System", icon: "cellphone" },
+    { value: "light", label: t("settings.appearance.light"), icon: "white-balance-sunny" },
+    { value: "dark", label: t("settings.appearance.dark"), icon: "moon-waning-crescent" },
+    { value: "system", label: t("settings.appearance.system"), icon: "cellphone" },
   ];
 
   return (
     <View className="px-4 py-3">
-      <Text className="text-muted-foreground text-xs mb-2">Appearance</Text>
+      <Text className="text-muted-foreground text-xs mb-2">
+        {t("settings.appearance")}
+      </Text>
       <View className="flex-row gap-2">
         {modes.map((m) => {
           const isActive = mode === m.value;
@@ -279,6 +290,11 @@ export default function SettingsScreen() {
   const switchNetwork = useWalletStore((s) => s.switchNetwork);
   const exportBackup = useWalletStore((s) => s.exportBackup);
   const importBackup = useWalletStore((s) => s.importBackup);
+  const language = useLanguageStore((s) => s.language);
+  const currentLanguageOption = useMemo(
+    () => findLanguageOption(language),
+    [language],
+  );
 
   const wipeControl = Prompt.usePromptControl();
   const switchNetworkControl = Prompt.usePromptControl();
@@ -346,9 +362,13 @@ export default function SettingsScreen() {
   );
 
   const walletCountLabel = useMemo(() => {
-    if (wallets.length === 0) return "No wallets";
-    if (wallets.length === 1) return activeWalletName || "1 wallet";
-    return `${activeWalletName || "Active"} (${wallets.length} total)`;
+    if (wallets.length === 0) return t("settings.noWallets");
+    if (wallets.length === 1)
+      return activeWalletName || t("settings.walletsCountSingle");
+    return t("settings.walletsCountMultiple", {
+      name: activeWalletName || t("settings.walletsActive"),
+      count: wallets.length,
+    });
   }, [wallets.length, activeWalletName]);
 
   const handleManageWallets = useCallback(() => {
@@ -395,10 +415,10 @@ export default function SettingsScreen() {
           setRecoveryMnemonic(mnemonic);
           recoveryControl.open();
         } else {
-          showMessage("Error", "Could not retrieve recovery phrase.");
+          showMessage(t("common.error"), t("settings.recovery.error.retrieve"));
         }
       } catch {
-        showMessage("Error", "Failed to load recovery phrase.");
+        showMessage(t("common.error"), t("settings.recovery.error.load"));
       }
     } else if (action === "change_pin") {
       router.push("/onboarding/pin-setup");
@@ -413,8 +433,8 @@ export default function SettingsScreen() {
     async (enabled: boolean) => {
       if (enabled && !biometricsAvailable) {
         showMessage(
-          "Biometrics Unavailable",
-          "Your device does not have biometric authentication set up. Please enable it in your device settings first.",
+          t("settings.biometrics.unavailable.title"),
+          t("settings.biometrics.unavailable.description"),
         );
         return;
       }
@@ -422,7 +442,7 @@ export default function SettingsScreen() {
       try {
         if (enabled) {
           const result = await LocalAuthentication.authenticateAsync({
-            promptMessage: "Verify biometrics to enable",
+            promptMessage: t("settings.biometrics.verifyPrompt"),
             disableDeviceFallback: false,
           });
 
@@ -434,7 +454,7 @@ export default function SettingsScreen() {
         await storeBiometricsEnabled(enabled);
         setBiometricsEnabled(enabled);
       } catch {
-        showMessage("Error", "Failed to update biometrics setting.");
+        showMessage(t("common.error"), t("settings.biometrics.updateError"));
       }
     },
     [biometricsAvailable, showMessage],
@@ -450,6 +470,10 @@ export default function SettingsScreen() {
 
   const handleCoinControl = useCallback(() => {
     router.push("/coin-control");
+  }, [router]);
+
+  const handleLanguage = useCallback(() => {
+    router.push("/language");
   }, [router]);
 
   const handleCycleCurrency = useCallback(async () => {
@@ -473,37 +497,66 @@ export default function SettingsScreen() {
   const handleExportBackup = useCallback(async () => {
     try {
       const json = await exportBackup();
-      const { setStringAsync } = await import("expo-clipboard");
-      await setStringAsync(json);
-      showMessage(
-        "Backup Exported",
-        "Backup data copied to clipboard. Save it in a secure location.",
-      );
+
+      const timestamp = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:T]/g, "-");
+      const filename = `fairwallet-backup-${timestamp}.json`;
+
+      const file = new File(Paths.cache, filename);
+      if (file.exists) file.delete();
+      file.create();
+      file.write(json);
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: "application/json",
+          dialogTitle: t("settings.backup.exportDialogTitle"),
+          UTI: "public.json",
+        });
+      } else {
+        showMessage(
+          t("settings.backup.saved.title"),
+          t("settings.backup.saved.description", { path: file.uri }),
+        );
+      }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Export failed";
-      showMessage("Error", message);
+      const message =
+        err instanceof Error ? err.message : t("settings.backup.exportFailed");
+      showMessage(t("common.error"), message);
     }
   }, [exportBackup, showMessage]);
 
   const handleImportBackup = useCallback(async () => {
     try {
-      const { getStringAsync } = await import("expo-clipboard");
-      const json = await getStringAsync();
-      if (!json || json.trim().length === 0) {
-        showMessage(
-          "Error",
-          "No backup data found in clipboard. Copy backup JSON to clipboard first.",
-        );
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/json", "text/plain", "*/*"],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled || result.assets.length === 0) return;
+
+      const asset = result.assets[0];
+      if (!asset) return;
+
+      const json = await new File(asset.uri).text();
+
+      if (!json.trim()) {
+        showMessage(t("common.error"), t("settings.backup.importEmpty"));
         return;
       }
+
       await importBackup(json);
       showMessage(
-        "Backup Imported",
-        "Contacts, labels, and settings have been restored.",
+        t("settings.backup.imported.title"),
+        t("settings.backup.imported.description"),
       );
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Import failed";
-      showMessage("Error", message);
+      const message =
+        err instanceof Error ? err.message : t("settings.backup.importFailed");
+      showMessage(t("common.error"), message);
     }
   }, [importBackup, showMessage]);
 
@@ -522,15 +575,15 @@ export default function SettingsScreen() {
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      <ScreenHeader title="Settings" />
+      <ScreenHeader title={t("settings.title")} />
       <ScrollView
         className="flex-1"
         contentContainerClassName="pt-2 pb-8 gap-2"
       >
         {/* Wallets */}
-        <SettingsListGroup title="Wallets">
+        <SettingsListGroup title={t("settings.walletsGroup")}>
           <SettingsListItem
-            title="Manage Wallets"
+            title={t("settings.wallets")}
             value={walletCountLabel}
             icon={
               <SettingsRowIcon
@@ -542,7 +595,7 @@ export default function SettingsScreen() {
             onPress={handleManageWallets}
           />
           <SettingsListItem
-            title="Contacts"
+            title={t("settings.contacts")}
             icon={
               <SettingsRowIcon
                 name="account-group"
@@ -555,9 +608,9 @@ export default function SettingsScreen() {
         </SettingsListGroup>
 
         {/* Security */}
-        <SettingsListGroup title="Security">
+        <SettingsListGroup title={t("settings.security")}>
           <SettingsListItem
-            title="Change PIN"
+            title={t("settings.change_pin")}
             icon={
               <SettingsRowIcon
                 name="lock"
@@ -568,7 +621,7 @@ export default function SettingsScreen() {
             onPress={handleChangePIN}
           />
           <SettingsListItem
-            title="Biometric Unlock"
+            title={t("settings.biometrics")}
             icon={
               <SettingsRowIcon
                 name="fingerprint"
@@ -590,8 +643,8 @@ export default function SettingsScreen() {
             showChevron={false}
           />
           <SettingsListItem
-            title="Auto-Lock"
-            value={`${autoLockMinutes} min`}
+            title={t("settings.auto_lock")}
+            value={t("settings.autoLockValue", { minutes: autoLockMinutes })}
             icon={
               <SettingsRowIcon
                 name="clock-outline"
@@ -602,7 +655,7 @@ export default function SettingsScreen() {
             onPress={handleCycleAutoLock}
           />
           <SettingsListItem
-            title="Export Encrypted Key"
+            title={t("settings.exportKey")}
             icon={
               <SettingsRowIcon
                 name="shield-key"
@@ -615,9 +668,25 @@ export default function SettingsScreen() {
         </SettingsListGroup>
 
         {/* Appearance */}
-        <SettingsListGroup title="Appearance">
+        <SettingsListGroup title={t("settings.appearance")}>
           <SettingsListItem
-            title="Display Currency"
+            title={t("settings.language.title")}
+            value={
+              currentLanguageOption
+                ? currentLanguageOption.nativeName
+                : language
+            }
+            icon={
+              <SettingsRowIcon
+                name="translate"
+                color="#a78bfa"
+                bgClassName="bg-purple-500/10"
+              />
+            }
+            onPress={handleLanguage}
+          />
+          <SettingsListItem
+            title={t("settings.currency")}
             value={displayCurrency}
             icon={
               <SettingsRowIcon
@@ -632,10 +701,10 @@ export default function SettingsScreen() {
         </SettingsListGroup>
 
         {/* Network */}
-        <SettingsListGroup title="Network">
+        <SettingsListGroup title={t("settings.network")}>
           <SettingsListItem
-            title="Network"
-            value={isMainnet ? "Mainnet" : "Testnet"}
+            title={t("settings.network")}
+            value={isMainnet ? t("settings.mainnet") : t("settings.testnet")}
             icon={
               <SettingsRowIcon
                 name="earth"
@@ -646,7 +715,18 @@ export default function SettingsScreen() {
             onPress={handleToggleNetwork}
           />
           <SettingsListItem
-            title="Connected Peers"
+            title={t("settings.networkStatus")}
+            icon={
+              <SettingsRowIcon
+                name="pulse"
+                color="#34d399"
+                bgClassName="bg-emerald-500/10"
+              />
+            }
+            onPress={() => router.push("/chain")}
+          />
+          <SettingsListItem
+            title={t("settings.connectedPeers")}
             value={String(connectedPeers)}
             icon={
               <SettingsRowIcon
@@ -658,7 +738,7 @@ export default function SettingsScreen() {
             onPress={() => router.push("/peers")}
           />
           <SettingsListItem
-            title="Resync Wallet"
+            title={t("settings.resync")}
             icon={
               <SettingsRowIcon
                 name="sync"
@@ -671,9 +751,9 @@ export default function SettingsScreen() {
         </SettingsListGroup>
 
         {/* Backup */}
-        <SettingsListGroup title="Backup">
+        <SettingsListGroup title={t("settings.backup")}>
           <SettingsListItem
-            title="Show Recovery Phrase"
+            title={t("settings.show_phrase")}
             icon={
               <SettingsRowIcon
                 name="eye"
@@ -684,7 +764,7 @@ export default function SettingsScreen() {
             onPress={handleShowRecovery}
           />
           <SettingsListItem
-            title="Export Backup"
+            title={t("settings.exportBackup")}
             icon={
               <SettingsRowIcon
                 name="download"
@@ -695,7 +775,7 @@ export default function SettingsScreen() {
             onPress={handleExportBackup}
           />
           <SettingsListItem
-            title="Import Backup"
+            title={t("settings.importBackup")}
             icon={
               <SettingsRowIcon
                 name="upload"
@@ -708,9 +788,9 @@ export default function SettingsScreen() {
         </SettingsListGroup>
 
         {/* Advanced */}
-        <SettingsListGroup title="Advanced">
+        <SettingsListGroup title={t("settings.advanced")}>
           <SettingsListItem
-            title="Coin Control"
+            title={t("settings.coinControl")}
             icon={
               <SettingsRowIcon
                 name="tune"
@@ -721,7 +801,7 @@ export default function SettingsScreen() {
             onPress={handleCoinControl}
           />
           <SettingsListItem
-            title="Masternode"
+            title={t("settings.masternode")}
             icon={
               <SettingsRowIcon
                 name="server"
@@ -734,10 +814,10 @@ export default function SettingsScreen() {
         </SettingsListGroup>
 
         {/* About */}
-        <SettingsListGroup title="About">
+        <SettingsListGroup title={t("settings.about")}>
           <SettingsListItem
-            title="About FAIRWallet"
-            value={`v${APP_VERSION}`}
+            title={t("settings.aboutApp")}
+            value={t("settings.version", { version: APP_VERSION })}
             icon={
               <SettingsRowIcon
                 name="information"
@@ -750,9 +830,9 @@ export default function SettingsScreen() {
         </SettingsListGroup>
 
         {/* Danger Zone */}
-        <SettingsListGroup title="Danger Zone">
+        <SettingsListGroup title={t("settings.dangerZone")}>
           <SettingsListItem
-            title="Wipe Wallet"
+            title={t("settings.wipe")}
             icon={
               <SettingsRowIcon
                 name="delete"
@@ -769,7 +849,9 @@ export default function SettingsScreen() {
         <PinModal
           visible={showPinModal}
           title={
-            pinAction === "recovery" ? "Verify PIN" : "Enter Current PIN"
+            pinAction === "recovery"
+              ? t("settings.pin.verify")
+              : t("settings.pin.enterCurrent")
           }
           onCancel={handlePinCancel}
           onSuccess={handlePinSuccess}
@@ -779,9 +861,9 @@ export default function SettingsScreen() {
       {/* Wipe confirmation prompt */}
       <Prompt.Basic
         control={wipeControl}
-        title="Wipe Wallet?"
-        description="This will permanently delete all wallets from this device. Make sure you have your recovery phrases backed up. This action cannot be undone."
-        confirmButtonCta="Wipe All Wallets"
+        title={t("settings.wipe.title")}
+        description={t("settings.wipe.description")}
+        confirmButtonCta={t("settings.wipe.cta")}
         confirmButtonColor="negative"
         onConfirm={handleConfirmWipe}
       />
@@ -789,18 +871,20 @@ export default function SettingsScreen() {
       {/* Switch network prompt */}
       <Prompt.Basic
         control={switchNetworkControl}
-        title="Switch Network"
-        description={`Switch to ${isMainnet ? "testnet" : "mainnet"}? This will require a resync.`}
-        confirmButtonCta="Switch"
+        title={t("settings.switchNetwork.title")}
+        description={t("settings.switchNetwork.description", {
+          target: isMainnet ? t("settings.testnet") : t("settings.mainnet"),
+        })}
+        confirmButtonCta={t("settings.switchNetwork.cta")}
         onConfirm={handleConfirmSwitchNetwork}
       />
 
       {/* Resync wallet prompt */}
       <Prompt.Basic
         control={resyncControl}
-        title="Resync Wallet"
-        description="This will re-download all blockchain data."
-        confirmButtonCta="Resync"
+        title={t("settings.resync.title")}
+        description={t("settings.resync.description")}
+        confirmButtonCta={t("settings.resync.cta")}
         onConfirm={handleConfirmResync}
       />
 
@@ -816,7 +900,7 @@ export default function SettingsScreen() {
         control={messageControl}
         title={messageDialog?.title ?? ""}
         description={messageDialog?.description ?? ""}
-        confirmButtonCta="OK"
+        confirmButtonCta={t("common.ok")}
         onConfirm={handleMessageDismiss}
         showCancel={false}
       />

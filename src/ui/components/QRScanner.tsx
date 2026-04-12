@@ -30,6 +30,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { Button } from "./Button";
+import { t } from "../../i18n";
 
 interface QRScannerProps {
   visible: boolean;
@@ -258,7 +259,7 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
         {permission === null ? (
           <View className="flex-1 items-center justify-center">
             <Text className="text-white text-base">
-              Checking camera permission...
+              {t("qrScanner.checking")}
             </Text>
           </View>
         ) : !permission.granted ? (
@@ -272,10 +273,10 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
                 />
               </View>
               <Text className="text-white text-base text-center mb-6">
-                Camera access is needed to scan QR codes
+                {t("qrScanner.permissionPrompt")}
               </Text>
               <Button
-                title="Grant Camera Access"
+                title={t("qrScanner.grantCta")}
                 onPress={requestPermission}
                 variant="primary"
               />
@@ -352,9 +353,11 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
               className="absolute left-0 right-0 items-center px-6"
               style={{ top: topInset + 12 }}
             >
-              <Text className="text-white text-lg font-medium">Scan QR</Text>
+              <Text className="text-white text-lg font-medium">
+                {t("qrScanner.title")}
+              </Text>
               <Text className="text-white/70 text-sm mt-1 text-center">
-                Point camera at a FairCoin QR code
+                {t("qrScanner.subtitle")}
               </Text>
             </View>
 
@@ -363,7 +366,7 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
               onPress={handleClose}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel="Close scanner"
+              accessibilityLabel={t("qrScanner.closeAccessibility")}
               className="absolute w-11 h-11 rounded-full bg-white/10 items-center justify-center"
               style={{ top: topInset + 4, right: 16 }}
             >
@@ -385,7 +388,9 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
                 hitSlop={12}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  torchOn ? "Turn torch off" : "Turn torch on"
+                  torchOn
+                    ? t("qrScanner.torchOffAccessibility")
+                    : t("qrScanner.torchOnAccessibility")
                 }
                 className={`w-12 h-12 rounded-full items-center justify-center ${
                   torchOn ? "bg-white" : "bg-white/10"
@@ -405,7 +410,7 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
             onPress={handleClose}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel="Close scanner"
+            accessibilityLabel={t("qrScanner.closeAccessibility")}
             className="absolute w-11 h-11 rounded-full bg-white/10 items-center justify-center"
             style={{ top: topInset + 4, right: 16 }}
           >

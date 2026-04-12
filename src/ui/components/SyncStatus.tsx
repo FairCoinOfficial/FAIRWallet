@@ -4,6 +4,7 @@
 
 import { useMemo } from "react";
 import { View, Text } from "react-native";
+import { t } from "../../i18n";
 
 interface SyncStatusProps {
   progress: number;
@@ -43,10 +44,10 @@ export function SyncStatus({
 
   const statusLabel = useMemo(() => {
     if (syncState === "syncing") {
-      return `Syncing... ${Math.round(progress)}%`;
+      return t("syncStatus.syncing", { progress: Math.round(progress) });
     }
     if (syncState === "synced") {
-      return "Synced";
+      return t("syncStatus.synced");
     }
     return networkStatus;
   }, [syncState, progress, networkStatus]);
@@ -64,7 +65,9 @@ export function SyncStatus({
 
         {/* Peers */}
         <Text className="text-muted-foreground text-xs">
-          {connectedPeers} {connectedPeers === 1 ? "peer" : "peers"}
+          {connectedPeers === 1
+            ? t("peers.peerCountLabel.one", { count: connectedPeers })
+            : t("peers.peerCountLabel.other", { count: connectedPeers })}
         </Text>
       </View>
 
@@ -81,7 +84,7 @@ export function SyncStatus({
       {/* Chain height */}
       {chainHeight > 0 ? (
         <Text className="text-muted-foreground text-xs mt-1">
-          Block #{chainHeight.toLocaleString()}
+          {t("syncStatus.blockHeight", { height: chainHeight.toLocaleString() })}
         </Text>
       ) : null}
     </View>

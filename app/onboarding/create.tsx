@@ -19,6 +19,8 @@ import { Button } from "../../src/ui/components/Button";
 import { Card } from "../../src/ui/components/Card";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { hapticSuccess } from "../../src/utils/haptics";
+import { COIN_SYMBOL } from "../../src/core/branding";
+import { t } from "../../src/i18n";
 
 type Step = "generating" | "display" | "verify" | "complete";
 
@@ -92,7 +94,8 @@ export default function CreateWalletScreen() {
       setWords(wordList);
       setStep("display");
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to generate wallet";
+      const msg =
+        e instanceof Error ? e.message : t("onboarding.create.error.generate");
       setError(msg);
     }
   }, [createWallet]);
@@ -115,7 +118,7 @@ export default function CreateWalletScreen() {
       const expectedWord = words[expectedIdx];
 
       if (selectedWord !== expectedWord) {
-        setError("Wrong word. Please try again.");
+        setError(t("onboarding.create.verify.error"));
         return;
       }
 
@@ -153,25 +156,29 @@ export default function CreateWalletScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-primary text-5xl mb-8">{"\u229C"}</Text>
+          <Text className="text-primary text-5xl mb-8">{COIN_SYMBOL}</Text>
 
           {error ? (
             <>
               <Text className="text-red-400 text-base mb-6 text-center">
                 {error}
               </Text>
-              <Button title="Retry" onPress={handleGenerate} variant="primary" />
+              <Button
+                title={t("common.retry")}
+                onPress={handleGenerate}
+                variant="primary"
+              />
             </>
           ) : (
             <>
               <Text className="text-foreground text-xl font-semibold mb-3">
-                Create your wallet
+                {t("onboarding.create.heading")}
               </Text>
               <Text className="text-muted-foreground text-sm text-center mb-8">
-                We&apos;ll generate a 24-word recovery phrase that only you control.
+                {t("onboarding.create.description")}
               </Text>
               <Button
-                title="Generate Recovery Phrase"
+                title={t("onboarding.create.generateCta")}
                 onPress={handleGenerate}
                 variant="primary"
                 size="lg"
@@ -194,10 +201,10 @@ export default function CreateWalletScreen() {
           <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
 
           <Text className="text-foreground text-xl font-bold mb-2 text-center">
-            Your Recovery Phrase
+            {t("onboarding.create.phrase.title")}
           </Text>
           <Text className="text-muted-foreground text-sm mb-8 text-center leading-5">
-            Write these words down in order and store them somewhere safe.
+            {t("onboarding.create.phrase.description")}
           </Text>
 
           {/* 3-column word grid */}
@@ -223,13 +230,12 @@ export default function CreateWalletScreen() {
               color={theme.colors.error}
             />
             <Text className="text-red-400 text-sm flex-1 leading-5">
-              Never share your recovery phrase. Anyone with these words can access
-              your funds.
+              {t("onboarding.create.phrase.warning")}
             </Text>
           </View>
 
           <Button
-            title="I\u2019ve written it down"
+            title={t("onboarding.create.phrase.cta")}
             onPress={handleWrittenDown}
             variant="primary"
             size="lg"
@@ -247,10 +253,12 @@ export default function CreateWalletScreen() {
           <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
 
           <Text className="text-foreground text-xl font-bold mb-2 text-center">
-            Verify Your Phrase
+            {t("onboarding.create.verify.title")}
           </Text>
           <Text className="text-muted-foreground text-sm mb-8 text-center">
-            What is word #{currentVerifyPosition}?
+            {t("onboarding.create.verify.prompt", {
+              position: currentVerifyPosition,
+            })}
           </Text>
 
           {/* Verification progress dots */}
@@ -299,7 +307,9 @@ export default function CreateWalletScreen() {
   return (
     <View className="flex-1 bg-background items-center justify-center">
       <ActivityIndicator size="large" color={theme.colors.primary} />
-      <Text className="text-foreground text-base mt-4">Setting up wallet...</Text>
+      <Text className="text-foreground text-base mt-4">
+        {t("onboarding.create.settingUp")}
+      </Text>
     </View>
   );
 }

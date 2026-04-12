@@ -28,6 +28,7 @@ import { PinDots } from "../src/ui/components/PinDots";
 import { PinPad } from "../src/ui/components/PinPad";
 import { useTheme } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
+import { t } from "../src/i18n";
 
 const PIN_LENGTH = 6;
 
@@ -92,13 +93,13 @@ export default function ExportKeyScreen() {
                 setPin("");
                 setStep("select");
               } else {
-                setPinError("Wrong PIN. Try again.");
+                setPinError(t("exportKey.verifyPin.wrong"));
                 setPin("");
               }
               setPinVerifying(false);
             })
             .catch(() => {
-              setPinError("Verification failed.");
+              setPinError(t("exportKey.verifyPin.failed"));
               setPin("");
               setPinVerifying(false);
             });
@@ -131,10 +132,10 @@ export default function ExportKeyScreen() {
 
   const passphraseError = useMemo(() => {
     if (passphrase.length > 0 && passphrase.length < 8) {
-      return "Passphrase must be at least 8 characters";
+      return t("exportKey.passphrase.error.tooShort");
     }
     if (confirmPassphrase.length > 0 && passphrase !== confirmPassphrase) {
-      return "Passphrases do not match";
+      return t("exportKey.passphrase.error.mismatch");
     }
     return null;
   }, [passphrase, confirmPassphrase]);
@@ -153,7 +154,7 @@ export default function ExportKeyScreen() {
       const { getMnemonic } = await import("../src/storage/secure-store");
       const mnemonic = await getMnemonic();
       if (!mnemonic) {
-        showMessage("Error", "Could not access wallet mnemonic.");
+        showMessage(t("common.error"), t("exportKey.error.noMnemonic"));
         setEncrypting(false);
         return;
       }
@@ -164,7 +165,7 @@ export default function ExportKeyScreen() {
       try {
         privateKey = km.getPrivateKeyForAddress(selectedAddress);
       } catch {
-        showMessage("Error", "Could not find private key for this address.");
+        showMessage(t("common.error"), t("exportKey.error.noPrivateKey"));
         setEncrypting(false);
         return;
       }
@@ -180,8 +181,8 @@ export default function ExportKeyScreen() {
       setStep("result");
     } catch (err: unknown) {
       const errorMessage =
-        err instanceof Error ? err.message : "Encryption failed";
-      showMessage("Error", errorMessage);
+        err instanceof Error ? err.message : t("exportKey.error.encryptionFailed");
+      showMessage(t("common.error"), errorMessage);
     } finally {
       setEncrypting(false);
     }
@@ -194,7 +195,10 @@ export default function ExportKeyScreen() {
   const handleCopyEncrypted = useCallback(async () => {
     if (encryptedKey) {
       await Clipboard.setStringAsync(encryptedKey);
-      showMessage("Copied", "Encrypted key copied to clipboard");
+      showMessage(
+        t("exportKey.result.copied.title"),
+        t("exportKey.result.copied.description"),
+      );
     }
   }, [encryptedKey, showMessage]);
 
@@ -209,9 +213,11 @@ export default function ExportKeyScreen() {
         edges={["top", "bottom", "left", "right"]}
       >
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-foreground text-xl font-bold mb-2">Verify PIN</Text>
+          <Text className="text-foreground text-xl font-bold mb-2">
+            {t("exportKey.verifyPin.title")}
+          </Text>
           <Text className="text-muted-foreground text-sm mb-6 text-center">
-            Enter your PIN to access private key export
+            {t("exportKey.verifyPin.subtitle")}
           </Text>
 
           <View className="mb-4">
@@ -247,8 +253,8 @@ export default function ExportKeyScreen() {
         edges={["top", "bottom", "left", "right"]}
       >
         <ScreenHeader
-          title="Select Address"
-          subtitle="Choose the address whose private key you want to export"
+          title={t("exportKey.select.title")}
+          subtitle={t("exportKey.select.subtitle")}
           onBack={() => router.back()}
         />
         <ScrollView
@@ -259,8 +265,8 @@ export default function ExportKeyScreen() {
             {addresses.length === 0 ? (
               <EmptyState
                 icon="key-remove"
-                title="No addresses found"
-                subtitle="No addresses available for key export"
+                title={t("exportKey.select.empty.title")}
+                subtitle={t("exportKey.select.empty.subtitle")}
               />
             ) : (
               addresses.map((address, idx) => (
@@ -287,8 +293,8 @@ export default function ExportKeyScreen() {
         edges={["top", "bottom", "left", "right"]}
       >
         <ScreenHeader
-          title="Set Encryption Passphrase"
-          subtitle="This passphrase will be needed to decrypt the exported key. Choose a strong passphrase and store it safely."
+          title={t("exportKey.passphrase.title")}
+          subtitle={t("exportKey.passphrase.subtitle")}
           onBack={() => setStep("select")}
         />
         <ScrollView
@@ -297,10 +303,12 @@ export default function ExportKeyScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Card className="p-4 mt-4 mb-4">
-            <Text className="text-muted-foreground text-xs mb-1">Passphrase</Text>
+            <Text className="text-muted-foreground text-xs mb-1">
+              {t("exportKey.passphrase.label")}
+            </Text>
             <TextInput
               className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
-              placeholder="Enter passphrase (min 8 characters)"
+              placeholder={t("exportKey.passphrase.placeholder")}
               placeholderTextColor={theme.colors.textSecondary}
               value={passphrase}
               onChangeText={setPassphrase}
@@ -310,11 +318,11 @@ export default function ExportKeyScreen() {
             />
 
             <Text className="text-muted-foreground text-xs mb-1">
-              Confirm Passphrase
+              {t("exportKey.passphrase.confirmLabel")}
             </Text>
             <TextInput
               className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base"
-              placeholder="Confirm passphrase"
+              placeholder={t("exportKey.passphrase.confirmPlaceholder")}
               placeholderTextColor={theme.colors.textSecondary}
               value={confirmPassphrase}
               onChangeText={setConfirmPassphrase}
@@ -331,7 +339,11 @@ export default function ExportKeyScreen() {
           </Card>
 
           <Button
-            title={encrypting ? "Encrypting..." : "Encrypt Private Key"}
+            title={
+              encrypting
+                ? t("exportKey.passphrase.encrypting")
+                : t("exportKey.passphrase.encryptCta")
+            }
             onPress={handleEncrypt}
             variant="primary"
             disabled={!canEncrypt}
@@ -343,7 +355,7 @@ export default function ExportKeyScreen() {
           control={messageControl}
           title={message?.title ?? ""}
           description={message?.description ?? ""}
-          confirmButtonCta="OK"
+          confirmButtonCta={t("common.ok")}
           onConfirm={() => setMessage(null)}
           showCancel={false}
         />
@@ -358,8 +370,8 @@ export default function ExportKeyScreen() {
       edges={["top", "bottom", "left", "right"]}
     >
       <ScreenHeader
-        title="Encrypted Key"
-        subtitle="Your BIP38 encrypted private key"
+        title={t("exportKey.result.title")}
+        subtitle={t("exportKey.result.subtitle")}
         onBack={() => router.back()}
       />
       <ScrollView
@@ -379,7 +391,7 @@ export default function ExportKeyScreen() {
         </Pressable>
 
         <Button
-          title="Copy Encrypted Key"
+          title={t("exportKey.result.copyCta")}
           onPress={handleCopyEncrypted}
           variant="primary"
           icon={
@@ -394,12 +406,10 @@ export default function ExportKeyScreen() {
         {/* Warning */}
         <Card className="p-4 mt-6">
           <Text className="text-yellow-400 text-sm font-semibold mb-1">
-            Important
+            {t("exportKey.warning.title")}
           </Text>
           <Text className="text-yellow-400/80 text-xs leading-5">
-            This encrypted key requires the passphrase to decrypt. Keep both
-            safe. Without the passphrase, the private key cannot be recovered
-            from this encrypted form.
+            {t("exportKey.warning.description")}
           </Text>
         </Card>
       </ScrollView>
@@ -408,7 +418,7 @@ export default function ExportKeyScreen() {
         control={messageControl}
         title={message?.title ?? ""}
         description={message?.description ?? ""}
-        confirmButtonCta="OK"
+        confirmButtonCta={t("common.ok")}
         onConfirm={() => setMessage(null)}
         showCancel={false}
       />

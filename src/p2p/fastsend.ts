@@ -14,6 +14,7 @@
  */
 
 import { BufferReader, bytesToHex } from "../core/encoding";
+import { UNITS_PER_COIN } from "../core/branding";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -25,8 +26,8 @@ export const MSG_TXLOCK_REQUEST = 4;
 /** Inventory type for a transaction lock vote. */
 export const MSG_TXLOCK_VOTE = 5;
 
-/** Maximum value for a FastSend transaction (1000 FAIR in satoshis). */
-export const FASTSEND_MAX_VALUE = 1000n * 100_000_000n;
+/** Maximum value for a FastSend transaction (1000 FAIR in base units). */
+export const FASTSEND_MAX_VALUE = 1000n * UNITS_PER_COIN;
 
 /** Number of masternode signatures required for instant confirmation. */
 export const SWIFTTX_SIGNATURES_REQUIRED = 6;

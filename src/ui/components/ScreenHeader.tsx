@@ -5,6 +5,7 @@
 import { View, Text, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { t } from "../../i18n";
 
 interface ScreenHeaderProps {
   title: string;
@@ -30,7 +31,7 @@ export function ScreenHeader({
       <Pressable
         onPress={onBack}
         className="w-11 h-11 items-center justify-center rounded-full active:bg-surface"
-        accessibilityLabel="Back"
+        accessibilityLabel={t("common.back")}
         accessibilityRole="button"
       >
         <MaterialCommunityIcons

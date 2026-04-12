@@ -15,6 +15,7 @@ import {
 } from "./encoding";
 import type { NetworkConfig } from "./network";
 import { createP2PKHScript, createP2PKHScriptSig } from "./script";
+import { SMALLEST_UNIT_NAME } from "./branding";
 
 // Configure @noble/secp256k1 v2 HMAC for synchronous signing
 secp256k1.etc.hmacSha256Sync = (
@@ -343,7 +344,7 @@ export function buildTransaction(
 
   if (totalIn < totalOut + feeWithoutChange) {
     throw new Error(
-      `Insufficient funds: have ${totalIn} satoshis, need ${totalOut + feeWithoutChange} (${totalOut} + ${feeWithoutChange} fee)`,
+      `Insufficient funds: have ${totalIn} ${SMALLEST_UNIT_NAME}, need ${totalOut + feeWithoutChange} (${totalOut} + ${feeWithoutChange} fee)`,
     );
   }
 

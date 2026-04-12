@@ -11,6 +11,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Clipboard from "expo-clipboard";
+import * as Sharing from "expo-sharing";
+import { File, Paths } from "expo-file-system";
 import {
   useWalletStore,
   getDatabase,
@@ -18,6 +20,8 @@ import {
 } from "../../src/wallet/wallet-store";
 import { useContactsStore } from "../../src/wallet/contacts-store";
 import {
+  AmountInput,
+  AmountText,
   Card,
   Button,
   ContactAvatar,
@@ -32,22 +36,29 @@ import type { RecentRecipientRow, ContactRow } from "../../src/storage/database"
 import { useTheme } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
 import { hapticSuccess, hapticError } from "../../src/utils/haptics";
+import { playSent } from "../../src/services/sounds";
 import { FONT_PHUDU_BLACK, FONT_PHUDU_LIGHT } from "../../src/utils/fonts";
+import { formatFair, parseFairToUnits } from "../../src/core/format-amount";
 import {
-  formatSats,
-  formatFair,
-  parseFairToSats,
-} from "../../src/core/format-amount";
+  COIN_SYMBOL,
+  COIN_TICKER,
+  UNITS_PER_COIN,
+  explorerTxUrl,
+} from "../../src/core/branding";
+import { t } from "../../src/i18n";
 
 const FEE_LEVELS: FeeLevel[] = ["low", "medium", "high"];
 
-const FEE_LABELS: Record<FeeLevel, string> = {
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-};
-
-const FAIR_SYMBOL = "\u229C"; // ⊜
+function getFeeLabel(level: FeeLevel): string {
+  switch (level) {
+    case "low":
+      return t("send.fee.low");
+    case "medium":
+      return t("send.fee.medium");
+    case "high":
+      return t("send.fee.high");
+  }
+}
 
 const CONTENT_MAX_WIDTH = 600;
 const AMOUNT_FONT_SIZE_MAX = 44;
@@ -97,8 +108,8 @@ export default function SendScreen() {
       <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
         <EmptyState
           icon="lock"
-          title="Watch-Only Wallet"
-          subtitle="Sending is disabled for watch-only wallets. Import the full wallet with a recovery phrase to enable sending."
+          title={t("send.watchOnly.title")}
+          subtitle={t("send.watchOnly.subtitle")}
         />
       </View>
     );
@@ -108,6 +119,10 @@ export default function SendScreen() {
   const params = useLocalSearchParams<{ address?: string; amount?: string }>();
 
   const [toAddress, setToAddress] = useState(params.address ?? "");
+  // `amount` is the user-facing decimal string with optional dot (no
+  // thousands separators). e.g. "1.5". `<AmountInput>` adds the
+  // separators visually while typing and `parseFairToUnits` converts to
+  // the bigint smallest-unit count when needed.
   const [amount, setAmount] = useState(params.amount ?? "");
   const [feeLevel, setFeeLevel] = useState<FeeLevel>("medium");
   const [showQRScanner, setShowQRScanner] = useState(false);
@@ -120,60 +135,89 @@ export default function SendScreen() {
   const [pendingSaveAddress, setPendingSaveAddress] = useState<string | null>(
     null,
   );
+  const [sentTxid, setSentTxid] = useState<string | null>(null);
   const confirmControl = Prompt.usePromptControl();
   const saveContactControl = Prompt.usePromptControl();
+  const sentControl = Prompt.usePromptControl();
+
+  const explorerUrl = sentTxid ? explorerTxUrl(sentTxid) : "";
+
+  const handleCopyExplorerLink = useCallback(async () => {
+    if (!explorerUrl) return;
+    await Clipboard.setStringAsync(explorerUrl);
+  }, [explorerUrl]);
+
+  const handleShareExplorerLink = useCallback(async () => {
+    if (!explorerUrl) return;
+    if (!(await Sharing.isAvailableAsync())) {
+      await Clipboard.setStringAsync(explorerUrl);
+      return;
+    }
+    // Sharing.shareAsync requires a file URI on native, so write the link to
+    // a temporary text file in the cache directory and share that.
+    const file = new File(Paths.cache, "fairwallet-tx-link.txt");
+    if (file.exists) file.delete();
+    file.create();
+    file.write(explorerUrl);
+    await Sharing.shareAsync(file.uri, {
+      mimeType: "text/plain",
+      dialogTitle: t("send.sent.share"),
+      UTI: "public.plain-text",
+    });
+  }, [explorerUrl]);
+
+  const handleSentDismiss = useCallback(() => {
+    setSentTxid(null);
+  }, []);
 
   const fee = useMemo(() => estimateFee(feeLevel), [estimateFee, feeLevel]);
 
+  const amountSats = useMemo<bigint | null>(
+    () => parseFairToUnits(amount),
+    [amount],
+  );
+
   const totalSats = useMemo<bigint>(() => {
-    const amountSats = parseFairToSats(amount);
     if (amountSats === null || amountSats === 0n) return 0n;
     return amountSats + fee;
-  }, [amount, fee]);
-
-  const totalTrimmed = useMemo(() => formatFair(totalSats), [totalSats]);
-  const totalExact = useMemo(() => formatSats(totalSats), [totalSats]);
+  }, [amountSats, fee]);
 
   const validationError = useMemo(() => {
     if (toAddress.length > 0 && toAddress.length < 25) {
-      return "Address too short";
+      return t("send.error.addressTooShort");
     }
     if (
       toAddress.length > 0 &&
       !toAddress.startsWith("F") &&
       !toAddress.startsWith("T")
     ) {
-      return "Invalid FairCoin address format";
+      return t("send.error.invalidAddress");
     }
-    const amountSats = parseFairToSats(amount);
     if (amount.length > 0 && (amountSats === null || amountSats <= 0n)) {
-      return "Invalid amount";
+      return t("send.error.invalidAmount");
     }
     if (amountSats !== null && amountSats > 0n) {
-      const totalSats = amountSats + fee;
-      if (totalSats > balance) {
-        return "Insufficient balance";
+      if (amountSats + fee > balance) {
+        return t("send.error.insufficientBalance");
       }
     }
     return null;
-  }, [toAddress, amount, balance, fee]);
+  }, [toAddress, amount, amountSats, balance, fee]);
 
-  const amountSatsForCanSend = parseFairToSats(amount);
   const canSend =
     toAddress.length >= 25 &&
-    amountSatsForCanSend !== null &&
-    amountSatsForCanSend > 0n &&
+    amountSats !== null &&
+    amountSats > 0n &&
     validationError === null;
 
   const usdEquivalent = useMemo(() => {
     const price = getCachedPrice();
-    const sats = parseFairToSats(amount);
-    if (price && sats !== null && sats > 0n) {
-      const fair = Number(sats) / 100_000_000;
+    if (price && amountSats !== null && amountSats > 0n) {
+      const fair = Number(amountSats) / Number(UNITS_PER_COIN);
       return (fair * price.usd).toFixed(2);
     }
     return null;
-  }, [amount]);
+  }, [amountSats]);
 
   const matchedContact = useMemo<ContactRow | null>(() => {
     if (toAddress.length < 25) return null;
@@ -196,7 +240,7 @@ export default function SendScreen() {
         setToAddress(text.trim());
       }
     } catch {
-      setError("Failed to read clipboard");
+      setError(t("send.error.clipboard"));
     }
   }, []);
 
@@ -249,7 +293,7 @@ export default function SendScreen() {
 
   const handleMax = useCallback(() => {
     const maxSats = balance > fee ? balance - fee : 0n;
-    setAmount(formatSats(maxSats));
+    setAmount(maxSats > 0n ? formatFair(maxSats) : "");
   }, [balance, fee]);
 
   const handleSendPress = useCallback(() => {
@@ -261,18 +305,20 @@ export default function SendScreen() {
   const handleConfirmSend = useCallback(async () => {
     setError(null);
     try {
-      const amountSats = parseFairToSats(amount);
       if (amountSats === null || amountSats <= 0n) {
-        setError("Invalid amount");
+        setError(t("send.error.invalidAmount"));
         return;
       }
       const feeRate = feeLevel === "high" ? 10 : feeLevel === "medium" ? 5 : 1;
       const sentAddress = toAddress;
       const txid = await sendTransaction(sentAddress, amountSats, feeRate);
       hapticSuccess();
-      setSuccess(`Transaction sent: ${txid}`);
+      playSent();
+      setSuccess(null);
       setToAddress("");
       setAmount("");
+      setSentTxid(txid);
+      sentControl.open();
 
       // Record recent recipient
       const db = getDatabase();
@@ -290,23 +336,23 @@ export default function SendScreen() {
     } catch (e: unknown) {
       hapticError();
       const msg =
-        e instanceof Error ? e.message : "Failed to send transaction";
+        e instanceof Error ? e.message : t("send.error.failedSend");
       setError(msg);
     }
   }, [
     toAddress,
-    amount,
+    amountSats,
     feeLevel,
     sendTransaction,
     getContactByAddress,
     refreshRecentRecipients,
     saveContactControl,
+    sentControl,
   ]);
 
   const hasAmount = amount.length > 0;
 
-  const amountLengthForSizing =
-    amount.length > 0 ? amount.length : "0.00000000".length;
+  const amountLengthForSizing = amount.length > 0 ? amount.length : 1;
   const amountFontSize = getAmountFontSize(amountLengthForSizing);
   const amountSymbolFontSize = Math.round(amountFontSize * AMOUNT_SYMBOL_RATIO);
 
@@ -337,9 +383,9 @@ export default function SendScreen() {
                 }}
                 numberOfLines={1}
               >
-                {FAIR_SYMBOL}
+                {COIN_SYMBOL}
               </Text>
-              <TextInput
+              <AmountInput
                 className="text-foreground flex-shrink"
                 style={{
                   fontFamily: FONT_PHUDU_BLACK,
@@ -347,11 +393,10 @@ export default function SendScreen() {
                   paddingVertical: 0,
                   includeFontPadding: false,
                 }}
-                placeholder="0.00000000"
+                placeholder={t("send.amountPlaceholder")}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
+                onValueChange={setAmount}
                 maxLength={20}
                 numberOfLines={1}
               />
@@ -359,24 +404,24 @@ export default function SendScreen() {
             <Pressable
               onPress={handleMax}
               className="bg-primary/10 rounded-full px-3 py-1.5 mt-2"
-              accessibilityLabel="Use maximum balance"
+              accessibilityLabel={t("send.maxAccessibility")}
             >
-              <Text className="text-primary text-xs font-semibold">MAX</Text>
+              <Text className="text-primary text-xs font-semibold">
+                {t("send.max")}
+              </Text>
             </Pressable>
             <Text className="text-muted-foreground text-sm mt-2">
-              {usdEquivalent
-                ? `\u2248 $${usdEquivalent} USD`
-                : `\u2248 $0.00 USD`}
+              {t("send.usdApprox", { amount: usdEquivalent ?? "0.00" })}
             </Text>
             <Text className="text-muted-foreground text-xs mt-1">
-              Available: {formatFair(balance)} FAIR
+              {t("send.available", { amount: formatFair(balance) })}
             </Text>
           </View>
 
           {/* Recipient card */}
           <Card className="p-4">
             <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-2">
-              Send to
+              {t("send.sendTo")}
             </Text>
             {matchedContact ? (
               <View className="flex-row items-center justify-between">
@@ -396,7 +441,7 @@ export default function SendScreen() {
                 <Pressable
                   className="p-2 rounded-full active:opacity-60"
                   onPress={handleClearRecipient}
-                  accessibilityLabel="Clear recipient"
+                  accessibilityLabel={t("send.clearRecipient")}
                 >
                   <MaterialCommunityIcons
                     name="close-circle"
@@ -409,7 +454,7 @@ export default function SendScreen() {
               <TextInput
                 className="text-foreground text-base"
                 style={{ paddingVertical: 4 }}
-                placeholder="FairCoin address"
+                placeholder={t("send.addressPlaceholder")}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={toAddress}
                 onChangeText={setToAddress}
@@ -430,7 +475,7 @@ export default function SendScreen() {
                   color={theme.colors.primary}
                 />
                 <Text className="text-primary text-xs ml-1.5 font-semibold">
-                  Paste
+                  {t("send.paste")}
                 </Text>
               </Pressable>
               <Pressable
@@ -443,7 +488,7 @@ export default function SendScreen() {
                   color={theme.colors.primary}
                 />
                 <Text className="text-primary text-xs ml-1.5 font-semibold">
-                  Scan QR
+                  {t("send.scanQR")}
                 </Text>
               </Pressable>
               <Pressable
@@ -456,7 +501,7 @@ export default function SendScreen() {
                   color={theme.colors.primary}
                 />
                 <Text className="text-primary text-xs ml-1.5 font-semibold">
-                  Contacts
+                  {t("send.contacts")}
                 </Text>
               </Pressable>
             </View>
@@ -472,7 +517,7 @@ export default function SendScreen() {
           {recentRecipients.length > 0 ? (
             <View>
               <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-2 px-1">
-                Recent
+                {t("send.recent")}
               </Text>
               <ScrollView
                 horizontal
@@ -511,7 +556,7 @@ export default function SendScreen() {
           {/* Fee selector */}
           <View>
             <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-2 px-1">
-              Network fee
+              {t("send.networkFee")}
             </Text>
             <View className="flex-row gap-2">
               {FEE_LEVELS.map((level) => {
@@ -531,10 +576,10 @@ export default function SendScreen() {
                         isSelected ? "text-primary" : "text-foreground"
                       }`}
                     >
-                      {FEE_LABELS[level]}
+                      {getFeeLabel(level)}
                     </Text>
                     <Text className="text-muted-foreground text-[10px] mt-0.5">
-                      {estimateFee(level).toString()} sats
+                      {t("send.feeUnit", { units: estimateFee(level).toString() })}
                     </Text>
                   </Pressable>
                 );
@@ -571,19 +616,21 @@ export default function SendScreen() {
         >
           {hasAmount ? (
             <View className="flex-row justify-between items-center px-1">
-              <Text className="text-muted-foreground text-xs">Total</Text>
-              <Text
+              <Text className="text-muted-foreground text-xs">
+                {t("send.total")}
+              </Text>
+              <AmountText
+                value={totalSats}
+                suffix={` ${COIN_TICKER}`}
                 className="text-foreground text-sm font-semibold"
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.7}
-              >
-                {totalTrimmed} FAIR
-              </Text>
+              />
             </View>
           ) : null}
           <Button
-            title="Send FAIR"
+            title={t("send.sendCta")}
             onPress={handleSendPress}
             variant="primary"
             size="lg"
@@ -596,27 +643,48 @@ export default function SendScreen() {
       {/* Confirmation prompt */}
       <Prompt.Outer control={confirmControl}>
         <Prompt.Content>
-          <Prompt.TitleText>Confirm Transaction</Prompt.TitleText>
+          <Prompt.TitleText>{t("send.confirm.title")}</Prompt.TitleText>
           <View className="mt-2">
             <ListItem
-              title="To"
+              title={t("send.confirm.to")}
               subtitle={matchedContact ? matchedContact.name : toAddress}
               showChevron={false}
             />
             <ListItem
-              title="Amount"
-              value={`${formatSats(parseFairToSats(amount) ?? 0n)} FAIR`}
+              title={t("send.confirm.amount")}
+              value={
+                <AmountText
+                  value={amountSats ?? 0n}
+                  fixedDecimalScale
+                  suffix={` ${COIN_TICKER}`}
+                  className="text-muted-foreground text-sm"
+                />
+              }
               showChevron={false}
             />
             <ListItem
-              title="Fee"
-              value={`${formatSats(fee)} FAIR`}
+              title={t("send.confirm.fee")}
+              value={
+                <AmountText
+                  value={fee}
+                  fixedDecimalScale
+                  suffix={` ${COIN_TICKER}`}
+                  className="text-muted-foreground text-sm"
+                />
+              }
               showChevron={false}
             />
             <Divider className="mx-4" />
             <ListItem
-              title="Total"
-              value={`${totalExact} FAIR`}
+              title={t("send.confirm.total")}
+              value={
+                <AmountText
+                  value={totalSats}
+                  fixedDecimalScale
+                  suffix={` ${COIN_TICKER}`}
+                  className="text-muted-foreground text-sm"
+                />
+              }
               showChevron={false}
               isLast
             />
@@ -624,13 +692,42 @@ export default function SendScreen() {
         </Prompt.Content>
         <Prompt.Actions>
           <Prompt.Action
-            cta="Confirm Send"
+            cta={t("send.confirm.cta")}
             onPress={handleConfirmSend}
             color="primary"
           />
           <Prompt.Action
-            cta="Cancel"
+            cta={t("common.cancel")}
             onPress={() => confirmControl.close()}
+            color="secondary"
+          />
+        </Prompt.Actions>
+      </Prompt.Outer>
+
+      {/* Transaction sent prompt */}
+      <Prompt.Outer control={sentControl} onClose={handleSentDismiss}>
+        <Prompt.Content>
+          <Prompt.TitleText>{t("send.sent.title")}</Prompt.TitleText>
+          <Prompt.DescriptionText selectable>
+            {explorerUrl}
+          </Prompt.DescriptionText>
+        </Prompt.Content>
+        <Prompt.Actions>
+          <Prompt.Action
+            cta={t("send.sent.copy")}
+            onPress={handleCopyExplorerLink}
+            color="primary"
+            shouldCloseOnPress={false}
+          />
+          <Prompt.Action
+            cta={t("send.sent.share")}
+            onPress={handleShareExplorerLink}
+            color="primary_subtle"
+            shouldCloseOnPress={false}
+          />
+          <Prompt.Action
+            cta={t("common.done")}
+            onPress={handleSentDismiss}
             color="secondary"
           />
         </Prompt.Actions>
@@ -639,18 +736,19 @@ export default function SendScreen() {
       {/* Save contact prompt */}
       <Prompt.Basic
         control={saveContactControl}
-        title="Save Contact?"
+        title={t("send.saveContact.title")}
         description={
           pendingSaveAddress
-            ? `Save ${
-                pendingSaveAddress.length > 16
-                  ? `${pendingSaveAddress.slice(0, 8)}...${pendingSaveAddress.slice(-8)}`
-                  : pendingSaveAddress
-              } to contacts?`
+            ? t("send.saveContact.description", {
+                address:
+                  pendingSaveAddress.length > 16
+                    ? `${pendingSaveAddress.slice(0, 8)}...${pendingSaveAddress.slice(-8)}`
+                    : pendingSaveAddress,
+              })
             : ""
         }
-        confirmButtonCta="Save"
-        cancelButtonCta="No"
+        confirmButtonCta={t("send.saveContact.cta")}
+        cancelButtonCta={t("common.no")}
         onConfirm={() => {
           router.push("/contacts");
           setPendingSaveAddress(null);
