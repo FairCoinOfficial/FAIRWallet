@@ -348,15 +348,14 @@ export default function MapScreen() {
   // layout keeps the keyboard in sync with the focused TextInput across
   // bottom-sheet snap animations, so we can snap synchronously without
   // Android losing focus a beat later.
+  //
+  // Intentionally no `onBlur` handler: re-snapping the sheet on blur
+  // triggers another keyboard lifecycle event which blurs the TextInput
+  // again, creating a focus-blur oscillation. The user can drag the
+  // sheet back down themselves if they want.
   const handleSearchFocus = useCallback(() => {
     sheetRef.current?.snapToIndex(SHEET_INDEX_SEARCH);
   }, []);
-
-  const handleSearchBlur = useCallback(() => {
-    if (query.length === 0) {
-      sheetRef.current?.snapToIndex(SHEET_INDEX_LIST);
-    }
-  }, [query]);
 
   const handleCategoryFilter = useCallback((next: CategoryFilter) => {
     hapticSelection();
@@ -739,7 +738,6 @@ export default function MapScreen() {
             value={query}
             onChangeText={setQuery}
             onFocus={handleSearchFocus}
-            onBlur={handleSearchBlur}
             placeholder={t("map.searchPlaceholder")}
             placeholderTextColor={theme.colors.textSecondary}
             className="flex-1 ml-1 mr-2 text-base"
