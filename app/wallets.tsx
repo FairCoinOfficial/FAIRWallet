@@ -545,6 +545,7 @@ export default function WalletsScreen() {
       <ScreenHeader
         title="Wallets"
         subtitle={`${wallets.length} wallet${wallets.length !== 1 ? "s" : ""} - Tap to switch, long-press to delete`}
+        onBack={() => router.back()}
       />
       <ScrollView
         className="flex-1"

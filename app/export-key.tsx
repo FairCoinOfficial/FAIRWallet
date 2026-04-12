@@ -8,6 +8,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { View, Text, TextInput, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../src/wallet/wallet-store";
@@ -41,6 +42,7 @@ type ExportStep = "pin" | "select" | "passphrase" | "result";
 // ---------------------------------------------------------------------------
 
 export default function ExportKeyScreen() {
+  const router = useRouter();
   const addresses = useWalletStore((s) => s.addresses);
   const network = useWalletStore((s) => s.network);
   const theme = useTheme();
@@ -247,6 +249,7 @@ export default function ExportKeyScreen() {
         <ScreenHeader
           title="Select Address"
           subtitle="Choose the address whose private key you want to export"
+          onBack={() => router.back()}
         />
         <ScrollView
           className="flex-1"
@@ -286,6 +289,7 @@ export default function ExportKeyScreen() {
         <ScreenHeader
           title="Set Encryption Passphrase"
           subtitle="This passphrase will be needed to decrypt the exported key. Choose a strong passphrase and store it safely."
+          onBack={() => setStep("select")}
         />
         <ScrollView
           className="flex-1"
@@ -356,6 +360,7 @@ export default function ExportKeyScreen() {
       <ScreenHeader
         title="Encrypted Key"
         subtitle="Your BIP38 encrypted private key"
+        onBack={() => router.back()}
       />
       <ScrollView
         className="flex-1"

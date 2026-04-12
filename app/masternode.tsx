@@ -8,7 +8,7 @@
 import { useState, useCallback } from "react";
 import { View, Text, ScrollView, Modal, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import {
   Section,
@@ -65,6 +65,7 @@ function parseIpPort(input: string): { ip: string; port: number } | null {
 }
 
 export default function MasternodeScreen() {
+  const router = useRouter();
   const masternodeUTXOs = useWalletStore((s) => s.masternodeUTXOs);
   const refreshMasternodeUTXOs = useWalletStore(
     (s) => s.refreshMasternodeUTXOs,
@@ -144,7 +145,7 @@ export default function MasternodeScreen() {
       className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
     >
-      <ScreenHeader title="Masternode" />
+      <ScreenHeader title="Masternode" onBack={() => router.back()} />
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-5 pt-4 pb-8"

@@ -1,12 +1,29 @@
 /**
  * Home screen — balance, quick actions, and activity feed.
+ *
+ * Layout: Revolut-style parallax hero image header.
+ *  - Hero image is rendered absolutely behind the scroll content and translates
+ *    up at half the scroll rate. When the user pulls down past the top, the
+ *    image scales up for an "overscroll zoom" effect.
+ *  - Top bar (wallet name + sync status) is a fixed sibling overlaid on the
+ *    image with white text + shadow for readability.
+ *  - A linear gradient fades the bottom of the image into the background so the
+ *    balance and activity sit on a smooth transition.
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
+import { View, Text, RefreshControl, Pressable, Image, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+} from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import {
   BalanceDisplay,
@@ -24,6 +41,23 @@ import {
 } from "../../src/services/price";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { formatFair } from "../../src/core/format-amount";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const HERO_HEIGHT = 280;
+/** Pixels of overlap between the hero image bottom and the scroll content top. */
+const HERO_OVERLAP = 60;
+/** Maximum scale applied when overscrolling (pulling the list down). */
+const OVERSCROLL_MAX_SCALE = 1.4;
+/** Pull distance (px) at which the overscroll zoom reaches its maximum. */
+const OVERSCROLL_ZOOM_DISTANCE = 200;
+
+const TOP_BAR_TEXT_SHADOW = {
+  textShadowColor: "rgba(0,0,0,0.5)",
+  textShadowRadius: 4,
+} as const;
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -66,12 +100,64 @@ export default function HomeScreen() {
     return { dot: "bg-primary", label: "Synced" };
   }, [connectedPeers, isSyncing, syncProgress]);
 
+  // ---- Parallax: track scroll, derive translate + scale on the UI thread ----
+  const scrollY = useSharedValue(0);
+
+  const handleScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+
+  const heroAnimatedStyle = useAnimatedStyle(() => {
+    // Translate the image up at half the scroll rate. When the user pulls
+    // down past the top (negative scrollY), this same formula moves the
+    // image down to fill the exposed area.
+    const translateY = scrollY.value * -0.5;
+    // Scale up only on overscroll (negative scrollY), clamped at 1 for any
+    // positive scroll so the image never grows mid-scroll.
+    const scale = interpolate(
+      scrollY.value,
+      [-OVERSCROLL_ZOOM_DISTANCE, 0],
+      [OVERSCROLL_MAX_SCALE, 1],
+      Extrapolation.CLAMP,
+    );
+    return {
+      transform: [{ translateY }, { scale }],
+    };
+  });
+
+  // expo-linear-gradient requires an inline tuple for the colors prop.
+  const gradientColors: readonly [string, string] = ["transparent", theme.colors.background];
+
   return (
     <View className="flex-1 bg-background">
-      <ScrollView
+      {/* ---- Hero image (absolute, behind the scroll content) ---- */}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.hero, heroAnimatedStyle]}
+      >
+        <Image
+          source={require("../../assets/home-hero.jpg")}
+          style={styles.heroImage}
+          resizeMode="cover"
+          accessibilityIgnoresInvertColors
+          accessibilityRole="image"
+        />
+        <LinearGradient
+          colors={gradientColors}
+          locations={[0.4, 1]}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </Animated.View>
+
+      {/* ---- Scroll content ---- */}
+      <Animated.ScrollView
         className="flex-1"
-        contentContainerClassName="pb-6"
-        contentContainerStyle={{ paddingTop: insets.top }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{
+          paddingTop: HERO_HEIGHT - HERO_OVERLAP,
+          paddingBottom: 24,
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -81,39 +167,7 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* ---- Top bar ---- */}
-        <View className="flex-row items-center justify-between px-5 pt-3 pb-1">
-          {/* Wallet name (tappable → wallet switcher) */}
-          <Pressable
-            className="flex-row items-center active:opacity-60"
-            onPress={() => router.push("/wallets")}
-          >
-            <Text className="text-foreground text-base font-semibold">
-              {activeWalletName || "FAIRWallet"}
-            </Text>
-            <MaterialCommunityIcons
-              name="chevron-down"
-              size={18}
-              color={theme.colors.textSecondary}
-            />
-          </Pressable>
-
-          {/* Right: network badge + sync status (tappable → peers) */}
-          <View className="flex-row items-center gap-2">
-            {network === "testnet" ? (
-              <Badge text="TESTNET" variant="warning" size="sm" />
-            ) : null}
-            <Pressable
-              className="flex-row items-center active:opacity-60"
-              onPress={() => router.push("/peers")}
-            >
-              <View className={`w-1.5 h-1.5 rounded-full ${syncState.dot} mr-1`} />
-              <Text className="text-muted-foreground text-[11px]">{syncState.label}</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* ---- Balance ---- */}
+        {/* ---- Balance (sits in the gradient fade zone) ---- */}
         <View className="items-center pt-8 pb-6 px-6">
           <BalanceDisplay
             sats={balance}
@@ -123,94 +177,163 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* ---- Quick actions ---- */}
-        <View className="flex-row justify-evenly px-4 pb-6">
-          <ActionButton
-            icon="arrow-up-bold"
-            label="Send"
-            onPress={() => router.push("/(tabs)/send")}
-          />
-          <ActionButton
-            icon="arrow-down-bold"
-            label="Receive"
-            onPress={() => router.push("/(tabs)/receive")}
-          />
-          <ActionButton
-            icon="account-group"
-            label="Contacts"
-            onPress={() => router.push("/contacts")}
-          />
-          <ActionButton
-            icon="server-network"
-            label="Nodes"
-            onPress={() => router.push("/masternode")}
-          />
-        </View>
+        {/* ---- Opaque content area (covers the hero behind it) ---- */}
+        <View style={{ backgroundColor: theme.colors.background }}>
+          {/* ---- Quick actions ---- */}
+          <View className="flex-row justify-evenly px-4 pb-6">
+            <ActionButton
+              icon="arrow-up-bold"
+              label="Send"
+              onPress={() => router.push("/(tabs)/send")}
+            />
+            <ActionButton
+              icon="arrow-down-bold"
+              label="Receive"
+              onPress={() => router.push("/(tabs)/receive")}
+            />
+            <ActionButton
+              icon="account-group"
+              label="Contacts"
+              onPress={() => router.push("/contacts")}
+            />
+            <ActionButton
+              icon="server-network"
+              label="Nodes"
+              onPress={() => router.push("/masternode")}
+            />
+          </View>
 
-        {/* ---- Sync progress (only visible while syncing) ---- */}
-        {isSyncing ? (
-          <View className="mx-5 mb-4">
-            <View className="h-0.5 bg-border rounded-full overflow-hidden">
-              <View
-                className="h-full bg-primary rounded-full"
-                style={{ width: `${Math.min(100, Math.max(0, syncProgress))}%` }}
-              />
-            </View>
-            <View className="flex-row justify-between mt-1">
-              <Text className="text-muted-foreground text-[10px]">
-                {connectedPeers} {connectedPeers === 1 ? "peer" : "peers"}
-              </Text>
-              {chainHeight > 0 ? (
+          {/* ---- Sync progress (only visible while syncing) ---- */}
+          {isSyncing ? (
+            <View className="mx-5 mb-4">
+              <View className="h-0.5 bg-border rounded-full overflow-hidden">
+                <View
+                  className="h-full bg-primary rounded-full"
+                  style={{ width: `${Math.min(100, Math.max(0, syncProgress))}%` }}
+                />
+              </View>
+              <View className="flex-row justify-between mt-1">
                 <Text className="text-muted-foreground text-[10px]">
-                  Block {chainHeight.toLocaleString()}
+                  {connectedPeers} {connectedPeers === 1 ? "peer" : "peers"}
+                </Text>
+                {chainHeight > 0 ? (
+                  <Text className="text-muted-foreground text-[10px]">
+                    Block {chainHeight.toLocaleString()}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+
+          {/* ---- Activity ---- */}
+          <View className="px-5">
+            <Divider className="mb-5" />
+
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-foreground text-lg font-semibold">Activity</Text>
+              {transactions.length > 0 ? (
+                <Text className="text-muted-foreground text-xs">
+                  {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
                 </Text>
               ) : null}
             </View>
+
+            {recentTransactions.length === 0 ? (
+              <EmptyState
+                icon="swap-vertical"
+                title="No activity yet"
+                subtitle="Your transactions will appear here"
+              />
+            ) : (
+              <View className="bg-surface rounded-2xl overflow-hidden">
+                {recentTransactions.map((tx, idx) => (
+                  <View key={tx.txid}>
+                    <TransactionItem
+                      txid={tx.txid}
+                      type={tx.type}
+                      amount={formatFair(
+                        tx.amount < 0n ? -tx.amount : tx.amount,
+                      )}
+                      address={tx.address}
+                      timestamp={tx.timestamp}
+                      confirmations={tx.confirmations}
+                    />
+                    {idx < recentTransactions.length - 1 ? (
+                      <View className="h-px bg-border ml-16" />
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
-        ) : null}
-
-        {/* ---- Activity ---- */}
-        <View className="px-5">
-          <Divider className="mb-5" />
-
-          <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-foreground text-lg font-semibold">Activity</Text>
-            {transactions.length > 0 ? (
-              <Text className="text-muted-foreground text-xs">
-                {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
-              </Text>
-            ) : null}
-          </View>
-
-          {recentTransactions.length === 0 ? (
-            <EmptyState
-              icon="swap-vertical"
-              title="No activity yet"
-              subtitle="Your transactions will appear here"
-            />
-          ) : (
-            <View className="bg-surface rounded-2xl overflow-hidden">
-              {recentTransactions.map((tx, idx) => (
-                <View key={tx.txid}>
-                  <TransactionItem
-                    txid={tx.txid}
-                    type={tx.type}
-                    amount={formatFair(
-                      tx.amount < 0n ? -tx.amount : tx.amount,
-                    )}
-                    address={tx.address}
-                    timestamp={tx.timestamp}
-                    confirmations={tx.confirmations}
-                  />
-                  {idx < recentTransactions.length - 1 ? (
-                    <View className="h-px bg-border ml-16" />
-                  ) : null}
-                </View>
-              ))}
-            </View>
-          )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* ---- Top bar (fixed, overlaid on the hero) ---- */}
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          paddingTop: insets.top,
+          zIndex: 2,
+        }}
+        className="px-5 pt-3 pb-3 flex-row items-center justify-between"
+      >
+        {/* Wallet name (tappable → wallet switcher) */}
+        <Pressable
+          className="flex-row items-center active:opacity-60"
+          onPress={() => router.push("/wallets")}
+          accessibilityRole="button"
+          accessibilityLabel="Switch wallet"
+        >
+          <Text
+            className="text-white text-base font-semibold"
+            style={TOP_BAR_TEXT_SHADOW}
+          >
+            {activeWalletName || "FAIRWallet"}
+          </Text>
+          <MaterialCommunityIcons name="chevron-down" size={18} color="#ffffff" />
+        </Pressable>
+
+        {/* Right: network badge + sync status (tappable → peers) */}
+        <View className="flex-row items-center gap-2">
+          {network === "testnet" ? (
+            <Badge text="TESTNET" variant="warning" size="sm" />
+          ) : null}
+          <Pressable
+            className="flex-row items-center active:opacity-60"
+            onPress={() => router.push("/peers")}
+            accessibilityRole="button"
+            accessibilityLabel={`Sync status: ${syncState.label}`}
+          >
+            <View className={`w-1.5 h-1.5 rounded-full ${syncState.dot} mr-1`} />
+            <Text className="text-white text-[11px]" style={TOP_BAR_TEXT_SHADOW}>
+              {syncState.label}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Static styles (only for values that can't be expressed as NativeWind classes)
+// ---------------------------------------------------------------------------
+
+const styles = StyleSheet.create({
+  hero: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HERO_HEIGHT,
+    zIndex: 0,
+  },
+  heroImage: {
+    width: "100%",
+    height: "100%",
+  },
+});

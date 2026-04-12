@@ -167,6 +167,7 @@ export default function CoinControlScreen() {
       <ScreenHeader
         title="Coin Control"
         subtitle={`${utxos.length} UTXO${utxos.length !== 1 ? "s" : ""} available`}
+        onBack={() => router.back()}
       />
       <ScrollView className="flex-1" contentContainerClassName="px-5 pb-4">
         {/* Selection actions */}
