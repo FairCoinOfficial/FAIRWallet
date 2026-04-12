@@ -198,7 +198,7 @@ function AppContent() {
         <Stack.Screen name="contacts" options={{ title: "Contacts", presentation: "modal" }} />
         <Stack.Screen name="export-key" options={{ title: "Export Key", presentation: "modal" }} />
         <Stack.Screen name="coin-control" options={{ title: "Coin Control", presentation: "modal" }} />
-        <Stack.Screen name="peers" options={{ title: "Network Peers", presentation: "modal" }} />
+        <Stack.Screen name="peers" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="transaction/[txid]" options={{ title: "Transaction" }} />
       </Stack>
     </View>

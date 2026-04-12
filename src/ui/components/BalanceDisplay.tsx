@@ -126,7 +126,7 @@ export function BalanceDisplay({
       <View className="items-center">
         {/* Primary: $X,XXX.XX */}
         <View className="flex-row items-baseline">
-          <Text className={`text-muted-foreground ${symbolClass} font-light mr-0.5`}>
+          <Text className={`text-foreground ${symbolClass} font-light mr-0.5`}>
             $
           </Text>
           <Text className={`text-foreground ${primaryClass} font-bold tracking-tight`}>
@@ -154,7 +154,7 @@ export function BalanceDisplay({
     <View className="items-center">
       {/* Primary: ⊜ X,XXX.XX */}
       <View className="flex-row items-baseline">
-        <Text className={`text-primary ${symbolClass} font-light mr-1`}>
+        <Text className={`text-foreground ${symbolClass} font-light mr-1`}>
           {FAIR_SYMBOL}
         </Text>
         <Text className={`text-foreground ${primaryClass} font-bold tracking-tight`}>
