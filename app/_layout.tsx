@@ -136,7 +136,10 @@ export default function RootLayout() {
   useAutoLock();
 
   const [fontsLoaded] = useFonts({
-    Phudu: require("../assets/fonts/Phudu.ttf"),
+    "Phudu-Light": require("../assets/fonts/Phudu-Light.ttf"),
+    "Phudu-Regular": require("../assets/fonts/Phudu-Regular.ttf"),
+    "Phudu-Bold": require("../assets/fonts/Phudu-Bold.ttf"),
+    "Phudu-Black": require("../assets/fonts/Phudu-Black.ttf"),
   });
 
   const [mode, setMode] = useState<ThemeMode>("dark");

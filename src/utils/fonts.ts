@@ -2,11 +2,12 @@
  * Font constants for FAIRWallet.
  *
  * Phudu is used for titles, balances, and numbers.
- * System font is used for body text.
+ * Loaded as static instances (Light/Regular/Bold/Black) for Android compatibility.
  */
 
-/** Font family name for Phudu (must match the key used in useFonts) */
-export const FONT_PHUDU = "Phudu";
+export const FONT_PHUDU_LIGHT = "Phudu-Light";
+export const FONT_PHUDU = "Phudu-Regular";
+export const FONT_PHUDU_BOLD = "Phudu-Bold";
+export const FONT_PHUDU_BLACK = "Phudu-Black";
 
-/** Font family for body/UI text */
 export const FONT_BODY = "System";

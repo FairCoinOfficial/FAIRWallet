@@ -9,7 +9,7 @@ import { useMemo } from "react";
 import { View, Text } from "react-native";
 import { Badge } from "./Badge";
 import { formatFairAmount, formatFiatAmount } from "../../i18n";
-import { FONT_PHUDU } from "../../utils/fonts";
+import { FONT_PHUDU_LIGHT, FONT_PHUDU_BLACK } from "../../utils/fonts";
 
 const SATS_PER_FAIR = 100_000_000n;
 const FAIR_SYMBOL = "\u229C"; // ⊜
@@ -90,14 +90,14 @@ export function BalanceDisplay({
       <View className="items-center">
         <Text
           className="text-foreground tracking-tight"
-          style={{ fontFamily: FONT_PHUDU, fontSize: primary, fontWeight: "900" }}
+          style={{ fontFamily: FONT_PHUDU_BLACK, fontSize: primary }}
         >
           {usdFormatted}
         </Text>
 
         <Text
           className="text-muted-foreground mt-1"
-          style={{ fontFamily: FONT_PHUDU, fontSize: secondary }}
+          style={{ fontFamily: FONT_PHUDU_LIGHT, fontSize: secondary }}
         >
           {FAIR_SYMBOL} {fairFormatted}
         </Text>
@@ -117,13 +117,13 @@ export function BalanceDisplay({
       <View className="flex-row items-baseline">
         <Text
           className="text-foreground mr-1"
-          style={{ fontFamily: FONT_PHUDU, fontSize: symbol, fontWeight: "300" }}
+          style={{ fontFamily: FONT_PHUDU_LIGHT, fontSize: symbol }}
         >
           {FAIR_SYMBOL}
         </Text>
         <Text
           className="text-foreground tracking-tight"
-          style={{ fontFamily: FONT_PHUDU, fontSize: primary, fontWeight: "900" }}
+          style={{ fontFamily: FONT_PHUDU_BLACK, fontSize: primary }}
         >
           {fairFormatted}
         </Text>
