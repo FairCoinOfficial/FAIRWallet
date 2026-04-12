@@ -34,7 +34,6 @@ import { useWalletStore } from "../src/wallet/wallet-store";
 import { getAutoLockTimeout } from "../src/storage/secure-store";
 import { initLanguage } from "../src/i18n";
 import { getItemAsync, setItemAsync } from "../src/storage/kv-store";
-import { OfflineBanner } from "../src/ui/components/OfflineBanner";
 
 // Module-level initialization (runs once before any component mounts)
 initLanguage();
@@ -139,7 +138,6 @@ export default function RootLayout() {
   const [mode, setMode] = useState<ThemeMode>("dark");
   const [themeReady, setThemeReady] = useState(false);
 
-  // Hydrate persisted theme mode once
   const hydrated = useRef(false);
   if (!hydrated.current) {
     hydrated.current = true;
@@ -156,9 +154,6 @@ export default function RootLayout() {
     setItemAsync(THEME_MODE_KEY, next);
   }, []);
 
-  // Keep splash screen until both fonts and theme are loaded
-  if (!fontsLoaded || !themeReady) return null;
-
   return (
     <SafeAreaProvider>
       <BloomThemeProvider
@@ -166,19 +161,19 @@ export default function RootLayout() {
         colorPreset="faircoin"
         onModeChange={handleModeChange}
       >
-        <AppContent />
+        <AppContent ready={fontsLoaded && themeReady} />
       </BloomThemeProvider>
     </SafeAreaProvider>
   );
 }
 
-function AppContent() {
+function AppContent({ ready }: { ready: boolean }) {
   const { theme } = useBloomTheme();
   const themeVars = useThemeVars();
 
-  // Hide splash screen on first render of themed content
+  // Hide splash screen once fonts and theme are loaded
   const splashHidden = useRef(false);
-  if (!splashHidden.current) {
+  if (ready && !splashHidden.current) {
     splashHidden.current = true;
     SplashScreen.hideAsync();
   }
@@ -186,7 +181,6 @@ function AppContent() {
   return (
     <View style={[{ flex: 1 }, themeVars]}>
       <StatusBar style={theme.isDark ? "light" : "dark"} />
-      <OfflineBanner />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.colors.background },

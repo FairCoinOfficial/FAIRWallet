@@ -36,7 +36,6 @@ import { ContactPicker } from "../../src/ui/components/ContactPicker";
 import { getCachedPrice } from "../../src/services/price";
 import type { RecentRecipientRow } from "../../src/storage/database";
 import { useTheme } from "@oxyhq/bloom/theme";
-import { useNetworkStatus } from "../../src/hooks/useNetworkStatus";
 import { hapticSuccess, hapticError } from "../../src/utils/haptics";
 
 const FEE_LEVELS: FeeLevel[] = ["low", "medium", "high"];
@@ -90,7 +89,6 @@ export default function SendScreen() {
   const isWatchOnly = useWalletStore((s) => s.isWatchOnly);
   const getContactByAddress = useContactsStore((s) => s.getContactByAddress);
   const theme = useTheme();
-  const { isInternetReachable } = useNetworkStatus();
 
   // Watch-only wallets cannot send transactions
   if (isWatchOnly) {
@@ -157,8 +155,7 @@ export default function SendScreen() {
     toAddress.length >= 25 &&
     amountSatsForCanSend !== null &&
     amountSatsForCanSend > 0n &&
-    validationError === null &&
-    isInternetReachable;
+    validationError === null;
 
   const usdEquivalent = useMemo(() => {
     const price = getCachedPrice();
@@ -478,13 +475,6 @@ export default function SendScreen() {
               {success}
             </Text>
           </Card>
-        ) : null}
-
-        {/* Offline warning */}
-        {!isInternetReachable ? (
-          <Text className="text-destructive text-xs text-center px-4">
-            You're offline. Transactions require an internet connection.
-          </Text>
         ) : null}
 
         {/* Send button */}
