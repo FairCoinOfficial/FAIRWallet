@@ -344,15 +344,12 @@ export default function MapScreen() {
   const [userLocation, setUserLocation] = useState<UserCoords | null>(null);
 
   // Tapping the search field expands the sheet to its top snap so the
-  // filtered list fills the screen. We defer the snap one frame via
-  // `requestAnimationFrame` — snapping synchronously inside the
-  // `onFocus` handler fights with React Native's own focus bookkeeping
-  // on Android and the TextInput loses focus a beat later. Queuing the
-  // snap for the next frame lets focus settle first.
+  // filtered list fills the screen. `KeyboardProvider` at the root
+  // layout keeps the keyboard in sync with the focused TextInput across
+  // bottom-sheet snap animations, so we can snap synchronously without
+  // Android losing focus a beat later.
   const handleSearchFocus = useCallback(() => {
-    requestAnimationFrame(() => {
-      sheetRef.current?.snapToIndex(SHEET_INDEX_SEARCH);
-    });
+    sheetRef.current?.snapToIndex(SHEET_INDEX_SEARCH);
   }, []);
 
   const handleSearchBlur = useCallback(() => {
