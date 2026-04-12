@@ -1,13 +1,14 @@
 /**
  * Root layout for FAIRWallet.
  *
- * Responsibilities:
- * - Crypto polyfill (before any crypto imports)
- * - Theme: BloomThemeProvider + NativeWind CSS variable injection
- * - Navigation: Stack router with themed headers
- * - Deep link handler for faircoin: URIs
- * - Auto-lock timer
- * - i18n initialization
+ * Theme loading strategy (same pattern as Alia):
+ * 1. SplashScreen.preventAutoHideAsync() at module level
+ * 2. Load persisted theme mode from async storage
+ * 3. Mount BloomThemeProvider with correct mode (applies native color scheme
+ *    synchronously during render via Bloom 0.1.31)
+ * 4. Hide splash screen once ready
+ *
+ * This ensures no flash of wrong colors on native UI chrome.
  */
 
 import "../src/crypto-polyfill";
@@ -17,6 +18,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { AppState, type AppStateStatus, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import { vars } from "nativewind";
 import * as Linking from "expo-linking";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -32,12 +34,14 @@ import { getAutoLockTimeout } from "../src/storage/secure-store";
 import { initLanguage } from "../src/i18n";
 import { getItemAsync, setItemAsync } from "../src/storage/kv-store";
 
+// Module-level initialization (runs once before any component mounts)
 initLanguage();
+SplashScreen.preventAutoHideAsync();
 
 const THEME_MODE_KEY = "fairwallet_theme_mode";
 
 // ---------------------------------------------------------------------------
-// Deep link handler
+// Hooks
 // ---------------------------------------------------------------------------
 
 function useDeepLinkHandler() {
@@ -46,9 +50,8 @@ function useDeepLinkHandler() {
 
   const handleDeepLink = useCallback(
     (event: { url: string }) => {
-      const { url } = event;
-      if (!url || !initialized) return;
-      const parsed = parseFairCoinURI(url);
+      if (!event.url || !initialized) return;
+      const parsed = parseFairCoinURI(event.url);
       if (parsed) {
         router.push({
           pathname: "/(tabs)/send",
@@ -59,86 +62,60 @@ function useDeepLinkHandler() {
     [router, initialized],
   );
 
-  const linkSubscriptionRef = useRef<ReturnType<
-    typeof Linking.addEventListener
-  > | null>(null);
-  if (linkSubscriptionRef.current === null) {
-    linkSubscriptionRef.current = Linking.addEventListener(
-      "url",
-      handleDeepLink,
-    );
-  }
-
-  const initialURLChecked = useRef(false);
-  if (!initialURLChecked.current) {
-    initialURLChecked.current = true;
+  const subscribed = useRef(false);
+  if (!subscribed.current) {
+    subscribed.current = true;
+    Linking.addEventListener("url", handleDeepLink);
     Linking.getInitialURL().then((url) => {
       if (url) handleDeepLink({ url });
     });
   }
 }
 
-// ---------------------------------------------------------------------------
-// Auto-lock
-// ---------------------------------------------------------------------------
-
 function useAutoLock() {
   const router = useRouter();
   const initialized = useWalletStore((s) => s.initialized);
-  const backgroundTimestamp = useRef<number | null>(null);
+  const backgroundTime = useRef<number | null>(null);
 
-  const handleAppStateChange = useCallback(
-    (nextState: AppStateStatus) => {
+  const handleStateChange = useCallback(
+    (state: AppStateStatus) => {
       if (!initialized) return;
-      if (nextState === "background" || nextState === "inactive") {
-        backgroundTimestamp.current = Date.now();
-      } else if (
-        nextState === "active" &&
-        backgroundTimestamp.current !== null
-      ) {
-        const elapsed = Date.now() - backgroundTimestamp.current;
-        backgroundTimestamp.current = null;
-        getAutoLockTimeout().then((minutes) => {
-          if (elapsed > minutes * 60 * 1000) {
-            router.replace("/lock");
-          }
+      if (state === "background" || state === "inactive") {
+        backgroundTime.current = Date.now();
+      } else if (state === "active" && backgroundTime.current !== null) {
+        const elapsed = Date.now() - backgroundTime.current;
+        backgroundTime.current = null;
+        getAutoLockTimeout().then((min) => {
+          if (elapsed > min * 60_000) router.replace("/lock");
         });
       }
     },
     [initialized, router],
   );
 
-  const subscriptionRef = useRef<ReturnType<
-    typeof AppState.addEventListener
-  > | null>(null);
-  if (subscriptionRef.current === null) {
-    subscriptionRef.current = AppState.addEventListener(
-      "change",
-      handleAppStateChange,
-    );
+  const attached = useRef(false);
+  if (!attached.current) {
+    attached.current = true;
+    AppState.addEventListener("change", handleStateChange);
   }
 }
 
-// ---------------------------------------------------------------------------
-// NativeWind CSS variable bridge
-//
-// Bloom provides theme colors via React context (useTheme().colors).
-// Tailwind classes (bg-background, text-primary, etc.) need CSS custom
-// properties to resolve. This hook reads the active Bloom preset's raw
-// HSL tokens and injects them as NativeWind vars() on the root View.
-// ---------------------------------------------------------------------------
-
-function useBloomCSSVars() {
+/**
+ * Bridges Bloom preset CSS tokens into NativeWind vars().
+ * This makes Tailwind classes (bg-background, text-primary, etc.)
+ * resolve to the active Bloom theme colors.
+ */
+function useThemeVars() {
   const { theme, colorPreset } = useBloomTheme();
-  const preset = APP_COLOR_PRESETS[colorPreset];
-  const tokens = theme.isDark ? preset.dark : preset.light;
+  const tokens = theme.isDark
+    ? APP_COLOR_PRESETS[colorPreset].dark
+    : APP_COLOR_PRESETS[colorPreset].light;
 
   return useMemo(() => {
     const entries: Record<`--${string}`, string> = {};
     for (const [key, value] of Object.entries(tokens)) {
       entries[key as `--${string}`] = value;
     }
-    // Add success/warning which aren't in Bloom presets
     entries["--success"] = tokens["--primary"] ?? "92 96% 65%";
     entries["--warning"] = "45 93% 47%";
     return vars(entries);
@@ -153,36 +130,28 @@ export default function RootLayout() {
   useDeepLinkHandler();
   useAutoLock();
 
-  const [mode, setMode] = useState<ThemeMode | null>(null);
+  const [mode, setMode] = useState<ThemeMode>("dark");
+  const [ready, setReady] = useState(false);
 
+  // Hydrate persisted theme mode once, then reveal the app
   const hydrated = useRef(false);
   if (!hydrated.current) {
     hydrated.current = true;
-    getItemAsync(THEME_MODE_KEY).then((storedMode) => {
-      if (
-        storedMode === "light" ||
-        storedMode === "dark" ||
-        storedMode === "system"
-      ) {
-        setMode(storedMode);
-      } else {
-        setMode("dark");
+    getItemAsync(THEME_MODE_KEY).then((stored) => {
+      if (stored === "light" || stored === "dark" || stored === "system") {
+        setMode(stored);
       }
+      setReady(true);
     });
   }
 
-  const handleModeChange = useCallback((newMode: ThemeMode) => {
-    setMode(newMode);
-    setItemAsync(THEME_MODE_KEY, newMode);
+  const handleModeChange = useCallback((next: ThemeMode) => {
+    setMode(next);
+    setItemAsync(THEME_MODE_KEY, next);
   }, []);
 
-  // Don't render until the stored theme mode is loaded.
-  // This prevents a flash of wrong colors on the native bottom bar.
-  if (mode === null) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "hsl(69, 54%, 8%)" }} />
-    );
-  }
+  // Keep splash screen visible until theme is loaded
+  if (!ready) return null;
 
   return (
     <SafeAreaProvider>
@@ -191,18 +160,25 @@ export default function RootLayout() {
         colorPreset="faircoin"
         onModeChange={handleModeChange}
       >
-        <RootContent />
+        <AppContent />
       </BloomThemeProvider>
     </SafeAreaProvider>
   );
 }
 
-function RootContent() {
+function AppContent() {
   const { theme } = useBloomTheme();
-  const cssVars = useBloomCSSVars();
+  const themeVars = useThemeVars();
+
+  // Hide splash screen on first render of themed content
+  const splashHidden = useRef(false);
+  if (!splashHidden.current) {
+    splashHidden.current = true;
+    SplashScreen.hideAsync();
+  }
 
   return (
-    <View style={[{ flex: 1 }, cssVars]}>
+    <View style={[{ flex: 1 }, themeVars]}>
       <StatusBar style={theme.isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
@@ -213,50 +189,17 @@ function RootContent() {
           animation: "slide_from_right",
         }}
       >
-        <Stack.Screen
-          name="index"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="onboarding"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="lock"
-          options={{ headerShown: false, gestureEnabled: false }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="masternode"
-          options={{ title: "Masternode", presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="wallets"
-          options={{ title: "Wallets", presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="contacts"
-          options={{ title: "Contacts", presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="export-key"
-          options={{ title: "Export Key", presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="coin-control"
-          options={{ title: "Coin Control", presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="peers"
-          options={{ title: "Network Peers", presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="transaction/[txid]"
-          options={{ title: "Transaction" }}
-        />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="lock" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="masternode" options={{ title: "Masternode", presentation: "modal" }} />
+        <Stack.Screen name="wallets" options={{ title: "Wallets", presentation: "modal" }} />
+        <Stack.Screen name="contacts" options={{ title: "Contacts", presentation: "modal" }} />
+        <Stack.Screen name="export-key" options={{ title: "Export Key", presentation: "modal" }} />
+        <Stack.Screen name="coin-control" options={{ title: "Coin Control", presentation: "modal" }} />
+        <Stack.Screen name="peers" options={{ title: "Network Peers", presentation: "modal" }} />
+        <Stack.Screen name="transaction/[txid]" options={{ title: "Transaction" }} />
       </Stack>
     </View>
   );
