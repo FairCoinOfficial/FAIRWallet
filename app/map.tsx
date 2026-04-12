@@ -133,10 +133,13 @@ const MARKER_HITBOX = { width: 50, height: 50 } as const;
 
 // Snap points for the sheet. Index 0 = 15% peek (mostly map). Index 1 =
 // 62% mid — the Google-Maps-style "selected place" height where the hero
-// image, facts, and action row are visible without forcing the sheet to
-// fill the whole screen. Index 2 = 92% expanded (list fills the viewport
-// up to the search pill — `topInset` caps it so the pill stays visible).
-const SHEET_SNAP_POINTS: Array<string | number> = ["15%", "62%", "92%"];
+// image, facts, and action row are visible. Index 2 = 100% — the sheet
+// fills the screen all the way up behind the notch, sliding under the
+// floating search pill. At that snap the list content gains a top
+// padding equal to the pill height + safe area so rows never render
+// underneath the pill. Magnetic snapping pulls a flick past mid straight
+// to the top.
+const SHEET_SNAP_POINTS: Array<string | number> = ["15%", "62%", "100%"];
 // Detail mode and list mode both use the mid snap so the camera padding
 // stays consistent — the only difference is the rendered children.
 const SHEET_INDEX_DETAIL = 1;
@@ -341,13 +344,15 @@ export default function MapScreen() {
   const [userLocation, setUserLocation] = useState<UserCoords | null>(null);
 
   // Tapping the search field expands the sheet to its top snap so the
-  // filtered list fills the screen. On blur with an empty query we snap
-  // back to mid so the map is visible again. The search pill is always
-  // visible on top of the sheet; at the expanded snap the list gains a
-  // top padding via `listContentContainerStyle` so rows aren't hidden
-  // behind the pill.
+  // filtered list fills the screen. We defer the snap one frame via
+  // `requestAnimationFrame` — snapping synchronously inside the
+  // `onFocus` handler fights with React Native's own focus bookkeeping
+  // on Android and the TextInput loses focus a beat later. Queuing the
+  // snap for the next frame lets focus settle first.
   const handleSearchFocus = useCallback(() => {
-    sheetRef.current?.snapToIndex(SHEET_INDEX_SEARCH);
+    requestAnimationFrame(() => {
+      sheetRef.current?.snapToIndex(SHEET_INDEX_SEARCH);
+    });
   }, []);
 
   const handleSearchBlur = useCallback(() => {
@@ -636,6 +641,20 @@ export default function MapScreen() {
     [insets.top],
   );
 
+  // When the sheet reaches its fully-expanded snap, swap the pill's drop
+  // shadow for a hairline border. A shadow against the sheet (which is now
+  // flush with the pill) reads as grime; a border separates the pill from
+  // the sheet cleanly.
+  const pillSurfaceStyle = useMemo(() => {
+    if (sheetIndex >= SHEET_INDEX_SEARCH) {
+      return {
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.colors.border,
+      };
+    }
+    return styles.floatingBar;
+  }, [sheetIndex, theme.colors.border]);
+
   const renderPlaceRow = useCallback(
     ({ item }: { item: { place: Place; km: number | null } }) => (
       <PlaceRow
@@ -702,12 +721,12 @@ export default function MapScreen() {
 
       <View pointerEvents="box-none" style={searchPillBaseStyle}>
         <View
-          className="flex-row items-center bg-background rounded-full pl-2 pr-3 h-14"
-          style={styles.floatingBar}
+          className="flex-row items-center bg-surface rounded-full pl-2 pr-3 h-14"
+          style={pillSurfaceStyle}
         >
           <Pressable
             onPress={() => router.back()}
-            className="w-11 h-11 items-center justify-center rounded-full active:bg-surface"
+            className="w-11 h-11 items-center justify-center rounded-full active:opacity-70"
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}
             hitSlop={8}
@@ -736,7 +755,7 @@ export default function MapScreen() {
           {query.length > 0 ? (
             <Pressable
               onPress={() => setQuery("")}
-              className="w-8 h-8 items-center justify-center rounded-full active:bg-surface"
+              className="w-8 h-8 items-center justify-center rounded-full active:opacity-70"
               accessibilityRole="button"
               accessibilityLabel={t("common.clear")}
               hitSlop={6}
@@ -760,7 +779,7 @@ export default function MapScreen() {
       <View pointerEvents="box-none" style={styles.fabContainer}>
         <Pressable
           onPress={handleLocateMe}
-          className="w-12 h-12 rounded-full bg-background items-center justify-center active:opacity-80"
+          className="w-12 h-12 rounded-full bg-surface items-center justify-center active:opacity-80"
           style={styles.fab}
           accessibilityRole="button"
           accessibilityLabel={t("map.locateMe.accessibility")}
@@ -778,6 +797,10 @@ export default function MapScreen() {
         snapPoints={SHEET_SNAP_POINTS}
         index={1}
         enablePanDownToClose={false}
+        enableDynamicSizing={false}
+        keyboardBehavior="extend"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
         onChange={handleSheetChange}
         animatedIndex={sheetAnimatedIndex}
         backgroundStyle={sheetBackgroundStyle}
@@ -790,38 +813,39 @@ export default function MapScreen() {
             onClose={handleCloseDetail}
           />
         ) : (
-          <View className="flex-1">
-            {/* Sticky top block (spacer grows with the drag, then title,
-                then filter chips). Renders outside the FlashList so it
-                stays pinned while the list scrolls beneath it. */}
-            <Animated.View style={headerSpacerStyle} />
-            <View className="px-5 pt-4 pb-2">
-              <Text className="text-foreground text-lg font-semibold">
-                {t("map.nearYou")}
-              </Text>
-              <Text className="text-muted-foreground text-xs mt-0.5">
-                {filteredPlaces.length}{" "}
-                {filteredPlaces.length === 1
-                  ? t("map.resultOne")
-                  : t("map.resultOther")}
-              </Text>
-            </View>
-            <CategoryFilterRow
-              value={categoryFilter}
-              onChange={handleCategoryFilter}
-            />
+          <>
             <FlashList
               renderScrollComponent={BottomSheetFlashListScrollable}
               data={placesWithDistance}
               keyExtractor={(item) => item.place.id}
               contentContainerStyle={listContentContainerStyle}
+              ListHeaderComponent={
+                <View>
+                  <Animated.View style={headerSpacerStyle} />
+                  <View className="px-5 pt-4 pb-2">
+                    <Text className="text-foreground text-lg font-semibold">
+                      {t("map.nearYou")}
+                    </Text>
+                    <Text className="text-muted-foreground text-xs mt-0.5">
+                      {filteredPlaces.length}{" "}
+                      {filteredPlaces.length === 1
+                        ? t("map.resultOne")
+                        : t("map.resultOther")}
+                    </Text>
+                  </View>
+                  <CategoryFilterRow
+                    value={categoryFilter}
+                    onChange={handleCategoryFilter}
+                  />
+                </View>
+              }
               ListEmptyComponent={
                 <EmptyState icon="map-marker-off" title={t("map.noResults")} />
               }
               renderItem={renderPlaceRow}
             />
             <FloatingHandle />
-          </View>
+          </>
         )}
       </BottomSheet>
 
@@ -846,8 +870,8 @@ export default function MapScreen() {
 
 // ---------------------------------------------------------------------------
 // CategoryFilterRow — horizontal scrollable chip row that filters the list
-// by PlaceCategory. Rendered inside the FlashList header so it scrolls with
-// the content.
+// by PlaceCategory. Rendered as a sibling of the FlashList (not inside it)
+// so it stays sticky at the top of the sheet while the list scrolls under.
 // ---------------------------------------------------------------------------
 
 interface CategoryFilterRowProps {
