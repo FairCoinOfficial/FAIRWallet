@@ -1,6 +1,6 @@
 /**
  * Tab layout for Android and iOS using native system tab bar.
- * Colors come from Bloom's theme context.
+ * Background, tint, and icon colors all come from Bloom's theme.
  */
 
 import { ThemeProvider } from "@react-navigation/native";
@@ -34,8 +34,21 @@ export default function TabLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
-      <NativeTabs tintColor={theme.colors.tint}>
-        <NativeTabs.Trigger name="index">
+      <NativeTabs
+        backgroundColor={theme.colors.card}
+        tintColor={theme.colors.tint}
+        iconColor={{
+          default: theme.colors.icon,
+          selected: theme.colors.tint,
+        }}
+        labelStyle={{
+          color: theme.colors.textSecondary,
+        }}
+      >
+        <NativeTabs.Trigger
+          name="index"
+          contentStyle={{ backgroundColor: theme.colors.background }}
+        >
           <NativeTabs.Trigger.Icon
             sf={{ default: "creditcard", selected: "creditcard.fill" }}
             md="wallet"
@@ -43,29 +56,32 @@ export default function TabLayout() {
           <NativeTabs.Trigger.Label>Wallet</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
 
-        <NativeTabs.Trigger name="send">
+        <NativeTabs.Trigger
+          name="send"
+          contentStyle={{ backgroundColor: theme.colors.background }}
+        >
           <NativeTabs.Trigger.Icon
-            sf={{
-              default: "arrow.up.circle",
-              selected: "arrow.up.circle.fill",
-            }}
+            sf={{ default: "arrow.up.circle", selected: "arrow.up.circle.fill" }}
             md="arrow_upward"
           />
           <NativeTabs.Trigger.Label>Send</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
 
-        <NativeTabs.Trigger name="receive">
+        <NativeTabs.Trigger
+          name="receive"
+          contentStyle={{ backgroundColor: theme.colors.background }}
+        >
           <NativeTabs.Trigger.Icon
-            sf={{
-              default: "arrow.down.circle",
-              selected: "arrow.down.circle.fill",
-            }}
+            sf={{ default: "arrow.down.circle", selected: "arrow.down.circle.fill" }}
             md="arrow_downward"
           />
           <NativeTabs.Trigger.Label>Receive</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
 
-        <NativeTabs.Trigger name="settings">
+        <NativeTabs.Trigger
+          name="settings"
+          contentStyle={{ backgroundColor: theme.colors.background }}
+        >
           <NativeTabs.Trigger.Icon
             sf={{ default: "gearshape", selected: "gearshape.fill" }}
             md="settings"
