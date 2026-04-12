@@ -36,6 +36,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isAvailable: () => ipcRenderer.invoke('secure:isAvailable'),
   },
 
+  // Deep link delivery from the main process. The main process listens
+  // for `faircoin://` URIs (via `open-url` on macOS, argv / second-instance
+  // on Windows / Linux) and forwards them here.
+  deepLink: {
+    onLink: (callback) => {
+      const handler = (_event, url) => callback(url);
+      ipcRenderer.on('deep-link', handler);
+      return () => ipcRenderer.removeListener('deep-link', handler);
+    },
+  },
+
   // Platform identification
   platform: {
     isElectron: true,

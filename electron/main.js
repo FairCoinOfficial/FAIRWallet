@@ -1,15 +1,35 @@
-const { app, BrowserWindow, Menu, ipcMain, safeStorage, protocol, shell, dialog } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, safeStorage, protocol, shell, nativeTheme } = require('electron');
 const path = require('path');
 const net = require('net');
 const dns = require('dns');
 const fs = require('fs');
-const { pathToFileURL } = require('url');
 
-// Register the app:// scheme as a standard, secure origin BEFORE the app is
-// ready. Without this, Chromium treats app:// as an opaque path scheme (like
-// data: / javascript:) and `new URL(relative, 'app://local/index.html')`
-// throws "Invalid base URL" — which breaks expo-router and React Native for
-// Web asset resolution.
+const APP_NAME = 'FAIRWallet';
+const APP_ID = 'in.fairco.wallet';
+const APP_URL = 'https://fairco.in';
+const ICON_PATH = path.join(__dirname, '..', 'assets', 'icon.png');
+const BRAND_BACKGROUND = '#1b1e09';
+const DEEP_LINK_SCHEME = 'faircoin';
+
+// Identify the app to the OS (Windows taskbar grouping, GNOME "recent apps",
+// macOS dock) as FAIRWallet instead of the generic "Electron" default.
+app.setName(APP_NAME);
+if (process.platform === 'win32') {
+  app.setAppUserModelId(APP_ID);
+}
+app.setAboutPanelOptions({
+  applicationName: APP_NAME,
+  applicationVersion: app.getVersion(),
+  copyright: 'Lightweight SPV wallet for FairCoin',
+  website: APP_URL,
+  iconPath: ICON_PATH,
+});
+
+// Register the `fairwallet://` scheme as a standard, secure origin BEFORE
+// the app is ready. Without this, Chromium treats it as opaque (like data:
+// or javascript:) and `new URL(relative, 'fairwallet://local/index.html')`
+// throws "Invalid base URL" — breaking expo-router and RN-for-Web asset
+// resolution.
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'fairwallet',
@@ -22,6 +42,27 @@ protocol.registerSchemesAsPrivileged([
     },
   },
 ]);
+
+// Register the app as the default handler for `faircoin://` URIs so the OS
+// routes BIP21-style deep links back to the wallet.
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME, process.execPath, [
+      path.resolve(process.argv[1]),
+    ]);
+  }
+} else {
+  app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME);
+}
+
+// Single-instance lock: if the user launches FAIRWallet twice (e.g. by
+// double-clicking a `faircoin:` link while the app is already running),
+// bring the existing window to the foreground and forward the new link
+// instead of spawning a second process.
+const gotInstanceLock = app.requestSingleInstanceLock();
+if (!gotInstanceLock) {
+  app.quit();
+}
 
 let mainWindow = null;
 const peerConnections = new Map();
@@ -86,12 +127,29 @@ function registerAppProtocol() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 420,
-    height: 740,
+    title: APP_NAME,
+    icon: ICON_PATH,
+    width: 440,
+    height: 820,
     minWidth: 380,
     minHeight: 600,
-    backgroundColor: '#1b1e09',
+    backgroundColor: BRAND_BACKGROUND,
+    // macOS: traffic lights inset into the title bar area, leaving the
+    // content full-bleed underneath.
+    // Windows/Linux: overlay the window controls on a themed bar so the
+    // frame matches FAIRWallet's dark background instead of the OS chrome.
     titleBarStyle: 'hiddenInset',
+    titleBarOverlay:
+      process.platform === 'darwin'
+        ? undefined
+        : {
+            color: BRAND_BACKGROUND,
+            symbolColor: '#f3f4f6',
+            height: 36,
+          },
+    // Defer first paint until React has rendered a frame so users don't
+    // see a white flash when the window opens.
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -100,10 +158,31 @@ function createWindow() {
     },
   });
 
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+  });
+
+  // Block navigating the main window away from the app shell; open every
+  // external URL in the user's default browser instead.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('fairwallet://') || url.startsWith('http://localhost')) {
+      return { action: 'allow' };
+    }
+    void shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('fairwallet://') && !url.startsWith('http://localhost')) {
+      event.preventDefault();
+      void shell.openExternal(url);
+    }
+  });
+
   const isDev = process.argv.includes('--dev');
   if (isDev) {
     mainWindow.loadURL('http://localhost:8081');
-    mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     mainWindow.loadURL('fairwallet://local/');
   }
@@ -118,29 +197,32 @@ function createWindow() {
 }
 
 /**
- * Safely forward a menu action to the renderer via IPC.
- * Guards against sending when the window has been closed or destroyed.
+ * Scan a set of arguments (startup argv or second-instance argv) for a
+ * `faircoin://` URI and forward it to the renderer so the app can open
+ * the Send screen pre-filled (BIP21-style).
  */
-function sendMenuAction(channel) {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send(channel);
-  }
+function extractDeepLink(argv) {
+  return argv.find((arg) => arg.startsWith(`${DEEP_LINK_SCHEME}:`));
 }
 
-/**
- * Build the application menu template.
- * Returns an array suitable for Menu.buildFromTemplate().
- */
+function forwardDeepLink(url) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.focus();
+  mainWindow.webContents.send('deep-link', url);
+}
+
 function buildAppMenu() {
   const isMac = process.platform === 'darwin';
-
   const template = [];
 
   if (isMac) {
     template.push({
-      label: 'FAIRWallet',
+      label: APP_NAME,
       submenu: [
         { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
         { type: 'separator' },
         { role: 'hide' },
         { role: 'hideOthers' },
@@ -150,25 +232,6 @@ function buildAppMenu() {
       ],
     });
   }
-
-  template.push({
-    label: 'File',
-    submenu: [
-      {
-        label: 'New Wallet',
-        accelerator: 'CommandOrControl+N',
-        click: () => sendMenuAction('menu:new-wallet'),
-      },
-      {
-        label: 'Open Wallet...',
-        accelerator: 'CommandOrControl+O',
-        click: () => sendMenuAction('menu:open-wallet'),
-      },
-      { type: 'separator' },
-      { role: 'close' },
-      ...(isMac ? [] : [{ role: 'quit' }]),
-    ],
-  });
 
   template.push({
     label: 'Edit',
@@ -200,67 +263,39 @@ function buildAppMenu() {
   });
 
   template.push({
-    label: 'Wallet',
+    label: 'Window',
     submenu: [
-      {
-        label: 'Send',
-        accelerator: 'CommandOrControl+S',
-        click: () => sendMenuAction('menu:send'),
-      },
-      {
-        label: 'Receive',
-        accelerator: 'CommandOrControl+Shift+S',
-        click: () => sendMenuAction('menu:receive'),
-      },
-      { type: 'separator' },
-      {
-        label: 'Contacts',
-        accelerator: 'CommandOrControl+Shift+C',
-        click: () => sendMenuAction('menu:contacts'),
-      },
-      {
-        label: 'Transaction History',
-        accelerator: 'CommandOrControl+H',
-        click: () => sendMenuAction('menu:history'),
-      },
-      { type: 'separator' },
-      {
-        label: 'Lock Wallet',
-        accelerator: 'CommandOrControl+L',
-        click: () => sendMenuAction('menu:lock'),
-      },
+      { role: 'minimize' },
+      { role: 'zoom' },
+      ...(isMac
+        ? [{ type: 'separator' }, { role: 'front' }]
+        : [{ role: 'close' }]),
     ],
   });
 
   template.push({
-    label: 'Help',
+    role: 'help',
     submenu: [
       {
-        label: 'Learn More about FairCoin',
-        click: () => {
-          shell.openExternal('https://fairco.in');
-        },
+        label: `Learn More about ${APP_NAME}`,
+        click: () => shell.openExternal(APP_URL),
+      },
+      {
+        label: 'Explorer',
+        click: () => shell.openExternal('https://explorer.fairco.in'),
       },
       {
         label: 'Report Issue',
-        click: () => {
-          shell.openExternal('https://github.com/FairCoinOfficial/FAIRWallet/issues');
-        },
+        click: () =>
+          shell.openExternal('https://github.com/FairCoinOfficial/FAIRWallet/issues'),
       },
       ...(isMac
         ? []
         : [
             { type: 'separator' },
             {
-              label: 'About FAIRWallet',
-              click: () => {
-                dialog.showMessageBox({
-                  type: 'info',
-                  title: 'About FAIRWallet',
-                  message: 'FAIRWallet',
-                  detail: 'Lightweight SPV wallet for FairCoin\n\nVersion ' + app.getVersion(),
-                });
-              },
+              label: `About ${APP_NAME}`,
+              click: () => app.showAboutPanel(),
             },
           ]),
     ],
@@ -269,10 +304,38 @@ function buildAppMenu() {
   return template;
 }
 
+app.on('second-instance', (_event, argv) => {
+  const link = extractDeepLink(argv);
+  if (link) {
+    forwardDeepLink(link);
+  } else if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
+// macOS delivers deep links via `open-url`, not argv.
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  if (mainWindow) {
+    forwardDeepLink(url);
+  } else {
+    app.whenReady().then(() => forwardDeepLink(url));
+  }
+});
+
 app.whenReady().then(() => {
   registerAppProtocol();
   Menu.setApplicationMenu(Menu.buildFromTemplate(buildAppMenu()));
+  nativeTheme.themeSource = 'dark';
   createWindow();
+
+  const initialLink = extractDeepLink(process.argv);
+  if (initialLink && mainWindow) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      forwardDeepLink(initialLink);
+    });
+  }
 });
 
 app.on('window-all-closed', () => {
