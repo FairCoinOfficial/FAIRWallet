@@ -1,14 +1,15 @@
 /**
  * BalanceDisplay — formatted balance with ⊜ symbol, fiat conversion, and 24h change.
  *
- * Follows Revolut's pattern: symbol + amount inline (e.g. "⊜ 1,234.56"),
- * with secondary currency below and a change badge.
+ * Uses Phudu font for all amounts (titles and numbers).
+ * Follows Revolut's pattern: symbol + amount inline.
  */
 
 import { useMemo } from "react";
 import { View, Text } from "react-native";
 import { Badge } from "./Badge";
 import { formatFairAmount, formatFiatAmount } from "../../i18n";
+import { FONT_PHUDU } from "../../utils/fonts";
 
 const SATS_PER_FAIR = 100_000_000n;
 const FAIR_SYMBOL = "\u229C"; // ⊜
@@ -23,41 +24,33 @@ interface BalanceDisplayProps {
   showFiatPrimary?: boolean;
 }
 
-function formatChange(change: number): string {
-  const sign = change >= 0 ? "+" : "";
-  return `${sign}${change.toFixed(1)}% today`;
-}
-
 function satsToUsd(sats: bigint, priceUsd: number): number {
   const fair = Number(sats) / Number(SATS_PER_FAIR);
   return fair * priceUsd;
 }
 
-// ---------------------------------------------------------------------------
-// Size configs
-// ---------------------------------------------------------------------------
+function formatChange(change: number): string {
+  const sign = change >= 0 ? "+" : "";
+  return `${sign}${change.toFixed(1)}% today`;
+}
 
-const SIZE_PRIMARY: Record<BalanceSize, string> = {
-  sm: "text-lg",
-  md: "text-2xl",
-  lg: "text-[42px]",
+const SIZE_PRIMARY: Record<BalanceSize, number> = {
+  sm: 20,
+  md: 28,
+  lg: 42,
 };
 
-const SIZE_SECONDARY: Record<BalanceSize, string> = {
-  sm: "text-xs",
-  md: "text-sm",
-  lg: "text-base",
+const SIZE_SYMBOL: Record<BalanceSize, number> = {
+  sm: 18,
+  md: 24,
+  lg: 34,
 };
 
-const SIZE_SYMBOL: Record<BalanceSize, string> = {
-  sm: "text-lg",
-  md: "text-2xl",
-  lg: "text-[34px]",
+const SIZE_SECONDARY: Record<BalanceSize, number> = {
+  sm: 12,
+  md: 14,
+  lg: 16,
 };
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function BalanceDisplay({
   sats,
@@ -87,25 +80,28 @@ export function BalanceDisplay({
     };
   }, [change24h]);
 
-  const primaryClass = SIZE_PRIMARY[size];
-  const secondaryClass = SIZE_SECONDARY[size];
-  const symbolClass = SIZE_SYMBOL[size];
+  const primary = SIZE_PRIMARY[size];
+  const symbol = SIZE_SYMBOL[size];
+  const secondary = SIZE_SECONDARY[size];
 
-  // Fiat-primary mode (like Revolut showing $1,234.56 big)
+  // Fiat-primary mode
   if (showFiatPrimary && usdFormatted !== null) {
     return (
       <View className="items-center">
-        {/* Primary: $X,XXX.XX */}
-        <Text className={`text-foreground font-display ${primaryClass} font-bold tracking-tight`}>
+        <Text
+          className="text-foreground tracking-tight"
+          style={{ fontFamily: FONT_PHUDU, fontSize: primary, fontWeight: "900" }}
+        >
           {usdFormatted}
         </Text>
 
-        {/* Secondary: ⊜ X,XXX.XX FAIR */}
-        <Text className={`text-muted-foreground ${secondaryClass} mt-1`}>
+        <Text
+          className="text-muted-foreground mt-1"
+          style={{ fontFamily: FONT_PHUDU, fontSize: secondary }}
+        >
           {FAIR_SYMBOL} {fairFormatted}
         </Text>
 
-        {/* 24h change */}
         {changeInfo ? (
           <View className="mt-3">
             <Badge text={changeInfo.text} variant={changeInfo.variant} />
@@ -118,24 +114,30 @@ export function BalanceDisplay({
   // FAIR-primary mode (default)
   return (
     <View className="items-center">
-      {/* Primary: ⊜ X,XXX.XX */}
       <View className="flex-row items-baseline">
-        <Text className={`text-foreground ${symbolClass} font-light mr-1`}>
+        <Text
+          className="text-foreground mr-1"
+          style={{ fontFamily: FONT_PHUDU, fontSize: symbol, fontWeight: "300" }}
+        >
           {FAIR_SYMBOL}
         </Text>
-        <Text className={`text-foreground ${primaryClass} font-bold tracking-tight`}>
+        <Text
+          className="text-foreground tracking-tight"
+          style={{ fontFamily: FONT_PHUDU, fontSize: primary, fontWeight: "900" }}
+        >
           {fairFormatted}
         </Text>
       </View>
 
-      {/* Secondary: ≈ $X.XX USD */}
       {usdFormatted !== null ? (
-        <Text className={`text-muted-foreground ${secondaryClass} mt-1`}>
+        <Text
+          className="text-muted-foreground mt-1"
+          style={{ fontSize: secondary }}
+        >
           {"\u2248"} {usdFormatted}
         </Text>
       ) : null}
 
-      {/* 24h change */}
       {changeInfo ? (
         <View className="mt-3">
           <Badge text={changeInfo.text} variant={changeInfo.variant} />

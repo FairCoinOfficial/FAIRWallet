@@ -35,9 +35,13 @@ import { getAutoLockTimeout } from "../src/storage/secure-store";
 import { initLanguage } from "../src/i18n";
 import { getItemAsync, setItemAsync } from "../src/storage/kv-store";
 
-// Module-level initialization (runs once before any component mounts)
+// Module-level initialization
 initLanguage();
-SplashScreen.preventAutoHideAsync();
+
+// Prevent splash from auto-hiding — we hide it manually after loading
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore if activity not available yet (Android dev client reload)
+});
 
 const THEME_MODE_KEY = "fairwallet_theme_mode";
 

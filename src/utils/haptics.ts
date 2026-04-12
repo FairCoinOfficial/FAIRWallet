@@ -1,32 +1,55 @@
-import * as Haptics from "expo-haptics";
+/**
+ * Haptic feedback utilities.
+ * All functions are no-ops if the native module is unavailable.
+ */
+
 import { Platform } from "react-native";
 
-/** Light tap - for selections, toggles, digit presses */
+function isAvailable(): boolean {
+  if (Platform.OS === "web") return false;
+  try {
+    const mod = require("expo-haptics");
+    return typeof mod?.selectionAsync === "function";
+  } catch {
+    return false;
+  }
+}
+
+const available = isAvailable();
+
+function getHaptics(): typeof import("expo-haptics") | null {
+  if (!available) return null;
+  return require("expo-haptics");
+}
+
 export function hapticSelection(): void {
-  if (Platform.OS === "web") return;
-  Haptics.selectionAsync();
+  try { getHaptics()?.selectionAsync(); } catch { /* not linked */ }
 }
 
-/** Success feedback - for completed transactions, successful auth */
 export function hapticSuccess(): void {
-  if (Platform.OS === "web") return;
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  try {
+    const H = getHaptics();
+    H?.notificationAsync(H.NotificationFeedbackType.Success);
+  } catch { /* not linked */ }
 }
 
-/** Error feedback - for failed transactions, wrong PIN */
 export function hapticError(): void {
-  if (Platform.OS === "web") return;
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+  try {
+    const H = getHaptics();
+    H?.notificationAsync(H.NotificationFeedbackType.Error);
+  } catch { /* not linked */ }
 }
 
-/** Warning feedback - for dangerous actions, confirmations */
 export function hapticWarning(): void {
-  if (Platform.OS === "web") return;
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  try {
+    const H = getHaptics();
+    H?.notificationAsync(H.NotificationFeedbackType.Warning);
+  } catch { /* not linked */ }
 }
 
-/** Medium impact - for button presses */
 export function hapticImpact(): void {
-  if (Platform.OS === "web") return;
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  try {
+    const H = getHaptics();
+    H?.impactAsync(H.ImpactFeedbackStyle.Medium);
+  } catch { /* not linked */ }
 }
