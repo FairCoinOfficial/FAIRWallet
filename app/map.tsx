@@ -25,7 +25,7 @@
  *    a `building-3d` extrusion layer that renders 3D buildings at high zoom.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -135,16 +135,13 @@ const MARKER_HITBOX = { width: 50, height: 50 } as const;
 // 62% mid — the Google-Maps-style "selected place" height where the hero
 // image, facts, and action row are visible. Index 2 = 100% — the sheet
 // fills the screen all the way up behind the notch, sliding under the
-// floating search pill. At that snap the list content gains a top
-// padding equal to the pill height + safe area so rows never render
-// underneath the pill. Magnetic snapping pulls a flick past mid straight
-// to the top.
+// floating search pill. Magnetic snapping pulls a flick past mid
+// straight to the top.
 const SHEET_SNAP_POINTS: Array<string | number> = ["15%", "62%", "100%"];
-// Detail mode and list mode both use the mid snap so the camera padding
-// stays consistent — the only difference is the rendered children.
-const SHEET_INDEX_DETAIL = 1;
-const SHEET_INDEX_LIST = 1;
-const SHEET_INDEX_SEARCH = 2;
+const SHEET_INDEX_MID = 1;
+const SHEET_INDEX_TOP = 2;
+
+const LIST_CONTENT_CONTAINER_STYLE = { paddingBottom: 24 } as const;
 
 // Fallback map center when PLACES is empty (Madrid).
 const FALLBACK_CENTER: Position = [-3.7038, 40.4168];
@@ -324,7 +321,7 @@ export default function MapScreen() {
   // Drives the drag-synchronised top spacer inside the list header so the
   // first row slides smoothly down as the sheet expands behind the search
   // pill, matching Google Maps UX.
-  const sheetAnimatedIndex = useSharedValue(SHEET_INDEX_LIST);
+  const sheetAnimatedIndex = useSharedValue(SHEET_INDEX_MID);
 
   // Vertical space occupied by the floating search pill (safe-area top +
   // pill top margin + pill height + breathing room). The sheet is free to
@@ -339,22 +336,15 @@ export default function MapScreen() {
     PLACES[0]?.id ?? "",
   );
   const [sheetMode, setSheetMode] = useState<SheetMode>("list");
-  const [sheetIndex, setSheetIndex] = useState<number>(SHEET_INDEX_LIST);
+  const [sheetIndex, setSheetIndex] = useState<number>(SHEET_INDEX_MID);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [userLocation, setUserLocation] = useState<UserCoords | null>(null);
 
-  // Tapping the search field expands the sheet to its top snap so the
-  // filtered list fills the screen. `KeyboardProvider` at the root
-  // layout keeps the keyboard in sync with the focused TextInput across
-  // bottom-sheet snap animations, so we can snap synchronously without
-  // Android losing focus a beat later.
-  //
-  // Intentionally no `onBlur` handler: re-snapping the sheet on blur
-  // triggers another keyboard lifecycle event which blurs the TextInput
-  // again, creating a focus-blur oscillation. The user can drag the
-  // sheet back down themselves if they want.
+  // No `onBlur` handler: re-snapping on blur triggers another keyboard
+  // lifecycle event which blurs the TextInput again, creating a
+  // focus-blur oscillation.
   const handleSearchFocus = useCallback(() => {
-    sheetRef.current?.snapToIndex(SHEET_INDEX_SEARCH);
+    sheetRef.current?.snapToIndex(SHEET_INDEX_TOP);
   }, []);
 
   const handleCategoryFilter = useCallback((next: CategoryFilter) => {
@@ -429,7 +419,7 @@ export default function MapScreen() {
       hapticSelection();
       setSelectedPlaceId(place.id);
       setSheetMode("detail");
-      sheetRef.current?.snapToIndex(SHEET_INDEX_DETAIL);
+      sheetRef.current?.snapToIndex(SHEET_INDEX_MID);
       if (shouldAnimateCamera) {
         animateToCoordinate(place.latitude, place.longitude);
       }
@@ -455,17 +445,8 @@ export default function MapScreen() {
   }, []);
 
   const handleSheetChange = useCallback((index: number) => {
-    setSheetIndex(index);
+    setSheetIndex((prev) => (prev === index ? prev : index));
   }, []);
-
-  // List content style — constant `paddingBottom` only; the top padding is
-  // driven per-frame by the animated header spacer below so the transition
-  // stays synchronised with the user's drag instead of snapping at the
-  // end of the animation.
-  const listContentContainerStyle = useMemo(
-    () => ({ paddingBottom: 24 }),
-    [],
-  );
 
   // Animated height for the spacer that sits at the very top of the list
   // header. Grows from 0 → sheetTopInset as the sheet's snap index moves
@@ -474,7 +455,7 @@ export default function MapScreen() {
   const headerSpacerStyle = useAnimatedStyle(() => ({
     height: interpolate(
       sheetAnimatedIndex.value,
-      [SHEET_INDEX_LIST, SHEET_INDEX_SEARCH],
+      [SHEET_INDEX_MID, SHEET_INDEX_TOP],
       [0, sheetTopInset],
       Extrapolation.CLAMP,
     ),
@@ -642,7 +623,7 @@ export default function MapScreen() {
   // flush with the pill) reads as grime; a border separates the pill from
   // the sheet cleanly.
   const pillSurfaceStyle = useMemo(() => {
-    if (sheetIndex >= SHEET_INDEX_SEARCH) {
+    if (sheetIndex >= SHEET_INDEX_TOP) {
       return {
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.colors.border,
@@ -813,7 +794,7 @@ export default function MapScreen() {
               renderScrollComponent={BottomSheetFlashListScrollable}
               data={placesWithDistance}
               keyExtractor={(item) => item.place.id}
-              contentContainerStyle={listContentContainerStyle}
+              contentContainerStyle={LIST_CONTENT_CONTAINER_STYLE}
               ListHeaderComponent={
                 <View>
                   <Animated.View style={headerSpacerStyle} />
@@ -939,7 +920,12 @@ interface PlaceRowProps {
   onPress: () => void;
 }
 
-function PlaceRow({ place, distanceKm: km, isSelected, onPress }: PlaceRowProps) {
+const PlaceRow = memo(function PlaceRow({
+  place,
+  distanceKm: km,
+  isSelected,
+  onPress,
+}: PlaceRowProps) {
   const theme = useTheme();
   const icon = CATEGORY_ICON[place.category];
   const distanceLabel = formatDistanceLabel(km);
@@ -1021,7 +1007,7 @@ function PlaceRow({ place, distanceKm: km, isSelected, onPress }: PlaceRowProps)
       </View>
     </Pressable>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // PlaceDetail — Google Maps inspired place sheet: hero image, title block,
