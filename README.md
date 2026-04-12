@@ -17,6 +17,7 @@ Built with Expo SDK 55, React Native 0.83, and pure TypeScript cryptography.
 - **Masternode** — detect 5,000 FAIR collateral UTXOs, start masternodes
 - **FastSend** — instant confirmation via masternode quorum (SwiftTX)
 - **BIP38** — encrypted private key export/import
+- **Places map** — native MapLibre map of places that accept FairCoin, with category filters, search, minimum-spend and FairCoin-to-fiat exchange metadata per place (native-only; web shows an empty state)
 - **Secure** — keys in OS keychain, per-wallet SQLite databases, edge-to-edge UI
 
 ## Platforms
@@ -38,6 +39,10 @@ Built with Expo SDK 55, React Native 0.83, and pure TypeScript cryptography.
 | Crypto | `@noble/secp256k1` 2.x, `@noble/hashes` 1.8, `@scure/bip32` 1.7, `@scure/bip39` 1.6 |
 | Storage | expo-secure-store (native keychain), expo-sqlite (chain data) |
 | P2P | Custom SPV client over TCP (react-native-tcp-socket on mobile, Node.js net on Electron) |
+| Map | `@maplibre/maplibre-react-native` v10 with Carto vector tiles (no API key) |
+| UI kit | `@oxyhq/bloom` (theme, prompt dialogs) |
+| Lists | `@shopify/flash-list` v2 with `@gorhom/bottom-sheet` v5 integration |
+| Animation | `react-native-reanimated` 4.x |
 | Desktop | Electron with custom `app://` protocol for proper SPA routing |
 
 ## FairCoin Protocol
@@ -138,6 +143,8 @@ FAIRWallet/
 │   ├── contacts.tsx        # Address book
 │   ├── coin-control.tsx    # UTXO selection
 │   ├── export-key.tsx      # BIP38 key export
+│   ├── map.tsx             # Native places map (MapLibre + bottom sheet)
+│   ├── map.web.tsx         # Web fallback (map is native-only)
 │   ├── transaction/        # Transaction detail
 │   ├── onboarding/         # Welcome, create, restore, PIN setup
 │   └── (tabs)/             # Main app (wallet, send, receive, settings)

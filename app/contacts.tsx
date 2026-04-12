@@ -11,13 +11,13 @@ import {
   TextInput,
   Pressable,
   Modal,
-  FlatList,
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { FlashList } from "@shopify/flash-list";
 import { useContactsStore } from "../src/wallet/contacts-store";
 import { getDatabase } from "../src/wallet/wallet-store";
 import type { ContactRow } from "../src/storage/database";
@@ -587,7 +587,7 @@ export default function ContactsScreen() {
             />
           </View>
         ) : (
-          <FlatList
+          <FlashList
             data={displayContacts}
             renderItem={renderItem}
             keyExtractor={keyExtractor}

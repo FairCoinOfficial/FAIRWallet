@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/adaptive-icon-foreground.png",
       "resizeMode": "contain",
       "backgroundColor": "#1b1e09"
     },
@@ -47,11 +47,11 @@
       "expo-local-authentication",
       "expo-system-ui",
       ["expo-splash-screen", {
-        "image": "./assets/splash-icon.png",
+        "image": "./assets/adaptive-icon-foreground.png",
         "imageWidth": 200,
         "backgroundColor": "#1b1e09",
         "dark": {
-          "image": "./assets/splash-icon.png",
+          "image": "./assets/adaptive-icon-foreground.png",
           "backgroundColor": "#1b1e09"
         }
       }],

@@ -12,12 +12,11 @@ import {
   Text,
   TextInput,
   Pressable,
-  FlatList,
-  type ListRenderItem,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { FlashList, type ListRenderItem } from "@shopify/flash-list";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { EmptyState, ScreenHeader } from "../src/ui/components";
 import { SUPPORTED_LANGUAGES, t, type LanguageOption } from "../src/i18n";
@@ -191,7 +190,7 @@ export default function LanguageScreen() {
             <EmptyState icon="magnify" title={t("language.noResults")} />
           </View>
         ) : (
-          <FlatList
+          <FlashList
             data={filtered}
             renderItem={renderItem}
             keyExtractor={keyExtractor}

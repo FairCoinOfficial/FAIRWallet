@@ -64,6 +64,7 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "common.create": "Create",
     "common.switch": "Switch",
     "common.no": "No",
+    "common.clear": "Clear",
 
     // ---------- Not found ----------
     "notFound.title": "Page not found",
@@ -613,7 +614,10 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "map.searchPlaceholder": "Search places...",
     "map.nearYou": "Places near you",
     "map.distance": "{km} km away",
+    "map.resultOne": "result",
+    "map.resultOther": "results",
     "map.noResults": "No places found",
+    "map.directions.accessibility": "Directions to {name}",
     "map.locateMe.accessibility": "Center on my location",
     "map.permissionDenied.title": "Location permission denied",
     "map.permissionDenied.subtitle":
@@ -629,6 +633,21 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "map.category.service": "Service",
     "map.category.atm": "ATM",
     "map.category.other": "Other",
+    "map.filter.all": "All",
+    "map.detail.directions": "Directions",
+    "map.detail.share": "Share",
+    "map.detail.website": "Website",
+    "map.detail.call": "Call",
+    "map.detail.close.accessibility": "Close details",
+    "map.detail.minimumSpend": "Minimum spend",
+    "map.detail.minimumSpendValue": "{amount} {ticker}",
+    "map.detail.fiatExchange": "FairCoin to {currency}",
+    "map.detail.fiatExchangeDescription": "Pay out FairCoin balance as {currency} here.",
+    "map.detail.maxFiatPayout": "Max payout: {amount} {currency}",
+    "map.detail.payoutMethod.cash": "Cash",
+    "map.detail.payoutMethod.bank": "Bank transfer",
+    "map.detail.payoutMethod.card": "Card load",
+    "map.detail.openingHours": "Opening hours",
 
     // ---------- Notifications ----------
     "notifications.received.title": "Payment received",
@@ -655,6 +674,7 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "common.create": "Crear",
     "common.switch": "Cambiar",
     "common.no": "No",
+    "common.clear": "Limpiar",
 
     // ---------- Not found ----------
     "notFound.title": "P\u00e1gina no encontrada",
@@ -1235,7 +1255,10 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "map.searchPlaceholder": "Buscar lugares...",
     "map.nearYou": "Lugares cerca de ti",
     "map.distance": "a {km} km",
+    "map.resultOne": "resultado",
+    "map.resultOther": "resultados",
     "map.noResults": "Sin resultados",
+    "map.directions.accessibility": "Cómo llegar a {name}",
     "map.locateMe.accessibility": "Centrar en mi ubicación",
     "map.permissionDenied.title": "Permiso de ubicación denegado",
     "map.permissionDenied.subtitle":
@@ -1251,6 +1274,21 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "map.category.service": "Servicio",
     "map.category.atm": "Cajero",
     "map.category.other": "Otro",
+    "map.filter.all": "Todos",
+    "map.detail.directions": "Cómo llegar",
+    "map.detail.share": "Compartir",
+    "map.detail.website": "Sitio web",
+    "map.detail.call": "Llamar",
+    "map.detail.close.accessibility": "Cerrar detalles",
+    "map.detail.minimumSpend": "Consumo mínimo",
+    "map.detail.minimumSpendValue": "{amount} {ticker}",
+    "map.detail.fiatExchange": "FairCoin a {currency}",
+    "map.detail.fiatExchangeDescription": "Cambia tu saldo de FairCoin por {currency} aquí.",
+    "map.detail.maxFiatPayout": "Máximo: {amount} {currency}",
+    "map.detail.payoutMethod.cash": "Efectivo",
+    "map.detail.payoutMethod.bank": "Transferencia",
+    "map.detail.payoutMethod.card": "Tarjeta",
+    "map.detail.openingHours": "Horario",
 
     // ---------- Notifications ----------
     "notifications.received.title": "Pago recibido",

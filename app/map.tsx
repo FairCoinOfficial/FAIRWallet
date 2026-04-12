@@ -33,38 +33,60 @@ import {
   TextInput,
   ScrollView,
   StyleSheet,
-  Alert,
+  Image,
+  useWindowDimensions,
 } from "react-native";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, {
+  BottomSheetScrollView,
+  useBottomSheetScrollableCreator,
+} from "@gorhom/bottom-sheet";
+import { FlashList } from "@shopify/flash-list";
 import {
   MapView,
   Camera,
-  MarkerView,
   UserLocation,
+  ShapeSource,
+  CircleLayer,
+  SymbolLayer,
   setAccessToken,
   type CameraRef,
+  type OnPressEvent,
+  type CircleLayerStyle,
+  type SymbolLayerStyle,
 } from "@maplibre/maplibre-react-native";
 import * as Location from "expo-location";
 import { useTheme } from "@oxyhq/bloom/theme";
+import * as Prompt from "@oxyhq/bloom/prompt";
 import { t } from "../src/i18n";
-import { PLACES, distanceKm, type Place, type PlaceCategory } from "../src/data/places";
+import {
+  PLACES,
+  distanceKm,
+  formatDistanceKm,
+  type FiatPayoutMethod,
+  type Place,
+  type PlaceCategory,
+} from "../src/data/places";
+import { EmptyState } from "../src/ui/components/EmptyState";
+import { hapticSelection } from "../src/utils/haptics";
+import { COIN_TICKER } from "../src/core/branding";
 
 // ---------------------------------------------------------------------------
 // MapLibre access token
 // ---------------------------------------------------------------------------
 
-/**
- * MapLibre is open-source and requires no access token, but the native module
- * still expects `setAccessToken` to be called once at module load so its
- * internal state machine transitions out of the "unset" state. Passing `null`
- * is the documented way to opt out of token-based auth entirely. The native
- * side resolves the returned promise synchronously — we intentionally do not
- * await it; any error would come from a misconfigured bridge, not from our
- * (absent) token.
- */
+// MapLibre is open-source but the native module still expects
+// `setAccessToken` to run once at module load. `null` is the documented
+// opt-out; the promise is intentionally not awaited.
 void setAccessToken(null);
 
 // ---------------------------------------------------------------------------
@@ -73,10 +95,7 @@ void setAccessToken(null);
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-/**
- * MapLibre (like Mapbox / GeoJSON) uses `[longitude, latitude]` positions
- * throughout its API — we alias the tuple locally for readability.
- */
+// MapLibre / Mapbox / GeoJSON use `[longitude, latitude]` positions.
 type Position = [number, number];
 
 interface UserCoords {
@@ -84,46 +103,52 @@ interface UserCoords {
   longitude: number;
 }
 
+type SheetMode = "list" | "detail";
+
+type CategoryFilter = PlaceCategory | "all";
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-/**
- * MapLibre-compatible vector tile style URLs. We use Carto's free basemap
- * styles (https://github.com/CartoDB/basemap-styles) — no API key, no rate
- * limits, no billing. `voyager` is a full-colour streets basemap for light
- * mode, `dark-matter` is the dark-mode equivalent.
- */
+// Carto basemap style URLs — free, public, no API key, no rate limits.
+// https://github.com/CartoDB/basemap-styles
 const MAP_STYLE_LIGHT =
   "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 const MAP_STYLE_DARK =
   "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
-/** Zoom level used whenever we animate the camera to a single place. */
-const PLACE_ZOOM = 16;
-/** Zoom level used when centering on the user's current location. */
-const USER_ZOOM = 15;
-/** Zoom level used for the initial overview camera. */
 const INITIAL_ZOOM = 5;
-/**
- * Pitch (in degrees) used for the initial overview camera. A gentle tilt
- * surfaces the 3D building extrusions from OpenFreeMap's `liberty` style
- * without disorienting users who zoom out to see the whole map.
- */
-const INITIAL_PITCH = 30;
-/**
- * Pitch used when we animate to a specific place. A steeper angle gives the
- * "immersive" Revolut-style feel when zoomed into buildings.
- */
-const PLACE_PITCH = 45;
-/** Camera animation duration in milliseconds. */
+const INITIAL_PITCH = 0;
 const CAMERA_ANIMATION_MS = 500;
-/** Width of the horizontally-scrolling place card. */
-const CARD_WIDTH = 280;
-/** Snap points for the docked bottom sheet (40% peek, 80% expanded). */
-const SHEET_SNAP_POINTS: Array<string | number> = ["40%", "80%"];
-/** Fallback map center when PLACES is empty (roughly Madrid). */
+
+// Half-width in degrees of the bounding box passed to `fitBounds`. ~0.002°
+// (≈220m) resolves to approximately zoom 16 on a typical phone — tight
+// enough for "street view" without clipping the marker at viewport edges.
+const PLACE_BOUNDS_HALF_DEGREES = 0.002;
+
+// Hit area for native ShapeSource taps. MapLibre defaults to 44×44; we use
+// 50×50 so taps feel forgiving even when a pin is small at low zoom.
+const MARKER_HITBOX = { width: 50, height: 50 } as const;
+
+// Snap points for the sheet. Index 0 = 15% peek (mostly map). Index 1 =
+// 62% mid — the Google-Maps-style "selected place" height where the hero
+// image, facts, and action row are visible without forcing the sheet to
+// fill the whole screen. Index 2 = 92% expanded (list fills the viewport
+// up to the search pill — `topInset` caps it so the pill stays visible).
+const SHEET_SNAP_POINTS: Array<string | number> = ["15%", "62%", "92%"];
+// Detail mode and list mode both use the mid snap so the camera padding
+// stays consistent — the only difference is the rendered children.
+const SHEET_INDEX_DETAIL = 1;
+const SHEET_INDEX_LIST = 1;
+const SHEET_INDEX_SEARCH = 2;
+
+// Fallback map center when PLACES is empty (Madrid).
 const FALLBACK_CENTER: Position = [-3.7038, 40.4168];
+
+const INITIAL_CENTER: Position = PLACES[0]
+  ? [PLACES[0].longitude, PLACES[0].latitude]
+  : FALLBACK_CENTER;
 
 // ---------------------------------------------------------------------------
 // Category metadata
@@ -138,8 +163,139 @@ const CATEGORY_ICON: Record<PlaceCategory, IconName> = {
   other: "map-marker",
 };
 
+// Per-category palette for the native CircleLayer that renders pins.
+// High-contrast hues so each category is recognisable at a glance, matching
+// Google Maps' conventions.
+const CATEGORY_COLOR: Record<PlaceCategory, string> = {
+  cafe: "#78350f",
+  restaurant: "#dc2626",
+  shop: "#2563eb",
+  service: "#7c3aed",
+  atm: "#16a34a",
+  other: "#6b7280",
+};
+
+// `match` expression driving `circleColor`, derived once from CATEGORY_COLOR
+// so adding a new PlaceCategory only requires extending the record above.
+const CATEGORY_COLOR_EXPRESSION = [
+  "match",
+  ["get", "category"],
+  ...(Object.entries(CATEGORY_COLOR) as Array<[PlaceCategory, string]>).flatMap(
+    ([cat, color]) => [cat, color],
+  ),
+  CATEGORY_COLOR.other,
+] as const;
+
+// Order of chips in the Google-Maps-style filter row at the top of the
+// sheet. `all` is the initial/reset state.
+const CATEGORY_FILTERS: readonly CategoryFilter[] = [
+  "all",
+  "cafe",
+  "restaurant",
+  "shop",
+  "service",
+  "atm",
+  "other",
+] as const;
+
+// Stable MapLibre sub-expression reused by the selected-state filter so the
+// inner `["get", "id"]` array isn't reallocated on every selection change.
+const GET_ID_EXPR = ["get", "id"] as const;
+
 function categoryLabel(category: PlaceCategory): string {
   return t(`map.category.${category}`);
+}
+
+function fiatPayoutLabel(method: FiatPayoutMethod): string {
+  return t(`map.detail.payoutMethod.${method}`);
+}
+
+// We always suppress gorhom's chrome handle. In detail mode the hero
+// image paints its own translucent handle bar. In list mode `FloatingHandle`
+// renders an absolute-positioned handle on top of the scrollable content
+// so scrolled rows pass visually behind the handle (Google Maps UX).
+function renderNullHandle(): null {
+  return null;
+}
+
+// Transparent overlay handle pinned to the top of the sheet content area.
+// Scrollable rows pass behind it, matching Google Maps' behaviour where
+// the grab handle floats above the list.
+function FloatingHandle() {
+  return (
+    <View pointerEvents="none" style={styles.floatingHandle}>
+      <View style={styles.floatingHandleBar} />
+    </View>
+  );
+}
+
+// Drop shadow underneath every pin. Uses `circleBlur` for a soft edge and
+// `circleTranslate` in viewport space so the shadow always drops straight
+// down on screen regardless of map rotation.
+const PLACES_SHADOW_STYLE: CircleLayerStyle = {
+  circleRadius: [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    10, 5,
+    14, 7,
+    16, 10,
+    18, 14,
+  ],
+  circleColor: "rgba(0,0,0,0.35)",
+  circleBlur: 0.8,
+  circleTranslate: [0, 2],
+  circleTranslateAnchor: "viewport",
+  circlePitchAlignment: "map",
+};
+
+// Base pin circle. Zoom-interpolated radius + native `match` on category.
+const PLACES_CIRCLE_STYLE: CircleLayerStyle = {
+  circleRadius: [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    10, 4,
+    14, 6,
+    16, 9,
+    18, 12,
+  ],
+  circleColor: CATEGORY_COLOR_EXPRESSION,
+  circleStrokeColor: "#ffffff",
+  circleStrokeWidth: 2.5,
+  circlePitchAlignment: "map",
+};
+
+// Small white glossy highlight on the selected pin. Offset in viewport
+// space so it's always top-left of the pin regardless of rotation.
+const PLACES_SELECTED_HIGHLIGHT_STYLE: CircleLayerStyle = {
+  circleRadius: [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    10, 2,
+    14, 3,
+    16, 4,
+    18, 5,
+  ],
+  circleColor: "rgba(255,255,255,0.9)",
+  circleTranslate: [-2, -2],
+  circleTranslateAnchor: "viewport",
+  circlePitchAlignment: "map",
+};
+
+// Google Maps directions URL — on iOS opens the Google Maps app if
+// installed (Safari + Apple Maps fallback otherwise), on Android opens
+// Google Maps directly, on web opens a browser tab.
+function openDirections(place: Place): void {
+  const destination = `${place.latitude},${place.longitude}`;
+  const label = encodeURIComponent(place.name);
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&destination_place_id=${label}&travelmode=driving`;
+  void Linking.openURL(url);
+}
+
+function formatDistanceLabel(km: number | null): string | null {
+  return km !== null ? t("map.distance", { km: formatDistanceKm(km) }) : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -150,24 +306,76 @@ export default function MapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
 
-  // ---- Ref to the MapLibre camera for imperative animations ----
   const cameraRef = useRef<CameraRef>(null);
+  const sheetRef = useRef<BottomSheet>(null);
+  const locationDeniedPrompt = Prompt.usePromptControl();
 
-  // ---- Horizontal card list ref, for scroll-to-selected ----
-  const cardScrollRef = useRef<ScrollView>(null);
+  // Official replacement (gorhom v5) for the deprecated BottomSheetFlashList
+  // wrapper: a `renderScrollComponent` that wires FlashList into the sheet's
+  // gesture coordination.
+  const BottomSheetFlashListScrollable = useBottomSheetScrollableCreator();
 
-  // ---- State ----
+  // Fractional sheet snap index fed live to gorhom via `animatedIndex`.
+  // Drives the drag-synchronised top spacer inside the list header so the
+  // first row slides smoothly down as the sheet expands behind the search
+  // pill, matching Google Maps UX.
+  const sheetAnimatedIndex = useSharedValue(SHEET_INDEX_LIST);
+
+  // Vertical space occupied by the floating search pill (safe-area top +
+  // pill top margin + pill height + breathing room). The sheet is free to
+  // slide *behind* the pill when expanded; this value is applied as the
+  // sheet's content `paddingTop` at the expanded snap so the first list
+  // row is visible just below the pill, exactly like Google Maps.
+  const sheetTopInset = insets.top + 10 + 56 + 8;
+
   const [query, setQuery] = useState("");
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string>(PLACES[0]?.id ?? "");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string>(
+    PLACES[0]?.id ?? "",
+  );
+  const [sheetMode, setSheetMode] = useState<SheetMode>("list");
+  const [sheetIndex, setSheetIndex] = useState<number>(SHEET_INDEX_LIST);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [userLocation, setUserLocation] = useState<UserCoords | null>(null);
 
-  // ---- Filtered places (search) ----
+  // Tapping the search field expands the sheet to its top snap so the
+  // filtered list fills the screen. On blur with an empty query we snap
+  // back to mid so the map is visible again. The search pill is always
+  // visible on top of the sheet; at the expanded snap the list gains a
+  // top padding via `listContentContainerStyle` so rows aren't hidden
+  // behind the pill.
+  const handleSearchFocus = useCallback(() => {
+    sheetRef.current?.snapToIndex(SHEET_INDEX_SEARCH);
+  }, []);
+
+  const handleSearchBlur = useCallback(() => {
+    if (query.length === 0) {
+      sheetRef.current?.snapToIndex(SHEET_INDEX_LIST);
+    }
+  }, [query]);
+
+  const handleCategoryFilter = useCallback((next: CategoryFilter) => {
+    hapticSelection();
+    setCategoryFilter(next);
+  }, []);
+
+  // Padding ordered [top, right, bottom, left] per the fitBounds signature.
+  // The top inset clears the floating search pill; the bottom inset matches
+  // the mid sheet snap so the camera target lands above the sheet.
+  const fitPadding = useMemo<[number, number, number, number]>(
+    () => [insets.top + 80, 0, Math.round(windowHeight * 0.62), 0],
+    [insets.top, windowHeight],
+  );
+
   const filteredPlaces = useMemo<readonly Place[]>(() => {
     const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return PLACES;
     return PLACES.filter((p) => {
+      if (categoryFilter !== "all" && p.category !== categoryFilter) {
+        return false;
+      }
+      if (!trimmed) return true;
       return (
         p.name.toLowerCase().includes(trimmed) ||
         p.city.toLowerCase().includes(trimmed) ||
@@ -176,51 +384,106 @@ export default function MapScreen() {
         categoryLabel(p.category).toLowerCase().includes(trimmed)
       );
     });
-  }, [query]);
+  }, [query, categoryFilter]);
 
-  // ---- Initial camera position: first place, overridden later by user loc ----
-  const initialCenter = useMemo<Position>(() => {
-    const first = PLACES[0];
-    if (!first) return FALLBACK_CENTER;
-    return [first.longitude, first.latitude];
+  const placesGeoJson = useMemo<GeoJSON.FeatureCollection<GeoJSON.Point>>(
+    () => ({
+      type: "FeatureCollection",
+      features: filteredPlaces.map((place) => ({
+        type: "Feature",
+        id: place.id,
+        geometry: {
+          type: "Point",
+          coordinates: [place.longitude, place.latitude],
+        },
+        properties: {
+          id: place.id,
+          name: place.name,
+          category: place.category,
+        },
+      })),
+    }),
+    [filteredPlaces],
+  );
+
+  // fitBounds is the only camera-padding path the library guarantees works
+  // on both iOS and Android (routed via native `getCameraForLatLngBounds`).
+  const animateToCoordinate = useCallback(
+    (latitude: number, longitude: number) => {
+      const ne: Position = [
+        longitude + PLACE_BOUNDS_HALF_DEGREES,
+        latitude + PLACE_BOUNDS_HALF_DEGREES,
+      ];
+      const sw: Position = [
+        longitude - PLACE_BOUNDS_HALF_DEGREES,
+        latitude - PLACE_BOUNDS_HALF_DEGREES,
+      ];
+      cameraRef.current?.fitBounds(ne, sw, fitPadding, CAMERA_ANIMATION_MS);
+    },
+    [fitPadding],
+  );
+
+  const selectPlace = useCallback(
+    (place: Place, shouldAnimateCamera: boolean) => {
+      hapticSelection();
+      setSelectedPlaceId(place.id);
+      setSheetMode("detail");
+      sheetRef.current?.snapToIndex(SHEET_INDEX_DETAIL);
+      if (shouldAnimateCamera) {
+        animateToCoordinate(place.latitude, place.longitude);
+      }
+    },
+    [animateToCoordinate],
+  );
+
+  const handleMarkerPress = useCallback(
+    (event: OnPressEvent) => {
+      const feature = event.features[0];
+      const id = feature?.properties?.id;
+      if (typeof id !== "string") return;
+      const place = PLACES.find((p) => p.id === id);
+      if (place) {
+        selectPlace(place, true);
+      }
+    },
+    [selectPlace],
+  );
+
+  const handleCloseDetail = useCallback(() => {
+    setSheetMode("list");
   }, []);
 
-  // ---- Camera animation ----
-  const animateToCoordinates = useCallback(
-    (latitude: number, longitude: number, zoomLevel: number, pitch: number) => {
-      cameraRef.current?.setCamera({
-        centerCoordinate: [longitude, latitude],
-        zoomLevel,
-        pitch,
-        animationDuration: CAMERA_ANIMATION_MS,
-        animationMode: "flyTo",
-      });
-    },
+  const handleSheetChange = useCallback((index: number) => {
+    setSheetIndex(index);
+  }, []);
+
+  // List content style — constant `paddingBottom` only; the top padding is
+  // driven per-frame by the animated header spacer below so the transition
+  // stays synchronised with the user's drag instead of snapping at the
+  // end of the animation.
+  const listContentContainerStyle = useMemo(
+    () => ({ paddingBottom: 24 }),
     [],
   );
 
-  // ---- Select a place (from card tap or marker tap) ----
-  const selectPlace = useCallback(
-    (place: Place, shouldAnimateCamera: boolean) => {
-      setSelectedPlaceId(place.id);
+  // Animated height for the spacer that sits at the very top of the list
+  // header. Grows from 0 → sheetTopInset as the sheet's snap index moves
+  // from mid (1) toward expanded (2), so the first visible row slides
+  // down in lockstep with the sheet clearing the search pill.
+  const headerSpacerStyle = useAnimatedStyle(() => ({
+    height: interpolate(
+      sheetAnimatedIndex.value,
+      [SHEET_INDEX_LIST, SHEET_INDEX_SEARCH],
+      [0, sheetTopInset],
+      Extrapolation.CLAMP,
+    ),
+  }));
 
-      if (shouldAnimateCamera) {
-        animateToCoordinates(place.latitude, place.longitude, PLACE_ZOOM, PLACE_PITCH);
-      }
-
-      // Scroll the card list to the selected card.
-      const idx = filteredPlaces.findIndex((p) => p.id === place.id);
-      if (idx >= 0) {
-        cardScrollRef.current?.scrollTo({
-          x: idx * (CARD_WIDTH + 12),
-          animated: true,
-        });
-      }
-    },
-    [animateToCoordinates, filteredPlaces],
+  const selectedPlace = useMemo<Place | null>(
+    () => PLACES.find((p) => p.id === selectedPlaceId) ?? null,
+    [selectedPlaceId],
   );
 
-  // ---- "My location" FAB: request permission, fetch, center camera ----
   const handleLocateMe = useCallback(async () => {
     try {
       const existing = await Location.getForegroundPermissionsAsync();
@@ -233,10 +496,7 @@ export default function MapScreen() {
 
       if (status !== "granted") {
         setHasLocationPermission(false);
-        Alert.alert(
-          t("map.permissionDenied.title"),
-          t("map.permissionDenied.subtitle"),
-        );
+        locationDeniedPrompt.open();
         return;
       }
 
@@ -250,18 +510,13 @@ export default function MapScreen() {
         longitude: position.coords.longitude,
       };
       setUserLocation(coords);
-      animateToCoordinates(coords.latitude, coords.longitude, USER_ZOOM, PLACE_PITCH);
+      animateToCoordinate(coords.latitude, coords.longitude);
     } catch {
-      // We intentionally swallow the underlying error and surface a user
-      // facing permission alert. The expo-location API rejects for a variety
-      // of reasons (permission denied, services disabled, timeout) and the
-      // message shown to the user covers all of them.
-      Alert.alert(
-        t("map.permissionDenied.title"),
-        t("map.permissionDenied.subtitle"),
-      );
+      // expo-location rejects for permission denied, services disabled, or
+      // timeout — surface the same dialog for all of them.
+      locationDeniedPrompt.open();
     }
-  }, [animateToCoordinates]);
+  }, [animateToCoordinate, locationDeniedPrompt]);
 
   // ---- Distance per place, sorted by proximity if we have user location ----
   const placesWithDistance = useMemo(() => {
@@ -276,18 +531,121 @@ export default function MapScreen() {
     });
   }, [filteredPlaces, userLocation]);
 
-  // ---- MapLibre style URL: follow the active Bloom theme ----
+  // ---- Distance for the currently-selected place, used by the detail view.
+  const selectedPlaceDistanceKm = useMemo<number | null>(() => {
+    if (!selectedPlace || !userLocation) return null;
+    return distanceKm(userLocation, {
+      latitude: selectedPlace.latitude,
+      longitude: selectedPlace.longitude,
+    });
+  }, [selectedPlace, userLocation]);
+
   const mapStyleUrl = theme.isDark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT;
 
-  // ---- Bottom sheet styling that follows the Bloom theme ----
+  // Selection ring and selected-label depend on the theme primary so they
+  // can't be hoisted; the base pin / shadow / highlight styles live at
+  // module scope at the top of the file.
+  const placesSelectedStyle = useMemo<CircleLayerStyle>(
+    () => ({
+      circleRadius: [
+        "interpolate", ["linear"], ["zoom"],
+        10, 6,
+        14, 9,
+        16, 13,
+        18, 16,
+      ],
+      circleColor: theme.colors.primary,
+      circleStrokeColor: "#ffffff",
+      circleStrokeWidth: 3,
+      circlePitchAlignment: "map",
+    }),
+    [theme.colors.primary],
+  );
+
+  // `textAllowOverlap: false` lets MapLibre declutter colliding labels as
+  // the user zooms out (Google Maps collision avoidance).
+  const placesLabelStyle = useMemo<SymbolLayerStyle>(
+    () => ({
+      textField: ["get", "name"],
+      textSize: [
+        "interpolate", ["linear"], ["zoom"],
+        11, 0,
+        12, 10,
+        14, 11,
+        16, 12,
+        18, 14,
+      ],
+      textColor: theme.colors.text,
+      textHaloColor: theme.colors.background,
+      textHaloWidth: 2,
+      textOffset: [0, 1.4],
+      textAnchor: "top",
+      textAllowOverlap: false,
+      textIgnorePlacement: false,
+      textPitchAlignment: "viewport",
+      textMaxWidth: 8,
+    }),
+    [theme.colors.text, theme.colors.background],
+  );
+
+  const placesSelectedLabelStyle = useMemo<SymbolLayerStyle>(
+    () => ({
+      textField: ["get", "name"],
+      textSize: 14,
+      textColor: theme.colors.primary,
+      textHaloColor: theme.colors.background,
+      textHaloWidth: 2.5,
+      textOffset: [0, 1.6],
+      textAnchor: "top",
+      textAllowOverlap: true,
+      textIgnorePlacement: true,
+      textPitchAlignment: "viewport",
+      textMaxWidth: 10,
+    }),
+    [theme.colors.primary, theme.colors.background],
+  );
+
+  // Only `selectedPlaceId` varies — the inner `["get", "id"]` is a stable
+  // module constant (`GET_ID_EXPR`) so we don't reallocate it per render.
+  const placesSelectedFilter = useMemo(
+    () => ["==", GET_ID_EXPR, selectedPlaceId] as const,
+    [selectedPlaceId],
+  );
+
   const sheetBackgroundStyle = useMemo(
-    () => ({ backgroundColor: theme.colors.background }),
+    () => ({
+      backgroundColor: theme.colors.background,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      overflow: "hidden" as const,
+    }),
     [theme.colors.background],
   );
 
-  const sheetHandleStyle = useMemo(
-    () => ({ backgroundColor: theme.colors.textSecondary }),
-    [theme.colors.textSecondary],
+  // Search pill wrapper depends on the safe-area inset so it's memoised;
+  // the FAB container style is a StyleSheet entry (see `styles.fabContainer`).
+  const searchPillBaseStyle = useMemo(
+    () => ({
+      position: "absolute" as const,
+      top: insets.top + 10,
+      left: 0,
+      right: 0,
+      paddingHorizontal: 12,
+      zIndex: 10,
+    }),
+    [insets.top],
+  );
+
+  const renderPlaceRow = useCallback(
+    ({ item }: { item: { place: Place; km: number | null } }) => (
+      <PlaceRow
+        place={item.place}
+        distanceKm={item.km}
+        isSelected={item.place.id === selectedPlaceId}
+        onPress={() => selectPlace(item.place, true)}
+      />
+    ),
+    [selectedPlaceId, selectPlace],
   );
 
   return (
@@ -303,104 +661,103 @@ export default function MapScreen() {
         <Camera
           ref={cameraRef}
           defaultSettings={{
-            centerCoordinate: initialCenter,
+            centerCoordinate: INITIAL_CENTER,
             zoomLevel: INITIAL_ZOOM,
             pitch: INITIAL_PITCH,
             heading: 0,
           }}
-          animationMode="flyTo"
-          animationDuration={CAMERA_ANIMATION_MS}
         />
         {hasLocationPermission ? <UserLocation visible animated /> : null}
-        {filteredPlaces.map((place) => (
-          <MarkerView
-            key={place.id}
-            coordinate={[place.longitude, place.latitude]}
-            anchor={{ x: 0.5, y: 1 }}
-            allowOverlap
-          >
-            <Pressable
-              onPress={() => selectPlace(place, true)}
-              accessibilityRole="button"
-              accessibilityLabel={place.name}
-              hitSlop={6}
-            >
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center border-2 border-white"
-                style={{ backgroundColor: theme.colors.primary }}
-              >
-                <MaterialCommunityIcons
-                  name={CATEGORY_ICON[place.category]}
-                  size={18}
-                  color="#ffffff"
-                />
-              </View>
-            </Pressable>
-          </MarkerView>
-        ))}
+
+        {/* Native place pins. One ShapeSource feeds every layer so the
+            native hit-test dispatches onPress for taps on any visible
+            layer. Layer order bottom→top: shadow, base pin, selected
+            ring, selected highlight, base label, selected label. */}
+        <ShapeSource
+          id="places-source"
+          shape={placesGeoJson}
+          onPress={handleMarkerPress}
+          hitbox={MARKER_HITBOX}
+        >
+          <CircleLayer id="places-shadow" style={PLACES_SHADOW_STYLE} />
+          <CircleLayer id="places-circles" style={PLACES_CIRCLE_STYLE} />
+          <CircleLayer
+            id="places-circles-selected"
+            filter={placesSelectedFilter}
+            style={placesSelectedStyle}
+          />
+          <CircleLayer
+            id="places-circles-highlight"
+            filter={placesSelectedFilter}
+            style={PLACES_SELECTED_HIGHLIGHT_STYLE}
+          />
+          <SymbolLayer id="places-labels" style={placesLabelStyle} />
+          <SymbolLayer
+            id="places-labels-selected"
+            filter={placesSelectedFilter}
+            style={placesSelectedLabelStyle}
+          />
+        </ShapeSource>
       </MapView>
 
-      {/* ---- Top floating pill: back button + search input ---- */}
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: "absolute",
-          top: insets.top + 10,
-          left: 0,
-          right: 0,
-          paddingHorizontal: 16,
-          zIndex: 10,
-        }}
-      >
+      <View pointerEvents="box-none" style={searchPillBaseStyle}>
         <View
-          className="flex-row items-center bg-background rounded-full px-3 h-[52px]"
+          className="flex-row items-center bg-background rounded-full pl-2 pr-3 h-14"
           style={styles.floatingBar}
         >
           <Pressable
             onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center rounded-full active:bg-surface"
+            className="w-11 h-11 items-center justify-center rounded-full active:bg-surface"
             accessibilityRole="button"
             accessibilityLabel={t("common.back")}
             hitSlop={8}
           >
             <MaterialCommunityIcons
               name="arrow-left"
-              size={24}
+              size={22}
               color={theme.colors.text}
             />
           </Pressable>
 
-          <View className="flex-row items-center flex-1 ml-1">
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+            placeholder={t("map.searchPlaceholder")}
+            placeholderTextColor={theme.colors.textSecondary}
+            className="flex-1 ml-1 mr-2 text-base"
+            style={{ color: theme.colors.text }}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+
+          {query.length > 0 ? (
+            <Pressable
+              onPress={() => setQuery("")}
+              className="w-8 h-8 items-center justify-center rounded-full active:bg-surface"
+              accessibilityRole="button"
+              accessibilityLabel={t("common.clear")}
+              hitSlop={6}
+            >
+              <MaterialCommunityIcons
+                name="close"
+                size={18}
+                color={theme.colors.textSecondary}
+              />
+            </Pressable>
+          ) : (
             <MaterialCommunityIcons
               name="magnify"
-              size={20}
+              size={22}
               color={theme.colors.textSecondary}
             />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t("map.searchPlaceholder")}
-              placeholderTextColor={theme.colors.textSecondary}
-              className="flex-1 ml-2 text-foreground text-base"
-              style={{ color: theme.colors.text }}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-            />
-          </View>
+          )}
         </View>
       </View>
 
-      {/* ---- Floating "my location" FAB ---- */}
-      <View
-        pointerEvents="box-none"
-        style={{
-          position: "absolute",
-          right: 16,
-          bottom: "42%",
-          zIndex: 9,
-        }}
-      >
+      <View pointerEvents="box-none" style={styles.fabContainer}>
         <Pressable
           onPress={handleLocateMe}
           className="w-12 h-12 rounded-full bg-background items-center justify-center active:opacity-80"
@@ -416,119 +773,544 @@ export default function MapScreen() {
         </Pressable>
       </View>
 
-      {/* ---- Bottom sheet with place list ---- */}
       <BottomSheet
+        ref={sheetRef}
         snapPoints={SHEET_SNAP_POINTS}
-        index={0}
+        index={1}
         enablePanDownToClose={false}
+        onChange={handleSheetChange}
+        animatedIndex={sheetAnimatedIndex}
         backgroundStyle={sheetBackgroundStyle}
-        handleIndicatorStyle={sheetHandleStyle}
+        handleComponent={renderNullHandle}
       >
-        <BottomSheetView className="flex-1 pt-1">
-          <View className="px-5 pb-2 flex-row items-center justify-between">
-            <Text className="text-foreground text-lg font-semibold">
-              {t("map.nearYou")}
-            </Text>
-            <Text className="text-muted-foreground text-xs">
-              {filteredPlaces.length}
-            </Text>
-          </View>
-
-          {placesWithDistance.length === 0 ? (
-            <View className="items-center justify-center py-10 px-6">
-              <View className="w-14 h-14 rounded-full bg-surface items-center justify-center mb-3">
-                <MaterialCommunityIcons
-                  name="map-marker-off"
-                  size={24}
-                  color={theme.colors.textSecondary}
-                />
-              </View>
-              <Text className="text-foreground text-base font-medium">
-                {t("map.noResults")}
+        {sheetMode === "detail" && selectedPlace ? (
+          <PlaceDetail
+            place={selectedPlace}
+            distanceKm={selectedPlaceDistanceKm}
+            onClose={handleCloseDetail}
+          />
+        ) : (
+          <View className="flex-1">
+            {/* Sticky top block (spacer grows with the drag, then title,
+                then filter chips). Renders outside the FlashList so it
+                stays pinned while the list scrolls beneath it. */}
+            <Animated.View style={headerSpacerStyle} />
+            <View className="px-5 pt-4 pb-2">
+              <Text className="text-foreground text-lg font-semibold">
+                {t("map.nearYou")}
+              </Text>
+              <Text className="text-muted-foreground text-xs mt-0.5">
+                {filteredPlaces.length}{" "}
+                {filteredPlaces.length === 1
+                  ? t("map.resultOne")
+                  : t("map.resultOther")}
               </Text>
             </View>
-          ) : (
-            <ScrollView
-              ref={cardScrollRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.cardListContent}
-              snapToInterval={CARD_WIDTH + 12}
-              decelerationRate="fast"
-            >
-              {placesWithDistance.map(({ place, km }) => (
-                <PlaceCard
-                  key={place.id}
-                  place={place}
-                  distanceKm={km}
-                  isSelected={place.id === selectedPlaceId}
-                  onPress={() => selectPlace(place, true)}
-                />
-              ))}
-            </ScrollView>
-          )}
-        </BottomSheetView>
+            <CategoryFilterRow
+              value={categoryFilter}
+              onChange={handleCategoryFilter}
+            />
+            <FlashList
+              renderScrollComponent={BottomSheetFlashListScrollable}
+              data={placesWithDistance}
+              keyExtractor={(item) => item.place.id}
+              contentContainerStyle={listContentContainerStyle}
+              ListEmptyComponent={
+                <EmptyState icon="map-marker-off" title={t("map.noResults")} />
+              }
+              renderItem={renderPlaceRow}
+            />
+            <FloatingHandle />
+          </View>
+        )}
       </BottomSheet>
+
+      <Prompt.Outer control={locationDeniedPrompt}>
+        <Prompt.Content>
+          <Prompt.TitleText>{t("map.permissionDenied.title")}</Prompt.TitleText>
+          <Prompt.DescriptionText>
+            {t("map.permissionDenied.subtitle")}
+          </Prompt.DescriptionText>
+        </Prompt.Content>
+        <Prompt.Actions>
+          <Prompt.Action
+            cta={t("common.ok")}
+            onPress={() => locationDeniedPrompt.close()}
+            color="primary"
+          />
+        </Prompt.Actions>
+      </Prompt.Outer>
     </View>
   );
 }
 
 // ---------------------------------------------------------------------------
-// PlaceCard — horizontal card for the bottom sheet list
+// CategoryFilterRow — horizontal scrollable chip row that filters the list
+// by PlaceCategory. Rendered inside the FlashList header so it scrolls with
+// the content.
 // ---------------------------------------------------------------------------
 
-interface PlaceCardProps {
+interface CategoryFilterRowProps {
+  value: CategoryFilter;
+  onChange: (next: CategoryFilter) => void;
+}
+
+function CategoryFilterRow({ value, onChange }: CategoryFilterRowProps) {
+  const theme = useTheme();
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.chipRow}
+    >
+      {CATEGORY_FILTERS.map((key) => {
+        const isActive = key === value;
+        const label =
+          key === "all" ? t("map.filter.all") : categoryLabel(key);
+        const icon: IconName =
+          key === "all" ? "filter-variant" : CATEGORY_ICON[key];
+        return (
+          <Pressable
+            key={key}
+            onPress={() => onChange(key)}
+            className={`flex-row items-center rounded-full px-3 h-9 mr-2 border ${
+              isActive ? "border-transparent" : ""
+            }`}
+            style={[
+              styles.chip,
+              isActive
+                ? { backgroundColor: theme.colors.primary }
+                : {
+                    backgroundColor: theme.colors.background,
+                    borderColor: theme.colors.border,
+                  },
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isActive }}
+            hitSlop={6}
+          >
+            <MaterialCommunityIcons
+              name={icon}
+              size={16}
+              color={isActive ? "#ffffff" : theme.colors.textSecondary}
+            />
+            <Text
+              className="ml-1.5 text-sm font-medium"
+              style={{ color: isActive ? "#ffffff" : theme.colors.text }}
+            >
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PlaceRow — vertical row for the FlashList in the bottom sheet (Google Maps
+// style: avatar + name + meta lines + distance pill on the right).
+// ---------------------------------------------------------------------------
+
+interface PlaceRowProps {
   place: Place;
   distanceKm: number | null;
   isSelected: boolean;
   onPress: () => void;
 }
 
-function PlaceCard({ place, distanceKm: km, isSelected, onPress }: PlaceCardProps) {
+function PlaceRow({ place, distanceKm: km, isSelected, onPress }: PlaceRowProps) {
   const theme = useTheme();
   const icon = CATEGORY_ICON[place.category];
+  const distanceLabel = formatDistanceLabel(km);
 
-  const borderClass = isSelected ? "border-2 border-primary" : "border border-border";
-
-  const subtitle = km !== null
-    ? t("map.distance", { km: km < 10 ? km.toFixed(1) : Math.round(km) })
-    : `${place.city}, ${place.country}`;
+  const handleDirectionsPress = useCallback(() => {
+    hapticSelection();
+    openDirections(place);
+  }, [place]);
 
   return (
     <Pressable
       onPress={onPress}
-      className={`bg-surface rounded-2xl p-4 mr-3 flex-row items-center active:opacity-80 ${borderClass}`}
-      style={{ width: CARD_WIDTH }}
+      className={`px-5 py-3 ${
+        isSelected ? "bg-primary/5" : "active:bg-surface"
+      }`}
     >
-      <View className="w-12 h-12 rounded-full bg-primary/10 items-center justify-center mr-3">
-        <MaterialCommunityIcons
-          name={icon}
-          size={22}
-          color={theme.colors.primary}
-        />
+      <View className="flex-row items-center">
+        {place.imageUrl ? (
+          <Image
+            source={{ uri: place.imageUrl }}
+            style={styles.rowThumbnail}
+            resizeMode="cover"
+            accessibilityIgnoresInvertColors
+          />
+        ) : (
+          <View className="w-14 h-14 rounded-xl bg-primary/10 items-center justify-center mr-3">
+            <MaterialCommunityIcons
+              name={icon}
+              size={24}
+              color={theme.colors.primary}
+            />
+          </View>
+        )}
+
+        <View className="flex-1 mr-2">
+          <Text
+            className="text-foreground text-base font-semibold"
+            numberOfLines={1}
+          >
+            {place.name}
+          </Text>
+          <Text
+            className="text-muted-foreground text-xs mt-0.5"
+            numberOfLines={1}
+          >
+            {categoryLabel(place.category)} · {place.city}
+          </Text>
+          <Text
+            className="text-muted-foreground text-xs mt-0.5"
+            numberOfLines={1}
+          >
+            {place.address}
+          </Text>
+        </View>
+
+        {distanceLabel ? (
+          <View className="bg-surface rounded-full px-3 py-1 mr-2">
+            <Text className="text-muted-foreground text-xs font-medium">
+              {distanceLabel}
+            </Text>
+          </View>
+        ) : null}
+
+        <Pressable
+          onPress={handleDirectionsPress}
+          className="w-10 h-10 rounded-full bg-primary items-center justify-center active:opacity-80"
+          accessibilityRole="button"
+          accessibilityLabel={t("map.directions.accessibility", {
+            name: place.name,
+          })}
+          hitSlop={6}
+        >
+          <MaterialCommunityIcons
+            name="directions"
+            size={20}
+            color="#ffffff"
+          />
+        </Pressable>
+      </View>
+    </Pressable>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PlaceDetail — Google Maps inspired place sheet: hero image, title block,
+// distance chip, address, description and an action row (Directions + call
+// and website icon buttons). Rendered inside `BottomSheetScrollView` so it
+// scrolls naturally within the gesture-handling bottom sheet.
+// ---------------------------------------------------------------------------
+
+interface PlaceDetailProps {
+  place: Place;
+  distanceKm: number | null;
+  onClose: () => void;
+}
+
+function PlaceDetail({ place, distanceKm: km, onClose }: PlaceDetailProps) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const distanceLabel = formatDistanceLabel(km);
+  const heroIcon = CATEGORY_ICON[place.category];
+
+  const handleDirections = useCallback(() => {
+    hapticSelection();
+    openDirections(place);
+  }, [place]);
+
+  const handleCall = useCallback(() => {
+    const phone = place.phone;
+    if (!phone) return;
+    hapticSelection();
+    void Linking.openURL(`tel:${phone}`);
+  }, [place.phone]);
+
+  const handleWebsite = useCallback(() => {
+    const website = place.website;
+    if (!website) return;
+    hapticSelection();
+    void Linking.openURL(website);
+  }, [place.website]);
+
+  const contentStyle = useMemo(
+    () => ({ paddingBottom: insets.bottom + 16 }),
+    [insets.bottom],
+  );
+
+  return (
+    <BottomSheetScrollView contentContainerStyle={contentStyle}>
+      {/* Hero image (or tinted category fallback) — top corners are rounded
+       * to match the parent sheet's rounded top. We clip the wrapper View
+       * with `overflow: hidden` so the child <Image> and the overlaid drag
+       * handle both inherit the rounded corners and the image bitmap
+       * doesn't spill over the sheet's top edges. */}
+      <View style={styles.heroWrapper}>
+        {place.imageUrl ? (
+          <Image
+            source={{ uri: place.imageUrl }}
+            style={styles.heroImage}
+            resizeMode="cover"
+            accessibilityIgnoresInvertColors
+          />
+        ) : (
+          <View className="w-full h-[200px] bg-primary/10 items-center justify-center">
+            <MaterialCommunityIcons
+              name={heroIcon}
+              size={64}
+              color={theme.colors.primary}
+            />
+          </View>
+        )}
+        {/* Custom drag handle overlayed on the hero image so the user can
+         * still pan the sheet up/down even though the chrome handle is
+         * suppressed in detail mode. */}
+        <View
+          pointerEvents="none"
+          style={styles.heroHandleContainer}
+        >
+          <View style={styles.heroHandleBar} />
+        </View>
+        <Pressable
+          onPress={onClose}
+          className="absolute top-3 left-3 w-10 h-10 rounded-full bg-background/80 items-center justify-center active:opacity-80"
+          style={styles.heroCloseButton}
+          accessibilityRole="button"
+          accessibilityLabel={t("map.detail.close.accessibility")}
+          hitSlop={8}
+        >
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={22}
+            color={theme.colors.text}
+          />
+        </Pressable>
       </View>
 
-      <View className="flex-1 mr-2">
+      {/* Title block */}
+      <View className="px-5 pt-4 pb-2">
         <Text
-          className="text-foreground text-base font-semibold"
-          numberOfLines={1}
+          className="text-foreground text-2xl font-bold"
+          numberOfLines={2}
         >
           {place.name}
         </Text>
-        <Text className="text-muted-foreground text-xs mt-0.5" numberOfLines={1}>
-          {categoryLabel(place.category)}
-        </Text>
-        <Text className="text-muted-foreground text-xs mt-0.5" numberOfLines={1}>
-          {subtitle}
+        <Text className="text-muted-foreground text-sm mt-1">
+          {categoryLabel(place.category)} · {place.city}, {place.country}
         </Text>
       </View>
 
+      {/* Distance pill */}
+      {distanceLabel ? (
+        <View className="px-5 mb-2 flex-row items-center">
+          <View className="bg-primary/10 rounded-full px-3 py-1">
+            <Text className="text-primary text-xs font-semibold">
+              {distanceLabel}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {/* Address */}
+      <View className="px-5 py-2 flex-row items-start">
+        <MaterialCommunityIcons
+          name="map-marker-outline"
+          size={18}
+          color={theme.colors.textSecondary}
+          style={styles.addressIcon}
+        />
+        <Text className="text-foreground text-sm flex-1">{place.address}</Text>
+      </View>
+
+      {place.description ? (
+        <View className="px-5 py-2">
+          <Text className="text-foreground text-sm leading-5">
+            {place.description}
+          </Text>
+        </View>
+      ) : null}
+
+      <PlaceFacts place={place} />
+
+      <View className="px-5 pt-4 flex-row items-center gap-2">
+        <Pressable
+          onPress={handleDirections}
+          className="flex-1 bg-primary rounded-full py-3 flex-row items-center justify-center active:opacity-80"
+          accessibilityRole="button"
+          accessibilityLabel={t("map.detail.directions")}
+        >
+          <MaterialCommunityIcons
+            name="directions"
+            size={18}
+            color="#ffffff"
+          />
+          <Text className="text-white font-semibold ml-2">
+            {t("map.detail.directions")}
+          </Text>
+        </Pressable>
+
+        {place.phone ? (
+          <Pressable
+            onPress={handleCall}
+            className="w-12 h-12 rounded-full bg-surface items-center justify-center active:opacity-80"
+            accessibilityRole="button"
+            accessibilityLabel={t("map.detail.call")}
+          >
+            <MaterialCommunityIcons
+              name="phone"
+              size={20}
+              color={theme.colors.primary}
+            />
+          </Pressable>
+        ) : null}
+
+        {place.website ? (
+          <Pressable
+            onPress={handleWebsite}
+            className="w-12 h-12 rounded-full bg-surface items-center justify-center active:opacity-80"
+            accessibilityRole="button"
+            accessibilityLabel={t("map.detail.website")}
+          >
+            <MaterialCommunityIcons
+              name="web"
+              size={20}
+              color={theme.colors.primary}
+            />
+          </Pressable>
+        ) : null}
+      </View>
+    </BottomSheetScrollView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PlaceFacts — structured key/value rows rendered in the place detail view
+// for the extended metadata (minimum spend, FairCoin → local fiat exchange,
+// payout methods, opening hours). Each row is only rendered when the
+// corresponding field is populated on the Place.
+// ---------------------------------------------------------------------------
+
+function PlaceFacts({ place }: { place: Place }) {
+  const theme = useTheme();
+  const hasAnyFact =
+    place.minimumSpend !== undefined ||
+    place.acceptsFairToFiat ||
+    place.openingHours !== undefined;
+  if (!hasAnyFact) return null;
+
+  return (
+    <View className="px-5 pt-2">
+      {place.minimumSpend !== undefined ? (
+        <FactRow
+          icon="cash-minus"
+          label={t("map.detail.minimumSpend")}
+          value={t("map.detail.minimumSpendValue", {
+            amount: place.minimumSpend,
+            ticker: COIN_TICKER,
+          })}
+          iconColor={theme.colors.textSecondary}
+          labelColor={theme.colors.textSecondary}
+          valueColor={theme.colors.text}
+        />
+      ) : null}
+
+      {place.acceptsFairToFiat && place.localCurrency ? (
+        <View className="mt-2">
+          <FactRow
+            icon="swap-horizontal-bold"
+            label={t("map.detail.fiatExchange", {
+              currency: place.localCurrency,
+            })}
+            value={
+              place.maxFiatPayout !== undefined
+                ? t("map.detail.maxFiatPayout", {
+                    amount: place.maxFiatPayout,
+                    currency: place.localCurrency,
+                  })
+                : undefined
+            }
+            iconColor={theme.colors.primary}
+            labelColor={theme.colors.text}
+            valueColor={theme.colors.textSecondary}
+          />
+          {place.fiatPayoutMethods && place.fiatPayoutMethods.length > 0 ? (
+            <View className="flex-row flex-wrap mt-2 ml-7">
+              {place.fiatPayoutMethods.map((method) => (
+                <View
+                  key={method}
+                  className="bg-primary/10 rounded-full px-3 py-1 mr-2 mb-2"
+                >
+                  <Text className="text-primary text-xs font-semibold">
+                    {fiatPayoutLabel(method)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {place.openingHours ? (
+        <View className="mt-2">
+          <FactRow
+            icon="clock-outline"
+            label={t("map.detail.openingHours")}
+            value={place.openingHours}
+            iconColor={theme.colors.textSecondary}
+            labelColor={theme.colors.textSecondary}
+            valueColor={theme.colors.text}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+interface FactRowProps {
+  icon: IconName;
+  label: string;
+  value?: string;
+  iconColor: string;
+  labelColor: string;
+  valueColor: string;
+}
+
+function FactRow({
+  icon,
+  label,
+  value,
+  iconColor,
+  labelColor,
+  valueColor,
+}: FactRowProps) {
+  return (
+    <View className="flex-row items-start">
       <MaterialCommunityIcons
-        name="chevron-right"
-        size={20}
-        color={theme.colors.textSecondary}
+        name={icon}
+        size={18}
+        color={iconColor}
+        style={styles.addressIcon}
       />
-    </Pressable>
+      <View className="flex-1">
+        <Text className="text-sm font-medium" style={{ color: labelColor }}>
+          {label}
+        </Text>
+        {value ? (
+          <Text className="text-xs mt-0.5" style={{ color: valueColor }}>
+            {value}
+          </Text>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
@@ -537,12 +1319,20 @@ function PlaceCard({ place, distanceKm: km, isSelected, onPress }: PlaceCardProp
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
+  // Matches Google Maps' search pill shadow on iOS (soft, wide, offset
+  // slightly below) and Android (Material 3 elevation 8).
   floatingBar: {
     shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  fabContainer: {
+    position: "absolute",
+    right: 16,
+    bottom: "42%",
+    zIndex: 9,
   },
   fab: {
     shadowColor: "#000",
@@ -551,8 +1341,88 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
   },
-  cardListContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  listContent: {
+    paddingBottom: 24,
+  },
+  chipRow: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
+  chip: {
+    borderWidth: 1,
+  },
+  floatingHandle: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  floatingHandleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(120, 120, 128, 0.55)",
+  },
+  heroHandleContainer: {
+    position: "absolute",
+    top: 8,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 2,
+  },
+  heroHandleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+  },
+  // Row thumbnail: we express the sizing / radius in the StyleSheet so the
+  // `<Image>` honours the exact rounded-square shape across Android, where
+  // NativeWind's border-radius classes don't always apply to <Image>.
+  rowThumbnail: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  // Hero wrapper: rounds the top corners so the image (and the overlaid
+  // drag handle) match the parent sheet's rounded shape. `overflow: hidden`
+  // clips the image bitmap to the radius.
+  heroWrapper: {
+    position: "relative",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+  },
+  // Hero image spans the sheet full-width and is clipped by the rounded
+  // heroWrapper above. No radius on the Image itself — Android <Image>
+  // ignores borderRadius on the `source` bitmap in some layouts, so we
+  // rely on parent clipping instead.
+  heroImage: {
+    width: "100%",
+    height: 200,
+  },
+  // The circular back button floating over the hero sits on top of arbitrary
+  // imagery, so we add a subtle shadow here to keep it legible regardless of
+  // the photo colours. The translucent fill itself comes from the NativeWind
+  // `bg-background/80` class.
+  heroCloseButton: {
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  // Tiny nudge so the map marker icon aligns with the first line of the
+  // address Text. `mt-0.5 mr-2` classes don't compose onto MaterialCommunityIcons.
+  addressIcon: {
+    marginTop: 2,
+    marginRight: 8,
   },
 });

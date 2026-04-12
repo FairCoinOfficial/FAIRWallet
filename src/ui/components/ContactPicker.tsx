@@ -4,7 +4,8 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, TextInput, Pressable, Modal, FlatList } from "react-native";
+import { View, Text, TextInput, Pressable, Modal } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import { useContactsStore } from "../../wallet/contacts-store";
 import { getDatabase } from "../../wallet/wallet-store";
 import type { ContactRow } from "../../storage/database";
@@ -160,7 +161,7 @@ export function ContactPicker({
             </Text>
           </View>
         ) : (
-          <FlatList
+          <FlashList
             data={displayContacts}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
