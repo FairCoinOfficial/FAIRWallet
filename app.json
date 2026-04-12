@@ -9,6 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#1b1e09"
     },
     "ios": {
@@ -17,6 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#1b1e09"
       },
       "package": "in.fairco.wallet",
@@ -39,8 +42,13 @@
       "expo-secure-store",
       "expo-sqlite",
       "expo-local-authentication",
-      ["expo-camera", { "cameraPermission": "FAIRWallet needs camera access to scan QR codes." }],
-      "./plugins/withGradle813"
+      "expo-system-ui",
+      ["expo-splash-screen", {
+        "image": "./assets/icon.png",
+        "imageWidth": 200,
+        "backgroundColor": "#1b1e09"
+      }],
+      ["expo-camera", { "cameraPermission": "FAIRWallet needs camera access to scan QR codes." }]
     ],
     "experiments": {
       "typedRoutes": true
