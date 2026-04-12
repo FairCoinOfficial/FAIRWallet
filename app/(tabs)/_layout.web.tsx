@@ -80,9 +80,7 @@ export default function TabLayout() {
     minHeight: 0,
   };
 
-  const slotContainerStyle: StyleProp<ViewStyle> = isUltrawide
-    ? [styles.slotContainer, styles.slotContainerUltrawide]
-    : styles.slotContainer;
+  const slotContainerStyle: StyleProp<ViewStyle> = styles.slotContainer;
 
   const tabs: readonly TabDef[] = [
     { name: "index", href: "/", icon: "wallet", label: t("wallet.title") },
@@ -173,7 +171,14 @@ export default function TabLayout() {
               {tabs.map(renderTrigger)}
             </TabList>
             <View style={slotContainerStyle}>
-              <TabSlot />
+              <View
+                style={[
+                  styles.slotInner,
+                  isUltrawide && styles.slotInnerUltrawide,
+                ]}
+              >
+                <TabSlot />
+              </View>
             </View>
           </>
         ) : (
@@ -244,18 +249,30 @@ const styles = StyleSheet.create({
 
   // Wrapper around <TabSlot /> that owns the flex sizing. Without this the
   // default TabSlot style (`flexShrink: 0`) prevents react-native-web's
-  // `<ScrollView>` from receiving a bounded height.
+  // `<ScrollView>` from receiving a bounded height. We also center children
+  // horizontally so the inner cap-width column on ultrawide displays sits in
+  // the middle of the available space (not vertically centered, which is what
+  // `alignSelf: 'center'` would do inside a row-direction parent).
   slotContainer: {
     flex: 1,
     minHeight: 0,
     minWidth: 0,
     alignSelf: "stretch",
+    alignItems: "center",
   },
-  // On ultrawide displays the content column is centered and capped.
-  slotContainerUltrawide: {
-    maxWidth: CONTENT_MAX_WIDTH,
-    alignSelf: "center",
+  // Inner wrapper that holds the actual <TabSlot />. Always full width on
+  // smaller screens, capped to CONTENT_MAX_WIDTH on ultrawide so cards and
+  // text don't stretch across the viewport. Content is top-aligned because
+  // the wrapper itself is a flex column with the default `justifyContent:
+  // 'flex-start'`.
+  slotInner: {
+    flex: 1,
     width: "100%",
+    minHeight: 0,
+    minWidth: 0,
+  },
+  slotInnerUltrawide: {
+    maxWidth: CONTENT_MAX_WIDTH,
   },
 
   // ── Bottom tab bar (< 600px) ──────────────────────────────────────────────

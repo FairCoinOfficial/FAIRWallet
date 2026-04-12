@@ -24,6 +24,8 @@ import Animated, {
   Extrapolation,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import * as WebBrowser from "expo-web-browser";
+import * as Localization from "expo-localization";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import {
   BalanceDisplay,
@@ -76,8 +78,24 @@ export default function HomeScreen() {
   const transactions = useWalletStore((s) => s.transactions);
   const network = useWalletStore((s) => s.network);
   const activeWalletName = useWalletStore((s) => s.activeWalletName);
+  const receiveAddress = useWalletStore((s) => s.currentReceiveAddress);
   const refreshBalance = useWalletStore((s) => s.refreshBalance);
   const loading = useWalletStore((s) => s.loading);
+
+  const handleBuy = useCallback(async () => {
+    const locale = Localization.getLocales()[0];
+    const language = locale?.languageCode ?? "en";
+    const country = locale?.regionCode ?? "";
+    const params = new URLSearchParams({
+      in_app: "true",
+      address: receiveAddress ?? "",
+      language,
+      country,
+    });
+    await WebBrowser.openBrowserAsync(
+      `https://buy.fairco.in/?${params.toString()}`,
+    );
+  }, [receiveAddress]);
 
   const [price, setPrice] = useState<PriceData | null>(getCachedPrice);
 
@@ -190,6 +208,11 @@ export default function HomeScreen() {
               icon="arrow-down-bold"
               label="Receive"
               onPress={() => router.push("/(tabs)/receive")}
+            />
+            <ActionButton
+              icon="credit-card-plus"
+              label="Buy"
+              onPress={handleBuy}
             />
             <ActionButton
               icon="account-group"

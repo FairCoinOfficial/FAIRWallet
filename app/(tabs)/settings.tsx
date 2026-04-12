@@ -525,7 +525,7 @@ export default function SettingsScreen() {
       <ScreenHeader title="Settings" />
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pt-2 pb-8 gap-6"
+        contentContainerClassName="pt-2 pb-8 gap-2"
       >
         {/* Wallets */}
         <SettingsListGroup title="Wallets">
