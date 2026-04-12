@@ -24,8 +24,9 @@
  *     height, which breaks vertical scrolling inside `<ScrollView>`.
  */
 
-import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
+import { Tabs, TabList, TabTrigger, useTabSlot } from "expo-router/ui";
 import { usePathname } from "expo-router";
+import { Screen } from "react-native-screens";
 import {
   View,
   Text,
@@ -44,6 +45,65 @@ const RAIL_WIDTH = 80;
 const RAIL_INDICATOR_WIDTH = 56;
 const RAIL_INDICATOR_HEIGHT = 32;
 const RAIL_ICON_SIZE = 24;
+
+// Override for `expo-router/ui`'s `defaultTabsSlotRender`. The built-in
+// version hard-codes `flexShrink: 0` on both the `ScreenContainer` and
+// the focused `Screen` wrappers (see expo-router/build/ui/TabSlot.js:85),
+// which breaks the flex chain for react-native-web: any nested
+// `<ScrollView>` / `<FlashList>` refuses to shrink below its content
+// height and stops scrolling on short viewports. We re-render the focused
+// screen with a flex-shrink:1 style so the chain stays bounded.
+const FIXED_SCREEN_STYLE: ViewStyle = {
+  flex: 1,
+  flexGrow: 1,
+  flexShrink: 1,
+  minHeight: 0,
+  position: "relative",
+  height: "100%",
+};
+
+const FIXED_SLOT_CONTAINER_STYLE: ViewStyle = {
+  flex: 1,
+  flexGrow: 1,
+  flexShrink: 1,
+  minHeight: 0,
+};
+
+function FixedTabSlot() {
+  return useTabSlot({
+    style: FIXED_SLOT_CONTAINER_STYLE,
+    renderFn: (descriptor, { isFocused, loaded, detachInactiveScreens }) => {
+      const options = descriptor.options as {
+        lazy?: boolean;
+        unmountOnBlur?: boolean;
+        freezeOnBlur?: boolean;
+      };
+      const lazy = options.lazy ?? true;
+      if (options.unmountOnBlur && !isFocused) return null;
+      if (lazy && !loaded && !isFocused) return null;
+      return (
+        <Screen
+          key={descriptor.route.key}
+          enabled={detachInactiveScreens}
+          activityState={isFocused ? 2 : 0}
+          freezeOnBlur={options.freezeOnBlur}
+          style={isFocused ? FIXED_SCREEN_STYLE : UNFOCUSED_SCREEN_STYLE}
+        >
+          {descriptor.render()}
+        </Screen>
+      );
+    },
+  });
+}
+
+const UNFOCUSED_SCREEN_STYLE: ViewStyle = {
+  zIndex: -1,
+  display: "none",
+  flexShrink: 1,
+  flexGrow: 0,
+  position: "relative",
+  height: "100%",
+};
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -171,13 +231,13 @@ export default function TabLayout() {
               {tabs.map(renderTrigger)}
             </TabList>
             <View style={styles.slotContainer}>
-              <TabSlot />
+              <FixedTabSlot />
             </View>
           </>
         ) : (
           <>
             <View style={styles.slotContainer}>
-              <TabSlot />
+              <FixedTabSlot />
             </View>
             <TabList
               style={[

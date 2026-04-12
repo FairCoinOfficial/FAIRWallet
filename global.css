@@ -2,26 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
- * react-native-web flex-shrink reset.
- *
- * react-native-web renders every `<View>` as a `<div>` with
- * `flex-shrink: 0` baked in. That breaks the standard `<View flex-1>`
- * wrapping a `<ScrollView>` / `<FlashList>` pattern on web: the wrapper
- * refuses to shrink below its content's intrinsic height, so nested
- * scroll containers grow to fit their content instead of bounding and
- * scrolling. Setting `min-height: 0` on every descendant of `#root`
- * tells flex layout it may shrink these wrappers when the viewport is
- * smaller than the content, which is what restores scrolling.
- *
- * `min-height: 0` is a *lower bound*: it never forces a box smaller
- * than its content unless flex-shrink also applies, so fixed-size
- * elements (buttons, icons, images) keep their height.
- */
-#root div {
-  min-height: 0;
-  min-width: 0;
-}
 
 /*
  * Fallback CSS custom properties (faircoin dark preset).
