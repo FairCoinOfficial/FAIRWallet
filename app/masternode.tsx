@@ -144,6 +144,7 @@ export default function MasternodeScreen() {
       className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
     >
+      <ScreenHeader title="Masternode" />
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-5 pt-4 pb-8"

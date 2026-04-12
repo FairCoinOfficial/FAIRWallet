@@ -10,7 +10,6 @@ import {
   ScrollView,
   Switch,
   Modal,
-  Alert,
   Pressable,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -28,21 +27,41 @@ import {
   getCurrency,
   setCurrency,
 } from "../../src/storage/secure-store";
-import {
-  Section,
-  ListItem,
-  Card,
-  Button,
-  PinDots,
-  PinPad,
-} from "../../src/ui/components";
+import { Card, Button, PinDots, PinPad, ScreenHeader } from "../../src/ui/components";
 import type { NetworkType } from "../../src/core/network";
 import { useBloomTheme } from "@oxyhq/bloom/theme";
 import type { ThemeMode } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
+import {
+  SettingsListGroup,
+  SettingsListItem,
+} from "@oxyhq/bloom/settings-list";
 
 const APP_VERSION = "1.0.0";
 const PIN_LENGTH = 6;
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+// ---------------------------------------------------------------------------
+// Settings row icon — colored circular badge used as the `icon` slot of
+// Bloom's SettingsListItem.
+// ---------------------------------------------------------------------------
+
+interface SettingsRowIconProps {
+  name: IconName;
+  color: string;
+  bgClassName: string;
+}
+
+function SettingsRowIcon({ name, color, bgClassName }: SettingsRowIconProps) {
+  return (
+    <View
+      className={`w-9 h-9 rounded-full items-center justify-center ${bgClassName}`}
+    >
+      <MaterialCommunityIcons name={name} size={20} color={color} />
+    </View>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // PIN entry modal (for verifying current PIN before sensitive actions)
@@ -265,6 +284,7 @@ export default function SettingsScreen() {
   const switchNetworkControl = Prompt.usePromptControl();
   const resyncControl = Prompt.usePromptControl();
   const recoveryControl = Prompt.usePromptControl();
+  const messageControl = Prompt.usePromptControl();
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -274,6 +294,22 @@ export default function SettingsScreen() {
   const [recoveryMnemonic, setRecoveryMnemonic] = useState("");
   const [autoLockMinutes, setAutoLockMinutes] = useState(5);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [messageDialog, setMessageDialog] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+
+  const showMessage = useCallback(
+    (title: string, description: string) => {
+      setMessageDialog({ title, description });
+      messageControl.open();
+    },
+    [messageControl],
+  );
+
+  const handleMessageDismiss = useCallback(() => {
+    setMessageDialog(null);
+  }, []);
 
   const isMainnet = network === "mainnet";
 
@@ -359,15 +395,15 @@ export default function SettingsScreen() {
           setRecoveryMnemonic(mnemonic);
           recoveryControl.open();
         } else {
-          Alert.alert("Error", "Could not retrieve recovery phrase.");
+          showMessage("Error", "Could not retrieve recovery phrase.");
         }
       } catch {
-        Alert.alert("Error", "Failed to load recovery phrase.");
+        showMessage("Error", "Failed to load recovery phrase.");
       }
     } else if (action === "change_pin") {
       router.push("/onboarding/pin-setup");
     }
-  }, [pinAction, router, recoveryControl]);
+  }, [pinAction, router, recoveryControl, showMessage]);
 
   const handleRecoveryDismiss = useCallback(() => {
     setRecoveryMnemonic("");
@@ -376,7 +412,7 @@ export default function SettingsScreen() {
   const handleToggleBiometrics = useCallback(
     async (enabled: boolean) => {
       if (enabled && !biometricsAvailable) {
-        Alert.alert(
+        showMessage(
           "Biometrics Unavailable",
           "Your device does not have biometric authentication set up. Please enable it in your device settings first.",
         );
@@ -398,10 +434,10 @@ export default function SettingsScreen() {
         await storeBiometricsEnabled(enabled);
         setBiometricsEnabled(enabled);
       } catch {
-        Alert.alert("Error", "Failed to update biometrics setting.");
+        showMessage("Error", "Failed to update biometrics setting.");
       }
     },
-    [biometricsAvailable],
+    [biometricsAvailable, showMessage],
   );
 
   const handleMasternode = useCallback(() => {
@@ -439,37 +475,37 @@ export default function SettingsScreen() {
       const json = await exportBackup();
       const { setStringAsync } = await import("expo-clipboard");
       await setStringAsync(json);
-      Alert.alert(
+      showMessage(
         "Backup Exported",
         "Backup data copied to clipboard. Save it in a secure location.",
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Export failed";
-      Alert.alert("Error", message);
+      showMessage("Error", message);
     }
-  }, [exportBackup]);
+  }, [exportBackup, showMessage]);
 
   const handleImportBackup = useCallback(async () => {
     try {
       const { getStringAsync } = await import("expo-clipboard");
       const json = await getStringAsync();
       if (!json || json.trim().length === 0) {
-        Alert.alert(
+        showMessage(
           "Error",
           "No backup data found in clipboard. Copy backup JSON to clipboard first.",
         );
         return;
       }
       await importBackup(json);
-      Alert.alert(
+      showMessage(
         "Backup Imported",
         "Contacts, labels, and settings have been restored.",
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Import failed";
-      Alert.alert("Error", message);
+      showMessage("Error", message);
     }
-  }, [importBackup]);
+  }, [importBackup, showMessage]);
 
   const handleResync = useCallback(() => {
     resyncControl.open();
@@ -485,47 +521,62 @@ export default function SettingsScreen() {
   }, [wipeWallet, router]);
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+      <ScreenHeader title="Settings" />
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pt-4 pb-8 gap-6"
-        contentContainerStyle={{ paddingTop: insets.top }}
+        contentContainerClassName="px-4 pt-2 pb-8 gap-6"
       >
         {/* Wallets */}
-        <Section title="Wallets">
-          <ListItem
+        <SettingsListGroup title="Wallets">
+          <SettingsListItem
             title="Manage Wallets"
             value={walletCountLabel}
-            icon="wallet"
-            iconBg="bg-blue-500/10"
-            iconColor="#60a5fa"
+            icon={
+              <SettingsRowIcon
+                name="wallet"
+                color="#60a5fa"
+                bgClassName="bg-blue-500/10"
+              />
+            }
             onPress={handleManageWallets}
           />
-          <ListItem
+          <SettingsListItem
             title="Contacts"
-            icon="account-group"
-            iconBg="bg-purple-500/10"
-            iconColor="#a78bfa"
+            icon={
+              <SettingsRowIcon
+                name="account-group"
+                color="#a78bfa"
+                bgClassName="bg-purple-500/10"
+              />
+            }
             onPress={handleContacts}
-            isLast
           />
-        </Section>
+        </SettingsListGroup>
 
         {/* Security */}
-        <Section title="Security">
-          <ListItem
+        <SettingsListGroup title="Security">
+          <SettingsListItem
             title="Change PIN"
-            icon="lock"
-            iconBg="bg-yellow-500/10"
-            iconColor="#facc15"
+            icon={
+              <SettingsRowIcon
+                name="lock"
+                color="#facc15"
+                bgClassName="bg-yellow-500/10"
+              />
+            }
             onPress={handleChangePIN}
           />
-          <ListItem
+          <SettingsListItem
             title="Biometric Unlock"
-            icon="fingerprint"
-            iconBg="bg-primary/10"
-            iconColor={themeColors.primary}
-            trailing={
+            icon={
+              <SettingsRowIcon
+                name="fingerprint"
+                color={themeColors.primary}
+                bgClassName="bg-primary/10"
+              />
+            }
+            rightElement={
               <Switch
                 value={biometricsEnabled}
                 onValueChange={handleToggleBiometrics}
@@ -538,133 +589,181 @@ export default function SettingsScreen() {
             }
             showChevron={false}
           />
-          <ListItem
+          <SettingsListItem
             title="Auto-Lock"
             value={`${autoLockMinutes} min`}
-            icon="clock-outline"
-            iconBg="bg-orange-500/10"
-            iconColor="#fb923c"
+            icon={
+              <SettingsRowIcon
+                name="clock-outline"
+                color="#fb923c"
+                bgClassName="bg-orange-500/10"
+              />
+            }
             onPress={handleCycleAutoLock}
           />
-          <ListItem
+          <SettingsListItem
             title="Export Encrypted Key"
-            icon="shield-key"
-            iconBg="bg-teal-500/10"
-            iconColor="#2dd4bf"
+            icon={
+              <SettingsRowIcon
+                name="shield-key"
+                color="#2dd4bf"
+                bgClassName="bg-teal-500/10"
+              />
+            }
             onPress={handleExportKey}
-            isLast
           />
-        </Section>
+        </SettingsListGroup>
 
         {/* Appearance */}
-        <Section title="Appearance">
-          <ListItem
+        <SettingsListGroup title="Appearance">
+          <SettingsListItem
             title="Display Currency"
             value={displayCurrency}
-            icon="currency-usd"
-            iconBg="bg-primary/10"
+            icon={
+              <SettingsRowIcon
+                name="currency-usd"
+                color={themeColors.primary}
+                bgClassName="bg-primary/10"
+              />
+            }
             onPress={handleCycleCurrency}
           />
           <AppearancePicker />
-        </Section>
+        </SettingsListGroup>
 
         {/* Network */}
-        <Section title="Network">
-          <ListItem
+        <SettingsListGroup title="Network">
+          <SettingsListItem
             title="Network"
             value={isMainnet ? "Mainnet" : "Testnet"}
-            icon="earth"
-            iconBg="bg-cyan-500/10"
-            iconColor="#22d3ee"
+            icon={
+              <SettingsRowIcon
+                name="earth"
+                color="#22d3ee"
+                bgClassName="bg-cyan-500/10"
+              />
+            }
             onPress={handleToggleNetwork}
           />
-          <ListItem
+          <SettingsListItem
             title="Connected Peers"
             value={String(connectedPeers)}
-            icon="server-network"
-            iconBg="bg-indigo-500/10"
-            iconColor="#818cf8"
-            showChevron={false}
+            icon={
+              <SettingsRowIcon
+                name="server-network"
+                color="#818cf8"
+                bgClassName="bg-indigo-500/10"
+              />
+            }
+            onPress={() => router.push("/peers")}
           />
-          <ListItem
+          <SettingsListItem
             title="Resync Wallet"
-            icon="sync"
-            iconBg="bg-sky-500/10"
-            iconColor="#38bdf8"
+            icon={
+              <SettingsRowIcon
+                name="sync"
+                color="#38bdf8"
+                bgClassName="bg-sky-500/10"
+              />
+            }
             onPress={handleResync}
-            isLast
           />
-        </Section>
+        </SettingsListGroup>
 
         {/* Backup */}
-        <Section title="Backup">
-          <ListItem
+        <SettingsListGroup title="Backup">
+          <SettingsListItem
             title="Show Recovery Phrase"
-            icon="eye"
-            iconBg="bg-amber-500/10"
-            iconColor="#fbbf24"
+            icon={
+              <SettingsRowIcon
+                name="eye"
+                color="#fbbf24"
+                bgClassName="bg-amber-500/10"
+              />
+            }
             onPress={handleShowRecovery}
           />
-          <ListItem
+          <SettingsListItem
             title="Export Backup"
-            icon="download"
-            iconBg="bg-primary/10"
-            iconColor={themeColors.primary}
+            icon={
+              <SettingsRowIcon
+                name="download"
+                color={themeColors.primary}
+                bgClassName="bg-primary/10"
+              />
+            }
             onPress={handleExportBackup}
           />
-          <ListItem
+          <SettingsListItem
             title="Import Backup"
-            icon="upload"
-            iconBg="bg-violet-500/10"
-            iconColor="#8b5cf6"
+            icon={
+              <SettingsRowIcon
+                name="upload"
+                color="#8b5cf6"
+                bgClassName="bg-violet-500/10"
+              />
+            }
             onPress={handleImportBackup}
-            isLast
           />
-        </Section>
+        </SettingsListGroup>
 
         {/* Advanced */}
-        <Section title="Advanced">
-          <ListItem
+        <SettingsListGroup title="Advanced">
+          <SettingsListItem
             title="Coin Control"
-            icon="tune"
-            iconBg="bg-slate-500/10"
-            iconColor="#94a3b8"
+            icon={
+              <SettingsRowIcon
+                name="tune"
+                color="#94a3b8"
+                bgClassName="bg-slate-500/10"
+              />
+            }
             onPress={handleCoinControl}
           />
-          <ListItem
+          <SettingsListItem
             title="Masternode"
-            icon="server"
-            iconBg="bg-rose-500/10"
-            iconColor="#fb7185"
+            icon={
+              <SettingsRowIcon
+                name="server"
+                color="#fb7185"
+                bgClassName="bg-rose-500/10"
+              />
+            }
             onPress={handleMasternode}
-            isLast
           />
-        </Section>
+        </SettingsListGroup>
 
         {/* About */}
-        <Section title="About">
-          <ListItem
+        <SettingsListGroup title="About">
+          <SettingsListItem
             title="About FAIRWallet"
             value={`v${APP_VERSION}`}
-            icon="information"
-            iconBg="bg-blue-500/10"
-            iconColor="#60a5fa"
-            isLast
+            icon={
+              <SettingsRowIcon
+                name="information"
+                color="#60a5fa"
+                bgClassName="bg-blue-500/10"
+              />
+            }
+            showChevron={false}
           />
-        </Section>
+        </SettingsListGroup>
 
         {/* Danger Zone */}
-        <Section title="Danger Zone">
-          <ListItem
+        <SettingsListGroup title="Danger Zone">
+          <SettingsListItem
             title="Wipe Wallet"
-            icon="delete"
-            iconBg="bg-red-500/10"
-            iconColor="#f87171"
+            icon={
+              <SettingsRowIcon
+                name="delete"
+                color="#f87171"
+                bgClassName="bg-red-500/10"
+              />
+            }
             destructive
             onPress={() => wipeControl.open()}
-            isLast
           />
-        </Section>
+        </SettingsListGroup>
 
         {/* PIN verification modal */}
         <PinModal
@@ -710,6 +809,16 @@ export default function SettingsScreen() {
         control={recoveryControl}
         mnemonic={recoveryMnemonic}
         onDismiss={handleRecoveryDismiss}
+      />
+
+      {/* Shared info/error message prompt */}
+      <Prompt.Basic
+        control={messageControl}
+        title={messageDialog?.title ?? ""}
+        description={messageDialog?.description ?? ""}
+        confirmButtonCta="OK"
+        onConfirm={handleMessageDismiss}
+        showCancel={false}
       />
     </View>
   );

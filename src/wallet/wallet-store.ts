@@ -1008,7 +1008,6 @@ export const useWalletStore = create<WalletState>((set, get) => ({
           name: c.name,
           address: c.address,
           notes: c.notes,
-          emoji: c.emoji,
         })),
         addressLabels,
       };
@@ -1033,7 +1032,6 @@ export const useWalletStore = create<WalletState>((set, get) => ({
           name: string;
           address: string;
           notes: string;
-          emoji: string;
         }>;
         addressLabels?: Array<{ address: string; label: string }>;
       };
@@ -1051,7 +1049,6 @@ export const useWalletStore = create<WalletState>((set, get) => ({
             contact.name,
             contact.address,
             contact.notes,
-            contact.emoji,
           );
         }
       }

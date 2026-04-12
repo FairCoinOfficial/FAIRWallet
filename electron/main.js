@@ -1,9 +1,27 @@
-const { app, BrowserWindow, ipcMain, safeStorage, protocol } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, safeStorage, protocol, shell, dialog } = require('electron');
 const path = require('path');
 const net = require('net');
 const dns = require('dns');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
+
+// Register the app:// scheme as a standard, secure origin BEFORE the app is
+// ready. Without this, Chromium treats app:// as an opaque path scheme (like
+// data: / javascript:) and `new URL(relative, 'app://local/index.html')`
+// throws "Invalid base URL" — which breaks expo-router and React Native for
+// Web asset resolution.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'fairwallet',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+]);
 
 let mainWindow = null;
 const peerConnections = new Map();
@@ -34,25 +52,31 @@ function getDistPath() {
 function registerAppProtocol() {
   const distPath = getDistPath();
 
-  protocol.registerFileProtocol('app', (request, callback) => {
-    // app://./path -> dist/path
-    let url = request.url.replace('app://./', '').replace('app://.', '');
-
-    // Remove query string and hash
-    url = url.split('?')[0].split('#')[0];
-
-    // Decode URI components
-    url = decodeURIComponent(url);
-
-    // Default to index.html for root or empty path
-    if (!url || url === '/' || url === '') {
-      url = 'index.html';
+  protocol.registerFileProtocol('fairwallet', (request, callback) => {
+    // The page is loaded via app://local/index.html so relative asset
+    // requests from the HTML (e.g. /_expo/static/js/entry.js) resolve to
+    // app://local/_expo/static/... — a valid URL we can parse.
+    let pathname;
+    try {
+      pathname = decodeURIComponent(new URL(request.url).pathname);
+    } catch {
+      pathname = '/index.html';
     }
 
-    const filePath = path.join(distPath, url);
+    // Strip leading slash so path.join doesn't interpret as absolute
+    if (pathname.startsWith('/')) {
+      pathname = pathname.slice(1);
+    }
 
-    // If the file doesn't exist, serve index.html (SPA fallback)
-    if (fs.existsSync(filePath)) {
+    if (!pathname) {
+      pathname = 'index.html';
+    }
+
+    const filePath = path.join(distPath, pathname);
+
+    // Only serve the file if it exists AND is a real file. Fall back to
+    // index.html for SPA routing (expo-router) so unknown routes still load.
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       callback({ path: filePath });
     } else {
       callback({ path: path.join(distPath, 'index.html') });
@@ -81,7 +105,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:8081');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadURL('app://./index.html');
+    mainWindow.loadURL('fairwallet://local/');
   }
 
   mainWindow.on('closed', () => {
@@ -93,8 +117,161 @@ function createWindow() {
   });
 }
 
+/**
+ * Safely forward a menu action to the renderer via IPC.
+ * Guards against sending when the window has been closed or destroyed.
+ */
+function sendMenuAction(channel) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel);
+  }
+}
+
+/**
+ * Build the application menu template.
+ * Returns an array suitable for Menu.buildFromTemplate().
+ */
+function buildAppMenu() {
+  const isMac = process.platform === 'darwin';
+
+  const template = [];
+
+  if (isMac) {
+    template.push({
+      label: 'FAIRWallet',
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    });
+  }
+
+  template.push({
+    label: 'File',
+    submenu: [
+      {
+        label: 'New Wallet',
+        accelerator: 'CommandOrControl+N',
+        click: () => sendMenuAction('menu:new-wallet'),
+      },
+      {
+        label: 'Open Wallet...',
+        accelerator: 'CommandOrControl+O',
+        click: () => sendMenuAction('menu:open-wallet'),
+      },
+      { type: 'separator' },
+      { role: 'close' },
+      ...(isMac ? [] : [{ role: 'quit' }]),
+    ],
+  });
+
+  template.push({
+    label: 'Edit',
+    submenu: [
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' },
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' },
+      { type: 'separator' },
+      { role: 'selectAll' },
+    ],
+  });
+
+  template.push({
+    label: 'View',
+    submenu: [
+      { role: 'reload' },
+      { role: 'forceReload' },
+      { role: 'toggleDevTools' },
+      { type: 'separator' },
+      { role: 'resetZoom' },
+      { role: 'zoomIn' },
+      { role: 'zoomOut' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' },
+    ],
+  });
+
+  template.push({
+    label: 'Wallet',
+    submenu: [
+      {
+        label: 'Send',
+        accelerator: 'CommandOrControl+S',
+        click: () => sendMenuAction('menu:send'),
+      },
+      {
+        label: 'Receive',
+        accelerator: 'CommandOrControl+Shift+S',
+        click: () => sendMenuAction('menu:receive'),
+      },
+      { type: 'separator' },
+      {
+        label: 'Contacts',
+        accelerator: 'CommandOrControl+Shift+C',
+        click: () => sendMenuAction('menu:contacts'),
+      },
+      {
+        label: 'Transaction History',
+        accelerator: 'CommandOrControl+H',
+        click: () => sendMenuAction('menu:history'),
+      },
+      { type: 'separator' },
+      {
+        label: 'Lock Wallet',
+        accelerator: 'CommandOrControl+L',
+        click: () => sendMenuAction('menu:lock'),
+      },
+    ],
+  });
+
+  template.push({
+    label: 'Help',
+    submenu: [
+      {
+        label: 'Learn More about FairCoin',
+        click: () => {
+          shell.openExternal('https://fairco.in');
+        },
+      },
+      {
+        label: 'Report Issue',
+        click: () => {
+          shell.openExternal('https://github.com/FairCoinOfficial/FAIRWallet/issues');
+        },
+      },
+      ...(isMac
+        ? []
+        : [
+            { type: 'separator' },
+            {
+              label: 'About FAIRWallet',
+              click: () => {
+                dialog.showMessageBox({
+                  type: 'info',
+                  title: 'About FAIRWallet',
+                  message: 'FAIRWallet',
+                  detail: 'Lightweight SPV wallet for FairCoin\n\nVersion ' + app.getVersion(),
+                });
+              },
+            },
+          ]),
+    ],
+  });
+
+  return template;
+}
+
 app.whenReady().then(() => {
   registerAppProtocol();
+  Menu.setApplicationMenu(Menu.buildFromTemplate(buildAppMenu()));
   createWindow();
 });
 

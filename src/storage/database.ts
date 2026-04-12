@@ -74,7 +74,6 @@ export interface ContactRow {
   name: string;
   address: string;
   notes: string;
-  emoji: string;
   created_at: number;
   updated_at: number;
 }
@@ -159,7 +158,6 @@ const SCHEMA_SQL = `
     name TEXT NOT NULL,
     address TEXT NOT NULL,
     notes TEXT DEFAULT '',
-    emoji TEXT DEFAULT '👤',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
@@ -532,17 +530,15 @@ export class Database {
     name: string,
     address: string,
     notes: string,
-    emoji: string,
   ): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
     await this.db.runAsync(
-      `INSERT INTO contacts (id, name, address, notes, emoji, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO contacts (id, name, address, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       id,
       name,
       address,
       notes,
-      emoji,
       now,
       now,
     );
@@ -553,16 +549,14 @@ export class Database {
     name: string,
     address: string,
     notes: string,
-    emoji: string,
   ): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
     await this.db.runAsync(
-      `UPDATE contacts SET name = ?, address = ?, notes = ?, emoji = ?, updated_at = ?
+      `UPDATE contacts SET name = ?, address = ?, notes = ?, updated_at = ?
        WHERE id = ?`,
       name,
       address,
       notes,
-      emoji,
       now,
       id,
     );

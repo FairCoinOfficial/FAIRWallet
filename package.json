@@ -24,7 +24,7 @@
     "@gorhom/bottom-sheet": "^5.2.9",
     "@noble/hashes": "1.8.0",
     "@noble/secp256k1": "^2.2.3",
-    "@oxyhq/bloom": "0.1.32",
+    "@oxyhq/bloom": "0.1.36",
     "@scure/bip32": "1.7.0",
     "@scure/bip39": "1.6.0",
     "bs58": "^6.0.0",
@@ -62,6 +62,7 @@
   "devDependencies": {
     "@babel/core": "^7.27.0",
     "@types/react": "~19.2.10",
+    "electron": "^41.2.0",
     "typescript": "^5.8.0"
   }
 }

@@ -9,7 +9,6 @@ import {
   View,
   Text,
   ScrollView,
-  Alert,
   Modal,
   TextInput,
   ActivityIndicator,
@@ -399,10 +398,23 @@ export default function WalletsScreen() {
     id: string;
     name: string;
   } | null>(null);
+  const [message, setMessage] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
 
   const mnemonicControl = Prompt.usePromptControl();
   const deleteWalletControl = Prompt.usePromptControl();
   const cannotDeleteControl = Prompt.usePromptControl();
+  const messageControl = Prompt.usePromptControl();
+
+  const showMessage = useCallback(
+    (title: string, description: string) => {
+      setMessage({ title, description });
+      messageControl.open();
+    },
+    [messageControl],
+  );
 
   // Load wallet list on focus
   useFocusEffect(
@@ -441,10 +453,10 @@ export default function WalletsScreen() {
         setNewMnemonic(mnemonic);
         mnemonicControl.open();
       } catch {
-        Alert.alert("Error", "Failed to create wallet. Please try again.");
+        showMessage("Error", "Failed to create wallet. Please try again.");
       }
     },
-    [createNewWallet, mnemonicControl],
+    [createNewWallet, mnemonicControl, showMessage],
   );
 
   const handleImportWallet = useCallback(
@@ -454,13 +466,13 @@ export default function WalletsScreen() {
         await importWallet(name, mnemonic);
         router.back();
       } catch {
-        Alert.alert(
+        showMessage(
           "Import Failed",
           "Could not import wallet. Check your recovery phrase and try again.",
         );
       }
     },
-    [importWallet, router],
+    [importWallet, router, showMessage],
   );
 
   const handleMnemonicDismiss = useCallback(() => {
@@ -497,18 +509,18 @@ export default function WalletsScreen() {
       setShowWatchOnlyModal(false);
       try {
         await importWatchOnly(name, xpub);
-        Alert.alert(
+        showMessage(
           "Watch-Only Wallet",
           "Watch-only wallet imported. You can view balances and addresses, but sending is disabled.",
         );
       } catch {
-        Alert.alert(
+        showMessage(
           "Import Failed",
           "Could not import watch-only wallet. Check your xpub and try again.",
         );
       }
     },
-    [importWatchOnly],
+    [importWatchOnly, showMessage],
   );
 
   if (switching || loading) {
@@ -530,16 +542,14 @@ export default function WalletsScreen() {
       className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
     >
+      <ScreenHeader
+        title="Wallets"
+        subtitle={`${wallets.length} wallet${wallets.length !== 1 ? "s" : ""} - Tap to switch, long-press to delete`}
+      />
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-5 pt-4 pb-8"
       >
-        {/* Header info */}
-        <ScreenHeader
-          title="Wallets"
-          subtitle={`${wallets.length} wallet${wallets.length !== 1 ? "s" : ""} - Tap to switch, long-press to delete`}
-        />
-
         {/* Wallet list */}
         <Section className="mb-6">
           {wallets.length === 0 ? (
@@ -650,6 +660,15 @@ export default function WalletsScreen() {
           />
         </Prompt.Actions>
       </Prompt.Outer>
+
+      <Prompt.Basic
+        control={messageControl}
+        title={message?.title ?? ""}
+        description={message?.description ?? ""}
+        confirmButtonCta="OK"
+        onConfirm={() => setMessage(null)}
+        showCancel={false}
+      />
     </SafeAreaView>
   );
 }

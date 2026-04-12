@@ -1,7 +1,7 @@
 /**
  * Receive screen.
- * Displays current receive address with QR code, copy action,
- * and a scrollable list of all generated addresses.
+ * Revolut-inspired layout: big centered QR in a framed card, copyable
+ * address, quick actions, and a fixed share button at the bottom.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -9,7 +9,6 @@ import {
   View,
   Text,
   Pressable,
-  Alert,
   ActivityIndicator,
   ScrollView,
   Share,
@@ -18,10 +17,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import QRCode from "react-native-qrcode-svg";
+import * as Prompt from "@oxyhq/bloom/prompt";
 import { useWalletStore } from "../../src/wallet/wallet-store";
-import { Section, Card, ListItem, ActionButton } from "../../src/ui/components";
+import { Card, Button, ListItem } from "../../src/ui/components";
 import { t } from "../../src/i18n";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { FONT_PHUDU_BLACK } from "../../src/utils/fonts";
+
+const CONTENT_MAX_WIDTH = 500;
+const QR_SIZE = 220;
 
 function truncateAddress(address: string): string {
   if (address.length <= 16) return address;
@@ -36,12 +40,27 @@ export default function ReceiveScreen() {
   const theme = useTheme();
 
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
+  const [showAllAddresses, setShowAllAddresses] = useState(false);
   const displayAddress = selectedAddress ?? receiveAddress;
+
+  const [message, setMessage] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+  const messageControl = Prompt.usePromptControl();
+
+  const showMessage = useCallback(
+    (title: string, description: string) => {
+      setMessage({ title, description });
+      messageControl.open();
+    },
+    [messageControl],
+  );
 
   const handleCopy = useCallback(async () => {
     await Clipboard.setStringAsync(displayAddress);
-    Alert.alert("Copied", "Address copied to clipboard");
-  }, [displayAddress]);
+    showMessage("Copied", "Address copied to clipboard");
+  }, [displayAddress, showMessage]);
 
   const handleNewAddress = useCallback(() => {
     const addr = getNewAddress();
@@ -58,11 +77,19 @@ export default function ReceiveScreen() {
 
   const handleSelectAddress = useCallback((address: string) => {
     setSelectedAddress(address);
+    setShowAllAddresses(false);
   }, []);
 
-  const handleCopyAddress = useCallback(async (address: string) => {
-    await Clipboard.setStringAsync(address);
-    Alert.alert("Copied", "Address copied to clipboard");
+  const handleCopyAddress = useCallback(
+    async (address: string) => {
+      await Clipboard.setStringAsync(address);
+      showMessage("Copied", "Address copied to clipboard");
+    },
+    [showMessage],
+  );
+
+  const handleToggleAllAddresses = useCallback(() => {
+    setShowAllAddresses((prev) => !prev);
   }, []);
 
   const addressListItems = useMemo(
@@ -94,96 +121,175 @@ export default function ReceiveScreen() {
     <View className="flex-1 bg-background">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pt-6 pb-8 gap-6"
-        contentContainerStyle={{ paddingTop: insets.top }}
+        contentContainerClassName="pb-40 gap-5"
+        contentContainerStyle={{
+          paddingTop: insets.top + 12,
+          paddingHorizontal: 16,
+        }}
       >
-        {/* Title */}
-        <View>
-          <Text className="text-foreground text-xl font-bold mb-1 text-center">
-            {t("receive.title")}
-          </Text>
-          <Text className="text-muted-foreground text-sm text-center">
-            Share this address to receive FairCoin
-          </Text>
-        </View>
+        <View
+          className="w-full self-center gap-5"
+          style={{ maxWidth: CONTENT_MAX_WIDTH }}
+        >
+          {/* Title */}
+          <View className="items-center pt-2">
+            <Text
+              className="text-foreground"
+              style={{ fontFamily: FONT_PHUDU_BLACK, fontSize: 28 }}
+            >
+              {t("receive.title")}
+            </Text>
+            <Text className="text-muted-foreground text-sm mt-1 text-center">
+              Share this address to receive FairCoin
+            </Text>
+          </View>
 
-        {/* QR Code + Address */}
-        <Card className="p-6">
-          <View className="items-center mb-4">
-            <View className="w-56 h-56 items-center justify-center">
+          {/* Big centered QR */}
+          <Card className="p-6 items-center border border-border/60">
+            <View
+              className="bg-background rounded-2xl p-4 items-center justify-center"
+              style={{
+                width: QR_SIZE + 32,
+                height: QR_SIZE + 32,
+              }}
+            >
               <QRCode
                 value={`faircoin:${displayAddress}`}
-                size={200}
+                size={QR_SIZE}
                 color={theme.colors.primary}
                 backgroundColor="transparent"
               />
             </View>
-          </View>
-          <Pressable onPress={handleCopy}>
-            <Text
-              className="text-foreground text-sm text-center font-mono"
-              selectable
-            >
-              {displayAddress}
-            </Text>
-          </Pressable>
-        </Card>
+          </Card>
 
-        {/* Action row */}
-        <View className="flex-row justify-center gap-8">
-          <ActionButton
-            icon="content-copy"
-            label={t("receive.copy")}
-            onPress={handleCopy}
-            size="sm"
-          />
-          <ActionButton
-            icon="share-variant"
-            label={t("receive.share")}
+          {/* Address display with copy */}
+          <Card className="p-4">
+            <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-2">
+              Your address
+            </Text>
+            <View className="flex-row items-center">
+              <Pressable
+                onPress={handleCopy}
+                className="flex-1 active:opacity-70"
+              >
+                <Text
+                  className="text-foreground text-sm font-mono"
+                  selectable
+                >
+                  {displayAddress}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={handleCopy}
+                className="ml-3 w-9 h-9 rounded-full bg-primary/10 items-center justify-center active:opacity-70"
+                accessibilityLabel={t("receive.copy")}
+              >
+                <MaterialCommunityIcons
+                  name="content-copy"
+                  size={16}
+                  color={theme.colors.primary}
+                />
+              </Pressable>
+            </View>
+          </Card>
+
+          {/* Quick actions */}
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={handleNewAddress}
+              className="flex-1 flex-row items-center justify-center bg-surface rounded-full py-3 active:opacity-70"
+            >
+              <MaterialCommunityIcons
+                name="plus-circle-outline"
+                size={16}
+                color={theme.colors.primary}
+              />
+              <Text className="text-foreground text-sm font-semibold ml-2">
+                {t("receive.new_address")}
+              </Text>
+            </Pressable>
+            {addresses.length > 1 ? (
+              <Pressable
+                onPress={handleToggleAllAddresses}
+                className="flex-1 flex-row items-center justify-center bg-surface rounded-full py-3 active:opacity-70"
+              >
+                <MaterialCommunityIcons
+                  name={showAllAddresses ? "chevron-up" : "format-list-bulleted"}
+                  size={16}
+                  color={theme.colors.primary}
+                />
+                <Text className="text-foreground text-sm font-semibold ml-2">
+                  {showAllAddresses
+                    ? "Hide list"
+                    : `All (${addresses.length})`}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          {/* All addresses (collapsible) */}
+          {showAllAddresses && addresses.length > 0 ? (
+            <Card>
+              {addressListItems.map((item) => (
+                <ListItem
+                  key={`${item.index}-${item.address}`}
+                  title={item.label}
+                  subtitle={`#${item.index + 1}`}
+                  icon={item.isActive ? "radiobox-marked" : "radiobox-blank"}
+                  iconColor={
+                    item.isActive
+                      ? theme.colors.primary
+                      : theme.colors.textSecondary
+                  }
+                  iconBg={item.isActive ? "bg-primary/10" : "bg-background"}
+                  onPress={() => handleSelectAddress(item.address)}
+                  trailing={
+                    <Pressable
+                      className="p-1.5"
+                      onPress={() => handleCopyAddress(item.address)}
+                    >
+                      <MaterialCommunityIcons
+                        name="content-copy"
+                        size={16}
+                        color={theme.colors.primary}
+                      />
+                    </Pressable>
+                  }
+                  showChevron={false}
+                  isLast={item.isLast}
+                />
+              ))}
+            </Card>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      {/* Fixed bottom share button */}
+      <View
+        className="absolute left-0 right-0 bottom-0 bg-background border-t border-border"
+        style={{ paddingBottom: insets.bottom + 12, paddingTop: 12 }}
+      >
+        <View
+          className="w-full self-center px-4"
+          style={{ maxWidth: CONTENT_MAX_WIDTH }}
+        >
+          <Button
+            title={t("receive.share")}
             onPress={handleShare}
-            size="sm"
-          />
-          <ActionButton
-            icon="plus-circle-outline"
-            label={t("receive.new_address")}
-            onPress={handleNewAddress}
-            size="sm"
+            variant="primary"
+            size="lg"
           />
         </View>
+      </View>
 
-        {/* All addresses */}
-        {addresses.length > 0 ? (
-          <Section title={`Your Addresses (${addresses.length})`}>
-            {addressListItems.map((item) => (
-              <ListItem
-                key={`${item.index}-${item.address}`}
-                title={item.label}
-                subtitle={`#${item.index + 1}`}
-                icon={item.isActive ? "radiobox-marked" : "radiobox-blank"}
-                iconColor={item.isActive ? theme.colors.primary : theme.colors.textSecondary}
-                iconBg={
-                  item.isActive ? "bg-primary/10" : "bg-background"
-                }
-                onPress={() => handleSelectAddress(item.address)}
-                trailing={
-                  <Pressable
-                    className="p-1.5"
-                    onPress={() => handleCopyAddress(item.address)}
-                  >
-                    <MaterialCommunityIcons
-                      name="content-copy"
-                      size={16}
-                      color={theme.colors.primary}
-                    />
-                  </Pressable>
-                }
-                showChevron={false}
-                isLast={item.isLast}
-              />
-            ))}
-          </Section>
-        ) : null}
-      </ScrollView>
+      <Prompt.Basic
+        control={messageControl}
+        title={message?.title ?? ""}
+        description={message?.description ?? ""}
+        confirmButtonCta="OK"
+        onConfirm={() => setMessage(null)}
+        showCancel={false}
+      />
     </View>
   );
 }

@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, ScrollView, TextInput, Alert } from "react-native";
+import { View, Text, ScrollView, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
@@ -26,17 +26,12 @@ import {
 } from "../../src/ui/components";
 import type { ContactRow } from "../../src/storage/database";
 import { useTheme } from "@oxyhq/bloom/theme";
+import * as Prompt from "@oxyhq/bloom/prompt";
+import { formatSats, formatFair } from "../../src/core/format-amount";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function formatSats(sats: bigint): string {
-  const abs = sats < 0n ? -sats : sats;
-  const whole = abs / 100_000_000n;
-  const frac = abs % 100_000_000n;
-  return `${whole.toString()}.${frac.toString().padStart(8, "0")}`;
-}
 
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp * 1000);
@@ -85,6 +80,20 @@ export default function TransactionDetailScreen() {
   const [contact, setContact] = useState<ContactRow | null>(null);
   const [contactChecked, setContactChecked] = useState(false);
 
+  const messageControl = Prompt.usePromptControl();
+  const [message, setMessage] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+
+  const showMessage = useCallback(
+    (title: string, description: string) => {
+      setMessage({ title, description });
+      messageControl.open();
+    },
+    [messageControl],
+  );
+
   const transaction = useMemo<WalletTransaction | undefined>(
     () => transactions.find((tx) => tx.txid === txid),
     [transactions, txid],
@@ -117,9 +126,9 @@ export default function TransactionDetailScreen() {
     const db = getDatabase();
     if (db) {
       db.setTxNote(txid, note.trim());
-      Alert.alert("Saved", "Transaction note saved");
+      showMessage("Saved", "Transaction note saved");
     }
-  }, [txid, note]);
+  }, [txid, note, showMessage]);
 
   const handleViewExplorer = useCallback(() => {
     if (!txid) return;
@@ -129,14 +138,14 @@ export default function TransactionDetailScreen() {
   const handleCopyTxid = useCallback(() => {
     if (!txid) return;
     Clipboard.setStringAsync(txid);
-    Alert.alert("Copied", "Transaction ID copied to clipboard");
-  }, [txid]);
+    showMessage("Copied", "Transaction ID copied to clipboard");
+  }, [txid, showMessage]);
 
   const handleCopyAddress = useCallback(() => {
     if (!transaction) return;
     Clipboard.setStringAsync(transaction.address);
-    Alert.alert("Copied", "Address copied to clipboard");
-  }, [transaction]);
+    showMessage("Copied", "Address copied to clipboard");
+  }, [transaction, showMessage]);
 
   const handleAddToContacts = useCallback(() => {
     router.push("/contacts");
@@ -169,7 +178,9 @@ export default function TransactionDetailScreen() {
   const badgeConfig = TYPE_BADGE[transaction.type];
   const isPositive = transaction.amount >= 0n;
   const amountSign = isPositive ? "+" : "-";
-  const amountDisplay = formatSats(transaction.amount);
+  const absAmount = transaction.amount < 0n ? -transaction.amount : transaction.amount;
+  const amountDisplay = formatFair(absAmount);
+  const amountExact = formatSats(absAmount);
   const amountColor = isPositive ? "text-primary" : "text-red-400";
   const isConfirmed = transaction.confirmations >= 6;
 
@@ -179,6 +190,7 @@ export default function TransactionDetailScreen() {
       edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
+      <ScreenHeader title="Transaction" />
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-5 pt-4 pb-8"
@@ -194,7 +206,12 @@ export default function TransactionDetailScreen() {
 
         {/* Amount */}
         <View className="items-center mb-6">
-          <Text className={`text-3xl font-bold ${amountColor}`}>
+          <Text
+            className={`text-3xl font-bold ${amountColor}`}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+          >
             {amountSign}
             {amountDisplay}
           </Text>
@@ -209,6 +226,12 @@ export default function TransactionDetailScreen() {
             iconColor={isConfirmed ? theme.colors.success : theme.colors.warning}
             title="Status"
             value={`${isConfirmed ? "Confirmed" : "Pending"} (${transaction.confirmations})`}
+            isLast={false}
+          />
+          <ListItem
+            icon="scale-balance"
+            title="Amount"
+            value={`${amountSign}${amountExact} FAIR`}
             isLast={false}
           />
           <ListItem
@@ -237,7 +260,7 @@ export default function TransactionDetailScreen() {
             title="Address"
             subtitle={
               contact
-                ? `${contact.emoji} ${contact.name} (${truncateAddress(transaction.address)})`
+                ? `${contact.name} (${truncateAddress(transaction.address)})`
                 : truncateAddress(transaction.address)
             }
             onPress={handleCopyAddress}
@@ -311,6 +334,15 @@ export default function TransactionDetailScreen() {
           ) : null}
         </View>
       </ScrollView>
+
+      <Prompt.Basic
+        control={messageControl}
+        title={message?.title ?? ""}
+        description={message?.description ?? ""}
+        confirmButtonCta="OK"
+        onConfirm={() => setMessage(null)}
+        showCancel={false}
+      />
     </SafeAreaView>
   );
 }

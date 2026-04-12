@@ -1,6 +1,8 @@
 /**
  * Send screen.
  * Allows user to send FAIR to an address with fee selection.
+ * Revolut-inspired layout: hero amount on top, recipient card, fee pills,
+ * fixed send button at the bottom.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -18,18 +20,24 @@ import { useContactsStore } from "../../src/wallet/contacts-store";
 import {
   Card,
   Button,
+  ContactAvatar,
   ListItem,
   Divider,
-  Section,
   EmptyState,
 } from "../../src/ui/components";
 import { QRScanner } from "../../src/ui/components/QRScanner";
 import { ContactPicker } from "../../src/ui/components/ContactPicker";
 import { getCachedPrice } from "../../src/services/price";
-import type { RecentRecipientRow } from "../../src/storage/database";
+import type { RecentRecipientRow, ContactRow } from "../../src/storage/database";
 import { useTheme } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
 import { hapticSuccess, hapticError } from "../../src/utils/haptics";
+import { FONT_PHUDU_BLACK, FONT_PHUDU_LIGHT } from "../../src/utils/fonts";
+import {
+  formatSats,
+  formatFair,
+  parseFairToSats,
+} from "../../src/core/format-amount";
 
 const FEE_LEVELS: FeeLevel[] = ["low", "medium", "high"];
 
@@ -39,37 +47,35 @@ const FEE_LABELS: Record<FeeLevel, string> = {
   high: "High",
 };
 
-/** Format satoshis (bigint) to FAIR display string */
-function formatSats(sats: bigint): string {
-  const abs = sats < 0n ? -sats : sats;
-  const whole = abs / 100_000_000n;
-  const frac = abs % 100_000_000n;
-  return `${whole.toString()}.${frac.toString().padStart(8, "0")}`;
-}
+const FAIR_SYMBOL = "\u229C"; // ⊜
+
+const CONTENT_MAX_WIDTH = 600;
+const AMOUNT_FONT_SIZE_MAX = 44;
+const AMOUNT_FONT_SIZE_MIN = 22;
+const AMOUNT_SYMBOL_RATIO = 34 / 44;
+// Length at which the amount font starts shrinking from its max size.
+const AMOUNT_SHRINK_THRESHOLD = 9;
+// Length at which the amount font reaches its minimum size.
+const AMOUNT_SHRINK_FLOOR = 18;
 
 /**
- * Parse a FAIR decimal string to satoshis (bigint) using string-based
- * arithmetic to avoid floating-point precision issues.
- * Returns null for invalid or empty input.
+ * Compute a responsive font size for the hero amount based on how
+ * many characters the user has typed. This is the cross-platform
+ * alternative to `adjustsFontSizeToFit`, which React Native's
+ * TextInput typings do not officially expose.
  */
-function parseFairToSats(input: string): bigint | null {
-  const trimmed = input.trim();
-  if (trimmed === "" || trimmed === ".") return null;
+function getAmountFontSize(length: number): number {
+  if (length <= AMOUNT_SHRINK_THRESHOLD) return AMOUNT_FONT_SIZE_MAX;
+  if (length >= AMOUNT_SHRINK_FLOOR) return AMOUNT_FONT_SIZE_MIN;
+  const range = AMOUNT_SHRINK_FLOOR - AMOUNT_SHRINK_THRESHOLD;
+  const progress = (length - AMOUNT_SHRINK_THRESHOLD) / range;
+  const span = AMOUNT_FONT_SIZE_MAX - AMOUNT_FONT_SIZE_MIN;
+  return Math.round(AMOUNT_FONT_SIZE_MAX - span * progress);
+}
 
-  const parts = trimmed.split(".");
-  if (parts.length > 2) return null;
-
-  const wholePart = parts[0] ?? "0";
-  const fracPart = (parts[1] ?? "").padEnd(8, "0").slice(0, 8);
-
-  try {
-    const wholeNum = BigInt(wholePart);
-    const fracNum = BigInt(fracPart);
-
-    return wholeNum * 100_000_000n + fracNum;
-  } catch {
-    return null;
-  }
+function truncateAddress(address: string): string {
+  if (address.length <= 16) return address;
+  return `${address.slice(0, 6)}...${address.slice(-6)}`;
 }
 
 export default function SendScreen() {
@@ -80,6 +86,8 @@ export default function SendScreen() {
   const estimateFee = useWalletStore((s) => s.estimateFee);
   const loading = useWalletStore((s) => s.loading);
   const isWatchOnly = useWalletStore((s) => s.isWatchOnly);
+  const contacts = useContactsStore((s) => s.contacts);
+  const loadContacts = useContactsStore((s) => s.loadContacts);
   const getContactByAddress = useContactsStore((s) => s.getContactByAddress);
   const theme = useTheme();
 
@@ -117,11 +125,14 @@ export default function SendScreen() {
 
   const fee = useMemo(() => estimateFee(feeLevel), [estimateFee, feeLevel]);
 
-  const total = useMemo(() => {
+  const totalSats = useMemo<bigint>(() => {
     const amountSats = parseFairToSats(amount);
-    if (amountSats === null || amountSats === 0n) return "0.00000000";
-    return formatSats(amountSats + fee);
+    if (amountSats === null || amountSats === 0n) return 0n;
+    return amountSats + fee;
   }, [amount, fee]);
+
+  const totalTrimmed = useMemo(() => formatFair(totalSats), [totalSats]);
+  const totalExact = useMemo(() => formatSats(totalSats), [totalSats]);
 
   const validationError = useMemo(() => {
     if (toAddress.length > 0 && toAddress.length < 25) {
@@ -164,6 +175,20 @@ export default function SendScreen() {
     return null;
   }, [amount]);
 
+  const matchedContact = useMemo<ContactRow | null>(() => {
+    if (toAddress.length < 25) return null;
+    const found = contacts.find((c) => c.address === toAddress);
+    return found ?? null;
+  }, [contacts, toAddress]);
+
+  const recentRecipientLookup = useMemo(() => {
+    const map = new Map<string, ContactRow>();
+    for (const c of contacts) {
+      map.set(c.address, c);
+    }
+    return map;
+  }, [contacts]);
+
   const handlePaste = useCallback(async () => {
     try {
       const text = await Clipboard.getStringAsync();
@@ -199,7 +224,19 @@ export default function SendScreen() {
     setToAddress(address);
   }, []);
 
-  const loadRecentRecipients = useCallback(() => {
+  const handleClearRecipient = useCallback(() => {
+    setToAddress("");
+  }, []);
+
+  const loadInitialData = useCallback(() => {
+    const db = getDatabase();
+    if (db) {
+      db.getRecentRecipients(5).then(setRecentRecipients);
+      loadContacts(db);
+    }
+  }, [loadContacts]);
+
+  const refreshRecentRecipients = useCallback(() => {
     const db = getDatabase();
     if (db) {
       db.getRecentRecipients(5).then(setRecentRecipients);
@@ -241,7 +278,7 @@ export default function SendScreen() {
       const db = getDatabase();
       if (db) {
         db.addRecentRecipient(sentAddress);
-        loadRecentRecipients();
+        refreshRecentRecipients();
 
         // Prompt to save as contact if not already saved
         const existingContact = await getContactByAddress(db, sentAddress);
@@ -262,61 +299,129 @@ export default function SendScreen() {
     feeLevel,
     sendTransaction,
     getContactByAddress,
-    loadRecentRecipients,
+    refreshRecentRecipients,
     saveContactControl,
   ]);
 
+  const hasAmount = amount.length > 0;
+
+  const amountLengthForSizing =
+    amount.length > 0 ? amount.length : "0.00000000".length;
+  const amountFontSize = getAmountFontSize(amountLengthForSizing);
+  const amountSymbolFontSize = Math.round(amountFontSize * AMOUNT_SYMBOL_RATIO);
+
   return (
-    <View className="flex-1 bg-background" onLayout={loadRecentRecipients}>
+    <View className="flex-1 bg-background" onLayout={loadInitialData}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pt-4 pb-8 gap-4"
-        contentContainerStyle={{ paddingTop: insets.top }}
+        contentContainerClassName="pb-40 gap-5"
+        contentContainerStyle={{
+          paddingTop: insets.top + 12,
+          paddingHorizontal: 16,
+        }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Recent recipients */}
-        {recentRecipients.length > 0 ? (
-          <View>
-            <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-2 px-1">
-              Recent Recipients
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                {recentRecipients.map((r) => (
-                  <Pressable
-                    key={r.address}
-                    onPress={() => handleRecentRecipientPress(r.address)}
-                  >
-                    <Card className="px-3 py-2">
-                      <Text className="text-foreground text-xs">
-                        {r.address.length > 16
-                          ? `${r.address.slice(0, 6)}...${r.address.slice(-6)}`
-                          : r.address}
-                      </Text>
-                    </Card>
-                  </Pressable>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        ) : null}
-
-        {/* To Address */}
-        <Section title="To Address">
-          <View className="px-4 py-3">
-            <View className="flex-row items-center">
+        <View
+          className="w-full self-center gap-5"
+          style={{ maxWidth: CONTENT_MAX_WIDTH }}
+        >
+          {/* Hero amount */}
+          <View className="items-center pt-4 pb-2">
+            <View className="flex-row items-baseline justify-center w-full px-4">
+              <Text
+                className="text-primary mr-1"
+                style={{
+                  fontFamily: FONT_PHUDU_LIGHT,
+                  fontSize: amountSymbolFontSize,
+                  includeFontPadding: false,
+                }}
+                numberOfLines={1}
+              >
+                {FAIR_SYMBOL}
+              </Text>
               <TextInput
-                className="flex-1 text-foreground text-base mr-2"
+                className="text-foreground flex-shrink"
+                style={{
+                  fontFamily: FONT_PHUDU_BLACK,
+                  fontSize: amountFontSize,
+                  paddingVertical: 0,
+                  includeFontPadding: false,
+                }}
+                placeholder="0.00000000"
+                placeholderTextColor={theme.colors.textSecondary}
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="decimal-pad"
+                maxLength={20}
+                numberOfLines={1}
+              />
+            </View>
+            <Pressable
+              onPress={handleMax}
+              className="bg-primary/10 rounded-full px-3 py-1.5 mt-2"
+              accessibilityLabel="Use maximum balance"
+            >
+              <Text className="text-primary text-xs font-semibold">MAX</Text>
+            </Pressable>
+            <Text className="text-muted-foreground text-sm mt-2">
+              {usdEquivalent
+                ? `\u2248 $${usdEquivalent} USD`
+                : `\u2248 $0.00 USD`}
+            </Text>
+            <Text className="text-muted-foreground text-xs mt-1">
+              Available: {formatFair(balance)} FAIR
+            </Text>
+          </View>
+
+          {/* Recipient card */}
+          <Card className="p-4">
+            <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-2">
+              Send to
+            </Text>
+            {matchedContact ? (
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center flex-1">
+                  <View className="mr-3">
+                    <ContactAvatar name={matchedContact.name} size={40} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-foreground text-base font-semibold">
+                      {matchedContact.name}
+                    </Text>
+                    <Text className="text-muted-foreground text-xs mt-0.5">
+                      {truncateAddress(matchedContact.address)}
+                    </Text>
+                  </View>
+                </View>
+                <Pressable
+                  className="p-2 rounded-full active:opacity-60"
+                  onPress={handleClearRecipient}
+                  accessibilityLabel="Clear recipient"
+                >
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
+                </Pressable>
+              </View>
+            ) : (
+              <TextInput
+                className="text-foreground text-base"
+                style={{ paddingVertical: 4 }}
                 placeholder="FairCoin address"
                 placeholderTextColor={theme.colors.textSecondary}
+                value={toAddress}
                 onChangeText={setToAddress}
                 autoCapitalize="none"
                 autoCorrect={false}
+                multiline={false}
               />
-            </View>
+            )}
+
             <View className="flex-row gap-2 mt-3">
               <Pressable
-                className="flex-row items-center bg-background rounded-lg px-3 py-2"
+                className="flex-row items-center bg-primary/10 rounded-full px-3 py-2 active:opacity-70"
                 onPress={handlePaste}
               >
                 <MaterialCommunityIcons
@@ -324,10 +429,12 @@ export default function SendScreen() {
                   size={14}
                   color={theme.colors.primary}
                 />
-                <Text className="text-primary text-xs ml-1.5">Paste</Text>
+                <Text className="text-primary text-xs ml-1.5 font-semibold">
+                  Paste
+                </Text>
               </Pressable>
               <Pressable
-                className="flex-row items-center bg-background rounded-lg px-3 py-2"
+                className="flex-row items-center bg-primary/10 rounded-full px-3 py-2 active:opacity-70"
                 onPress={handleOpenScanner}
               >
                 <MaterialCommunityIcons
@@ -335,10 +442,12 @@ export default function SendScreen() {
                   size={14}
                   color={theme.colors.primary}
                 />
-                <Text className="text-primary text-xs ml-1.5">QR</Text>
+                <Text className="text-primary text-xs ml-1.5 font-semibold">
+                  Scan QR
+                </Text>
               </Pressable>
               <Pressable
-                className="flex-row items-center bg-background rounded-lg px-3 py-2"
+                className="flex-row items-center bg-primary/10 rounded-full px-3 py-2 active:opacity-70"
                 onPress={handleOpenContactPicker}
               >
                 <MaterialCommunityIcons
@@ -346,205 +455,221 @@ export default function SendScreen() {
                   size={14}
                   color={theme.colors.primary}
                 />
-                <Text className="text-primary text-xs ml-1.5">
+                <Text className="text-primary text-xs ml-1.5 font-semibold">
                   Contacts
                 </Text>
               </Pressable>
             </View>
-          </View>
-        </Section>
+          </Card>
 
-        {/* Address validation */}
-        {validationError && toAddress.length > 0 ? (
-          <Text className="text-red-400 text-xs px-1">{validationError}</Text>
-        ) : null}
+          {validationError && toAddress.length > 0 ? (
+            <Text className="text-destructive text-xs -mt-3 px-1">
+              {validationError}
+            </Text>
+          ) : null}
 
-        {/* Amount */}
-        <Section title="Amount (FAIR)">
-          <View className="px-4 py-3">
-            <View className="flex-row items-center">
-              <Text className="text-primary text-lg font-bold mr-2">
-                {"\u29BE"}
+          {/* Recent recipients */}
+          {recentRecipients.length > 0 ? (
+            <View>
+              <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-2 px-1">
+                Recent
               </Text>
-              <TextInput
-                className="flex-1 text-foreground text-base mr-2"
-                placeholder="0.00000000"
-                placeholderTextColor={theme.colors.textSecondary}
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
-              />
-              <Pressable
-                className="bg-background rounded-lg px-3 py-2"
-                onPress={handleMax}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerClassName="gap-2 pr-4"
               >
-                <Text className="text-primary text-xs font-medium">Max</Text>
-              </Pressable>
+                {recentRecipients.map((r) => {
+                  const contact = recentRecipientLookup.get(r.address);
+                  const isSelected = toAddress === r.address;
+                  return (
+                    <Pressable
+                      key={r.address}
+                      onPress={() => handleRecentRecipientPress(r.address)}
+                      className={`flex-row items-center rounded-full px-3 py-2 ${
+                        isSelected
+                          ? "bg-primary/20 border border-primary"
+                          : "bg-surface border border-transparent"
+                      }`}
+                    >
+                      <View className="mr-2">
+                        <ContactAvatar
+                          name={contact?.name ?? r.address}
+                          size={28}
+                        />
+                      </View>
+                      <Text className="text-foreground text-xs font-medium">
+                        {contact?.name ?? truncateAddress(r.address)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
             </View>
-            {usdEquivalent ? (
-              <Text className="text-muted-foreground text-xs mt-2">
-                {"\u2248"} ${usdEquivalent} USD
-              </Text>
-            ) : null}
-            <Text className="text-muted-foreground text-xs mt-1">
-              Available: {formatSats(balance)} FAIR
-            </Text>
-          </View>
-        </Section>
+          ) : null}
 
-        {/* Fee selector */}
-        <Section title="Network Fee">
-          <View className="flex-row gap-2 p-3">
-            {FEE_LEVELS.map((level) => {
-              const isSelected = feeLevel === level;
-              return (
-                <Pressable
-                  key={level}
-                  className={`flex-1 rounded-xl py-3 items-center border ${
-                    isSelected
-                      ? "bg-primary/10 border-primary"
-                      : "bg-background border-border"
-                  }`}
-                  onPress={() => setFeeLevel(level)}
-                >
-                  <Text
-                    className={`text-sm font-medium ${
-                      isSelected ? "text-primary" : "text-muted-foreground"
+          {/* Fee selector */}
+          <View>
+            <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider mb-2 px-1">
+              Network fee
+            </Text>
+            <View className="flex-row gap-2">
+              {FEE_LEVELS.map((level) => {
+                const isSelected = feeLevel === level;
+                return (
+                  <Pressable
+                    key={level}
+                    className={`flex-1 rounded-full py-3 items-center border ${
+                      isSelected
+                        ? "bg-primary/10 border-primary"
+                        : "bg-surface border-transparent"
                     }`}
+                    onPress={() => setFeeLevel(level)}
                   >
-                    {FEE_LABELS[level]}
-                  </Text>
-                  <Text className="text-muted-foreground text-xs mt-1">
-                    {estimateFee(level).toString()} sats
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Section>
-
-        {/* Summary */}
-        <Section title="Summary">
-          <ListItem
-            title="Amount"
-            value={`${amount || "0.00000000"} FAIR`}
-            showChevron={false}
-          />
-          <ListItem
-            title="Fee"
-            value={`${formatSats(fee)} FAIR`}
-            showChevron={false}
-          />
-          <Divider className="mx-4" />
-          <ListItem
-            title="Total"
-            value={`${total} FAIR`}
-            showChevron={false}
-            isLast
-          />
-        </Section>
-
-        {/* Error / Success messages */}
-        {error ? (
-          <Card className="border border-red-600/50 p-4">
-            <Text className="text-red-400 text-sm text-center">{error}</Text>
-          </Card>
-        ) : null}
-        {success ? (
-          <Card className="border border-green-600/50 p-4">
-            <Text className="text-primary text-sm text-center">
-              {success}
-            </Text>
-          </Card>
-        ) : null}
-
-        {/* Send button */}
-        <Button
-          title="Send FAIR"
-          onPress={handleSendPress}
-          variant="primary"
-          disabled={!canSend}
-          loading={loading}
-        />
-
-        {/* Confirmation prompt */}
-        <Prompt.Outer control={confirmControl}>
-          <Prompt.Content>
-            <Prompt.TitleText>Confirm Transaction</Prompt.TitleText>
-            <View className="mt-2">
-              <ListItem
-                title="To"
-                subtitle={toAddress}
-                showChevron={false}
-              />
-              <ListItem
-                title="Amount"
-                value={`${amount} FAIR`}
-                showChevron={false}
-              />
-              <ListItem
-                title="Fee"
-                value={`${formatSats(fee)} FAIR`}
-                showChevron={false}
-              />
-              <Divider className="mx-4" />
-              <ListItem
-                title="Total"
-                value={`${total} FAIR`}
-                showChevron={false}
-                isLast
-              />
+                    <Text
+                      className={`text-sm font-semibold ${
+                        isSelected ? "text-primary" : "text-foreground"
+                      }`}
+                    >
+                      {FEE_LABELS[level]}
+                    </Text>
+                    <Text className="text-muted-foreground text-[10px] mt-0.5">
+                      {estimateFee(level).toString()} sats
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          </Prompt.Content>
-          <Prompt.Actions>
-            <Prompt.Action
-              cta="Confirm Send"
-              onPress={handleConfirmSend}
-              color="primary"
-            />
-            <Prompt.Action
-              cta="Cancel"
-              onPress={() => confirmControl.close()}
-              color="secondary"
-            />
-          </Prompt.Actions>
-        </Prompt.Outer>
+          </View>
 
-        {/* Save contact prompt */}
-        <Prompt.Basic
-          control={saveContactControl}
-          title="Save Contact?"
-          description={
-            pendingSaveAddress
-              ? `Save ${
-                  pendingSaveAddress.length > 16
-                    ? `${pendingSaveAddress.slice(0, 8)}...${pendingSaveAddress.slice(-8)}`
-                    : pendingSaveAddress
-                } to contacts?`
-              : ""
-          }
-          confirmButtonCta="Save"
-          cancelButtonCta="No"
-          onConfirm={() => {
-            router.push("/contacts");
-            setPendingSaveAddress(null);
-          }}
-        />
-
-        {/* QR Scanner */}
-        <QRScanner
-          visible={showQRScanner}
-          onScan={handleQRScan}
-          onClose={handleCloseScanner}
-        />
-
-        {/* Contact Picker */}
-        <ContactPicker
-          visible={showContactPicker}
-          onSelect={handleContactSelect}
-          onClose={handleCloseContactPicker}
-        />
+          {/* Error / Success messages */}
+          {error ? (
+            <Card className="border border-destructive/50 p-4">
+              <Text className="text-destructive text-sm text-center">
+                {error}
+              </Text>
+            </Card>
+          ) : null}
+          {success ? (
+            <Card className="border border-primary/50 p-4">
+              <Text className="text-primary text-sm text-center">
+                {success}
+              </Text>
+            </Card>
+          ) : null}
+        </View>
       </ScrollView>
+
+      {/* Fixed bottom bar: total + send button */}
+      <View
+        className="absolute left-0 right-0 bottom-0 bg-background border-t border-border"
+        style={{ paddingBottom: insets.bottom + 12, paddingTop: 12 }}
+      >
+        <View
+          className="w-full self-center px-4 gap-2"
+          style={{ maxWidth: CONTENT_MAX_WIDTH }}
+        >
+          {hasAmount ? (
+            <View className="flex-row justify-between items-center px-1">
+              <Text className="text-muted-foreground text-xs">Total</Text>
+              <Text
+                className="text-foreground text-sm font-semibold"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                {totalTrimmed} FAIR
+              </Text>
+            </View>
+          ) : null}
+          <Button
+            title="Send FAIR"
+            onPress={handleSendPress}
+            variant="primary"
+            size="lg"
+            disabled={!canSend}
+            loading={loading}
+          />
+        </View>
+      </View>
+
+      {/* Confirmation prompt */}
+      <Prompt.Outer control={confirmControl}>
+        <Prompt.Content>
+          <Prompt.TitleText>Confirm Transaction</Prompt.TitleText>
+          <View className="mt-2">
+            <ListItem
+              title="To"
+              subtitle={matchedContact ? matchedContact.name : toAddress}
+              showChevron={false}
+            />
+            <ListItem
+              title="Amount"
+              value={`${formatSats(parseFairToSats(amount) ?? 0n)} FAIR`}
+              showChevron={false}
+            />
+            <ListItem
+              title="Fee"
+              value={`${formatSats(fee)} FAIR`}
+              showChevron={false}
+            />
+            <Divider className="mx-4" />
+            <ListItem
+              title="Total"
+              value={`${totalExact} FAIR`}
+              showChevron={false}
+              isLast
+            />
+          </View>
+        </Prompt.Content>
+        <Prompt.Actions>
+          <Prompt.Action
+            cta="Confirm Send"
+            onPress={handleConfirmSend}
+            color="primary"
+          />
+          <Prompt.Action
+            cta="Cancel"
+            onPress={() => confirmControl.close()}
+            color="secondary"
+          />
+        </Prompt.Actions>
+      </Prompt.Outer>
+
+      {/* Save contact prompt */}
+      <Prompt.Basic
+        control={saveContactControl}
+        title="Save Contact?"
+        description={
+          pendingSaveAddress
+            ? `Save ${
+                pendingSaveAddress.length > 16
+                  ? `${pendingSaveAddress.slice(0, 8)}...${pendingSaveAddress.slice(-8)}`
+                  : pendingSaveAddress
+              } to contacts?`
+            : ""
+        }
+        confirmButtonCta="Save"
+        cancelButtonCta="No"
+        onConfirm={() => {
+          router.push("/contacts");
+          setPendingSaveAddress(null);
+        }}
+      />
+
+      {/* QR Scanner */}
+      <QRScanner
+        visible={showQRScanner}
+        onScan={handleQRScan}
+        onClose={handleCloseScanner}
+      />
+
+      {/* Contact Picker */}
+      <ContactPicker
+        visible={showContactPicker}
+        onSelect={handleContactSelect}
+        onClose={handleCloseContactPicker}
+      />
     </View>
   );
 }

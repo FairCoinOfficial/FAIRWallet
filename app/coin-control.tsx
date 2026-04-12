@@ -5,10 +5,11 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, Alert, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import * as Prompt from "@oxyhq/bloom/prompt";
 import { useWalletStore, getDatabase } from "../src/wallet/wallet-store";
 import {
   Section,
@@ -20,6 +21,7 @@ import {
 } from "../src/ui/components";
 import { ScrollView } from "react-native";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { formatSats } from "../src/core/format-amount";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,13 +45,6 @@ function truncateTxid(txid: string): string {
   return `${txid.slice(0, 8)}...${txid.slice(-8)}`;
 }
 
-function formatSats(sats: bigint): string {
-  const abs = sats < 0n ? -sats : sats;
-  const whole = abs / 100_000_000n;
-  const frac = abs % 100_000_000n;
-  return `${whole.toString()}.${frac.toString().padStart(8, "0")}`;
-}
-
 // ---------------------------------------------------------------------------
 // Main screen
 // ---------------------------------------------------------------------------
@@ -71,6 +66,20 @@ export default function CoinControlScreen() {
     }
     return map;
   });
+
+  const [message, setMessage] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+  const messageControl = Prompt.usePromptControl();
+
+  const showMessage = useCallback(
+    (title: string, description: string) => {
+      setMessage({ title, description });
+      messageControl.open();
+    },
+    [messageControl],
+  );
 
   // Load UTXOs on layout (similar to useFocusEffect without useEffect)
   const handleLayout = useCallback(() => {
@@ -130,12 +139,11 @@ export default function CoinControlScreen() {
       }
     }
     setSelectedUTXOs(selectedUtxos);
-    Alert.alert(
+    showMessage(
       "Coin Control",
       `${selectedUtxos.length} UTXO${selectedUtxos.length !== 1 ? "s" : ""} selected for next transaction.`,
     );
-    router.back();
-  }, [utxos, selected, setSelectedUTXOs, router]);
+  }, [utxos, selected, setSelectedUTXOs, showMessage]);
 
   const handleClear = useCallback(() => {
     setSelected(new Map());
@@ -156,13 +164,11 @@ export default function CoinControlScreen() {
       edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
+      <ScreenHeader
+        title="Coin Control"
+        subtitle={`${utxos.length} UTXO${utxos.length !== 1 ? "s" : ""} available`}
+      />
       <ScrollView className="flex-1" contentContainerClassName="px-5 pb-4">
-        {/* Header info */}
-        <ScreenHeader
-          title="Coin Control"
-          subtitle={`${utxos.length} UTXO${utxos.length !== 1 ? "s" : ""} available`}
-        />
-
         {/* Selection actions */}
         <View className="flex-row gap-3 mb-4">
           <Pressable
@@ -252,6 +258,18 @@ export default function CoinControlScreen() {
           disabled={selectedCount === 0}
         />
       </View>
+
+      <Prompt.Basic
+        control={messageControl}
+        title={message?.title ?? ""}
+        description={message?.description ?? ""}
+        confirmButtonCta="OK"
+        onConfirm={() => {
+          setMessage(null);
+          router.back();
+        }}
+        showCancel={false}
+      />
     </SafeAreaView>
   );
 }

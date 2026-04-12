@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, TextInput, ScrollView, Pressable, Alert } from "react-native";
+import { View, Text, TextInput, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -26,6 +26,7 @@ import {
 import { PinDots } from "../src/ui/components/PinDots";
 import { PinPad } from "../src/ui/components/PinPad";
 import { useTheme } from "@oxyhq/bloom/theme";
+import * as Prompt from "@oxyhq/bloom/prompt";
 
 const PIN_LENGTH = 6;
 
@@ -53,6 +54,20 @@ export default function ExportKeyScreen() {
   const [confirmPassphrase, setConfirmPassphrase] = useState("");
   const [encryptedKey, setEncryptedKey] = useState<string | null>(null);
   const [encrypting, setEncrypting] = useState(false);
+
+  const messageControl = Prompt.usePromptControl();
+  const [message, setMessage] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+
+  const showMessage = useCallback(
+    (title: string, description: string) => {
+      setMessage({ title, description });
+      messageControl.open();
+    },
+    [messageControl],
+  );
 
   // ---------------------------------------------------------------------------
   // PIN verification step
@@ -136,7 +151,7 @@ export default function ExportKeyScreen() {
       const { getMnemonic } = await import("../src/storage/secure-store");
       const mnemonic = await getMnemonic();
       if (!mnemonic) {
-        Alert.alert("Error", "Could not access wallet mnemonic.");
+        showMessage("Error", "Could not access wallet mnemonic.");
         setEncrypting(false);
         return;
       }
@@ -147,7 +162,7 @@ export default function ExportKeyScreen() {
       try {
         privateKey = km.getPrivateKeyForAddress(selectedAddress);
       } catch {
-        Alert.alert("Error", "Could not find private key for this address.");
+        showMessage("Error", "Could not find private key for this address.");
         setEncrypting(false);
         return;
       }
@@ -162,13 +177,13 @@ export default function ExportKeyScreen() {
       setEncryptedKey(encrypted);
       setStep("result");
     } catch (err: unknown) {
-      const message =
+      const errorMessage =
         err instanceof Error ? err.message : "Encryption failed";
-      Alert.alert("Error", message);
+      showMessage("Error", errorMessage);
     } finally {
       setEncrypting(false);
     }
-  }, [canEncrypt, selectedAddress, passphrase, network]);
+  }, [canEncrypt, selectedAddress, passphrase, network, showMessage]);
 
   // ---------------------------------------------------------------------------
   // Result step
@@ -177,9 +192,9 @@ export default function ExportKeyScreen() {
   const handleCopyEncrypted = useCallback(async () => {
     if (encryptedKey) {
       await Clipboard.setStringAsync(encryptedKey);
-      Alert.alert("Copied", "Encrypted key copied to clipboard");
+      showMessage("Copied", "Encrypted key copied to clipboard");
     }
-  }, [encryptedKey]);
+  }, [encryptedKey, showMessage]);
 
   // ---------------------------------------------------------------------------
   // Render
@@ -229,15 +244,14 @@ export default function ExportKeyScreen() {
         className="flex-1 bg-background"
         edges={["top", "bottom", "left", "right"]}
       >
+        <ScreenHeader
+          title="Select Address"
+          subtitle="Choose the address whose private key you want to export"
+        />
         <ScrollView
           className="flex-1"
           contentContainerClassName="px-5 pt-4 pb-8"
         >
-          <ScreenHeader
-            title="Select Address"
-            subtitle="Choose the address whose private key you want to export"
-          />
-
           <Section className="mt-4">
             {addresses.length === 0 ? (
               <EmptyState
@@ -269,16 +283,15 @@ export default function ExportKeyScreen() {
         className="flex-1 bg-background"
         edges={["top", "bottom", "left", "right"]}
       >
+        <ScreenHeader
+          title="Set Encryption Passphrase"
+          subtitle="This passphrase will be needed to decrypt the exported key. Choose a strong passphrase and store it safely."
+        />
         <ScrollView
           className="flex-1"
           contentContainerClassName="px-5 pt-4 pb-8"
           keyboardShouldPersistTaps="handled"
         >
-          <ScreenHeader
-            title="Set Encryption Passphrase"
-            subtitle="This passphrase will be needed to decrypt the exported key. Choose a strong passphrase and store it safely."
-          />
-
           <Card className="p-4 mt-4 mb-4">
             <Text className="text-muted-foreground text-xs mb-1">Passphrase</Text>
             <TextInput
@@ -321,6 +334,15 @@ export default function ExportKeyScreen() {
             loading={encrypting}
           />
         </ScrollView>
+
+        <Prompt.Basic
+          control={messageControl}
+          title={message?.title ?? ""}
+          description={message?.description ?? ""}
+          confirmButtonCta="OK"
+          onConfirm={() => setMessage(null)}
+          showCancel={false}
+        />
       </SafeAreaView>
     );
   }
@@ -331,15 +353,14 @@ export default function ExportKeyScreen() {
       className="flex-1 bg-background"
       edges={["top", "bottom", "left", "right"]}
     >
+      <ScreenHeader
+        title="Encrypted Key"
+        subtitle="Your BIP38 encrypted private key"
+      />
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-5 pt-4 pb-8"
       >
-        <ScreenHeader
-          title="Encrypted Key"
-          subtitle="Your BIP38 encrypted private key"
-        />
-
         {/* Encrypted key display */}
         <Pressable onPress={handleCopyEncrypted}>
           <Card className="p-4 mt-4 mb-4 border border-primary">
@@ -377,6 +398,15 @@ export default function ExportKeyScreen() {
           </Text>
         </Card>
       </ScrollView>
+
+      <Prompt.Basic
+        control={messageControl}
+        title={message?.title ?? ""}
+        description={message?.description ?? ""}
+        confirmButtonCta="OK"
+        onConfirm={() => setMessage(null)}
+        showCancel={false}
+      />
     </SafeAreaView>
   );
 }

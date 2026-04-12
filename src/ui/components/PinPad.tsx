@@ -1,10 +1,14 @@
 /**
  * PinPad — Revolut-style circular number pad for PIN entry.
  * Renders a 4×3 grid: digits 1-9, biometric/empty, 0, backspace.
+ *
+ * On web/electron, also listens for physical keyboard input:
+ *   - digits 0-9 → onDigit
+ *   - Backspace/Delete → onBackspace
  */
 
-import { useCallback } from "react";
-import { View, Text, Pressable } from "react-native";
+import { useCallback, useEffect } from "react";
+import { View, Text, Pressable, Platform } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { hapticSelection, hapticImpact } from "../../utils/haptics";
@@ -53,6 +57,28 @@ export function PinPad({
       onBackspace();
     }
   }, [disabled, onBackspace]);
+
+  // Keyboard support (web/electron only). RN native doesn't expose global
+  // keyboard events; native screens already use on-screen PinPad touches.
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    if (disabled) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      if (event.key >= "0" && event.key <= "9") {
+        event.preventDefault();
+        handleDigit(event.key);
+      } else if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        handleBack();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [disabled, handleDigit, handleBack]);
 
   return (
     <View className="w-full items-center">

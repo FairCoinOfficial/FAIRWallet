@@ -13,16 +13,23 @@ import type { SocketConnection, SocketProvider } from "./peer";
 
 // ---------------------------------------------------------------------------
 // Electron IPC bridge type
+//
+// Mirrors the contract exposed by electron/preload.js. The `connect` call is
+// asynchronous — it resolves to a connection ID once the underlying TCP
+// socket is established in the main process. The `onData` / `onClose` /
+// `onError` listeners are GLOBAL (they fire for every active connection),
+// so consumers must filter by connection ID and unsubscribe on teardown.
 // ---------------------------------------------------------------------------
 
+type Unsubscribe = () => void;
+
 interface ElectronP2PBridge {
-  connect(host: string, port: number): {
-    onData(callback: (data: Uint8Array) => void): void;
-    onClose(callback: () => void): void;
-    onError(callback: (err: Error) => void): void;
-    write(data: Uint8Array): void;
-    destroy(): void;
-  };
+  connect(host: string, port: number): Promise<string>;
+  send(connectionId: string, data: Uint8Array): Promise<void>;
+  disconnect(connectionId: string): Promise<void>;
+  onData(callback: (connectionId: string, data: Uint8Array) => void): Unsubscribe;
+  onClose(callback: (connectionId: string) => void): Unsubscribe;
+  onError(callback: (connectionId: string, error: string) => void): Unsubscribe;
 }
 
 interface ElectronAPI {
@@ -104,6 +111,17 @@ class NativeSocketProvider implements SocketProvider {
 
 // ---------------------------------------------------------------------------
 // ElectronSocketProvider (Desktop via IPC bridge)
+//
+// The Electron preload bridge is Promise-based and uses a single set of
+// global event listeners per event kind. This provider:
+//
+//   1. Kicks off `p2p.connect(...)` which resolves to a connection ID.
+//   2. Subscribes to the global `onData` / `onClose` / `onError` listeners
+//      and filters them by the connection ID for this socket instance.
+//   3. Defers the `onConnect` callback until the Promise resolves, and
+//      queues any `write` calls made before the connection is established.
+//   4. On `destroy`, unsubscribes the listeners and disconnects the socket
+//      in the main process.
 // ---------------------------------------------------------------------------
 
 class ElectronSocketProvider implements SocketProvider {
@@ -115,33 +133,108 @@ class ElectronSocketProvider implements SocketProvider {
       );
     }
 
-    const socket = electronAPI.p2p.connect(host, port);
+    const p2p = electronAPI.p2p;
 
-    // Electron's IPC p2p:connect resolves when the TCP connection is established,
-    // so we fire onConnect immediately after setup.
-    let connectCallback: (() => void) | undefined;
-    setTimeout(() => {
-      if (connectCallback) connectCallback();
-    }, 0);
+    let connectionId: string | null = null;
+    let destroyed = false;
+
+    let connectCb: (() => void) | undefined;
+    let dataCb: ((data: Uint8Array) => void) | undefined;
+    let closeCb: (() => void) | undefined;
+    let errorCb: ((err: Error) => void) | undefined;
+
+    // Subscribe eagerly so no event is missed between the Promise resolving
+    // and the consumer wiring up its handlers. Each listener filters by the
+    // connection ID assigned once `p2p.connect` resolves.
+    const unsubscribeData = p2p.onData((id: string, data: Uint8Array) => {
+      if (id === connectionId && dataCb) {
+        dataCb(data);
+      }
+    });
+    const unsubscribeClose = p2p.onClose((id: string) => {
+      if (id === connectionId && closeCb) {
+        closeCb();
+      }
+    });
+    const unsubscribeError = p2p.onError((id: string, message: string) => {
+      if (id === connectionId && errorCb) {
+        errorCb(new Error(message));
+      }
+    });
+
+    const connectPromise = p2p
+      .connect(host, port)
+      .then((id: string) => {
+        if (destroyed) {
+          // The caller tore the socket down before the TCP connection was
+          // established — disconnect immediately and swallow the id.
+          void p2p.disconnect(id);
+          return;
+        }
+        connectionId = id;
+        if (connectCb) {
+          connectCb();
+        }
+      })
+      .catch((err: unknown) => {
+        const error = err instanceof Error ? err : new Error(String(err));
+        if (errorCb) {
+          errorCb(error);
+        }
+      });
+
+    const teardownListeners = (): void => {
+      unsubscribeData();
+      unsubscribeClose();
+      unsubscribeError();
+    };
 
     return {
       onConnect: (cb: () => void) => {
-        connectCallback = cb;
+        connectCb = cb;
       },
       onData: (cb: (data: Uint8Array) => void) => {
-        socket.onData(cb);
+        dataCb = cb;
       },
       onClose: (cb: () => void) => {
-        socket.onClose(cb);
+        closeCb = cb;
       },
       onError: (cb: (err: Error) => void) => {
-        socket.onError(cb);
+        errorCb = cb;
       },
       write: (data: Uint8Array) => {
-        socket.write(data);
+        if (destroyed) {
+          return;
+        }
+        if (connectionId !== null) {
+          void p2p.send(connectionId, data).catch((err: unknown) => {
+            if (errorCb) {
+              errorCb(err instanceof Error ? err : new Error(String(err)));
+            }
+          });
+          return;
+        }
+        // Not yet connected — wait for the connect Promise, then send.
+        void connectPromise.then(() => {
+          if (destroyed || connectionId === null) {
+            return;
+          }
+          void p2p.send(connectionId, data).catch((err: unknown) => {
+            if (errorCb) {
+              errorCb(err instanceof Error ? err : new Error(String(err)));
+            }
+          });
+        });
       },
       destroy: () => {
-        socket.destroy();
+        if (destroyed) {
+          return;
+        }
+        destroyed = true;
+        teardownListeners();
+        if (connectionId !== null) {
+          void p2p.disconnect(connectionId);
+        }
       },
     };
   }

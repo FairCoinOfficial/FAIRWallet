@@ -207,13 +207,13 @@ function AppContent({ ready }: { ready: boolean }) {
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="lock" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="masternode" options={{ title: "Masternode", presentation: "modal" }} />
-        <Stack.Screen name="wallets" options={{ title: "Wallets", presentation: "modal" }} />
-        <Stack.Screen name="contacts" options={{ title: "Contacts", presentation: "modal" }} />
-        <Stack.Screen name="export-key" options={{ title: "Export Key", presentation: "modal" }} />
-        <Stack.Screen name="coin-control" options={{ title: "Coin Control", presentation: "modal" }} />
+        <Stack.Screen name="masternode" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="wallets" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="contacts" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="export-key" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="coin-control" options={{ headerShown: false, presentation: "modal" }} />
         <Stack.Screen name="peers" options={{ headerShown: false, presentation: "modal" }} />
-        <Stack.Screen name="transaction/[txid]" options={{ title: "Transaction" }} />
+        <Stack.Screen name="transaction/[txid]" options={{ headerShown: false }} />
       </Stack>
     </View>
   );

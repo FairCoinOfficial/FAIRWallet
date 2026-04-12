@@ -20,7 +20,6 @@ interface ContactsState {
     name: string,
     address: string,
     notes: string,
-    emoji: string,
   ) => Promise<void>;
   updateContact: (
     db: Database,
@@ -28,7 +27,6 @@ interface ContactsState {
     name: string,
     address: string,
     notes: string,
-    emoji: string,
   ) => Promise<void>;
   deleteContact: (db: Database, id: string) => Promise<void>;
   searchContacts: (db: Database, query: string) => Promise<ContactRow[]>;
@@ -76,10 +74,9 @@ export const useContactsStore = create<ContactsState>((set, get) => ({
     name: string,
     address: string,
     notes: string,
-    emoji: string,
   ): Promise<void> => {
     const id = generateContactId();
-    await db.insertContact(id, name, address, notes, emoji);
+    await db.insertContact(id, name, address, notes);
     await get().loadContacts(db);
   },
 
@@ -89,9 +86,8 @@ export const useContactsStore = create<ContactsState>((set, get) => ({
     name: string,
     address: string,
     notes: string,
-    emoji: string,
   ): Promise<void> => {
-    await db.updateContact(id, name, address, notes, emoji);
+    await db.updateContact(id, name, address, notes);
     await get().loadContacts(db);
   },
 

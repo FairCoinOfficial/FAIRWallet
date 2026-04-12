@@ -1,6 +1,7 @@
 /**
  * Contacts / Address Book screen.
  * Full-screen modal for managing contacts with CRUD operations.
+ * Google Contacts-inspired UI: rounded search pill, large avatars, full-screen edit form.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -10,8 +11,8 @@ import {
   TextInput,
   Pressable,
   Modal,
-  Alert,
   FlatList,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -20,13 +21,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useContactsStore } from "../src/wallet/contacts-store";
 import { getDatabase } from "../src/wallet/wallet-store";
 import type { ContactRow } from "../src/storage/database";
-import {
-  Card,
-  Button,
-  ListItem,
-  EmptyState,
-  ScreenHeader,
-} from "../src/ui/components";
+import { ContactAvatar, EmptyState } from "../src/ui/components";
 import { QRScanner } from "../src/ui/components/QRScanner";
 import { useTheme } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
@@ -35,28 +30,7 @@ import * as Prompt from "@oxyhq/bloom/prompt";
 // Constants
 // ---------------------------------------------------------------------------
 
-const EMOJI_OPTIONS = [
-  "\uD83D\uDC64",
-  "\uD83D\uDCB0",
-  "\uD83C\uDFE0",
-  "\uD83C\uDFAE",
-  "\uD83D\uDED2",
-  "\uD83D\uDCF1",
-  "\uD83C\uDFE6",
-  "\uD83D\uDC8E",
-  "\uD83C\uDF1F",
-  "\uD83D\uDD11",
-  "\uD83C\uDFB5",
-  "\uD83C\uDF55",
-  "\u2708\uFE0F",
-  "\uD83C\uDFA8",
-  "\uD83C\uDFC6",
-  "\uD83E\uDD1D",
-  "\uD83D\uDCBC",
-  "\uD83C\uDFAF",
-  "\uD83D\uDE80",
-  "\u2B50",
-] as const;
+const CONTENT_MAX_WIDTH_CLASS = "w-full max-w-2xl mx-auto";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -68,20 +42,85 @@ function truncateAddress(address: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Contact form modal
+// Form field — underlined Material-style input row
+// ---------------------------------------------------------------------------
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+
+interface FormFieldProps {
+  label: string;
+  icon: IconName;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  autoCorrect?: boolean;
+  multiline?: boolean;
+  focused: boolean;
+  onFocus: () => void;
+  onBlur: () => void;
+  trailing?: React.ReactNode;
+}
+
+function FormField({
+  label,
+  icon,
+  value,
+  onChangeText,
+  placeholder,
+  autoCapitalize = "sentences",
+  autoCorrect = true,
+  multiline = false,
+  focused,
+  onFocus,
+  onBlur,
+  trailing,
+}: FormFieldProps) {
+  const theme = useTheme();
+  const iconColor = focused ? theme.colors.primary : theme.colors.textSecondary;
+  const borderClass = focused ? "border-b-2 border-primary" : "border-b border-border";
+
+  return (
+    <View className="px-5 pt-4 pb-1">
+      <View className="flex-row items-start">
+        <View className="w-10 items-center justify-center pt-5">
+          <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-muted-foreground text-xs mb-1">{label}</Text>
+          <View className={`flex-row items-center ${borderClass} pb-2`}>
+            <TextInput
+              className="flex-1 text-foreground text-base py-1"
+              placeholder={placeholder}
+              placeholderTextColor={theme.colors.textSecondary}
+              value={value}
+              onChangeText={onChangeText}
+              autoCapitalize={autoCapitalize}
+              autoCorrect={autoCorrect}
+              multiline={multiline}
+              onFocus={onFocus}
+              onBlur={onBlur}
+            />
+            {trailing}
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Contact form modal — full-screen Google-Contacts style
 // ---------------------------------------------------------------------------
 
 interface ContactFormProps {
   visible: boolean;
   editingContact: ContactRow | null;
-  onSave: (
-    name: string,
-    address: string,
-    notes: string,
-    emoji: string,
-  ) => void;
+  onSave: (name: string, address: string, notes: string) => void;
   onClose: () => void;
 }
+
+type FocusedField = "name" | "address" | "notes" | null;
 
 function ContactForm({
   visible,
@@ -93,21 +132,21 @@ function ContactForm({
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [emoji, setEmoji] = useState("\uD83D\uDC64");
+  const [focusedField, setFocusedField] = useState<FocusedField>(null);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const clipboardErrorControl = Prompt.usePromptControl();
 
   const handleOpen = useCallback(() => {
     if (editingContact) {
       setName(editingContact.name);
       setAddress(editingContact.address);
       setNotes(editingContact.notes);
-      setEmoji(editingContact.emoji);
     } else {
       setName("");
       setAddress("");
       setNotes("");
-      setEmoji("\uD83D\uDC64");
     }
+    setFocusedField(null);
   }, [editingContact]);
 
   const handlePaste = useCallback(async () => {
@@ -117,9 +156,9 @@ function ContactForm({
         setAddress(text.trim());
       }
     } catch {
-      Alert.alert("Clipboard Error", "Failed to read from clipboard.");
+      clipboardErrorControl.open();
     }
-  }, []);
+  }, [clipboardErrorControl]);
 
   const handleQRScan = useCallback((scannedAddress: string) => {
     setAddress(scannedAddress);
@@ -129,125 +168,201 @@ function ContactForm({
 
   const handleSave = useCallback(() => {
     if (!canSave) return;
-    onSave(name.trim(), address.trim(), notes.trim(), emoji);
-  }, [canSave, name, address, notes, emoji, onSave]);
+    onSave(name.trim(), address.trim(), notes.trim());
+  }, [canSave, name, address, notes, onSave]);
 
   const handleClose = useCallback(() => {
     setName("");
     setAddress("");
     setNotes("");
-    setEmoji("\uD83D\uDC64");
+    setFocusedField(null);
     onClose();
   }, [onClose]);
 
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="fade"
+      animationType="slide"
+      presentationStyle="fullScreen"
       onRequestClose={handleClose}
       onShow={handleOpen}
     >
-      <View className="flex-1 bg-black/70 items-center justify-center px-6">
-        <Card className="p-6 w-full max-w-sm">
-          <Text className="text-foreground text-lg font-bold mb-4 text-center">
-            {editingContact ? "Edit Contact" : "New Contact"}
-          </Text>
+      <SafeAreaView
+        className="flex-1 bg-background"
+        edges={["top", "bottom", "left", "right"]}
+      >
+        <View className={`flex-1 ${CONTENT_MAX_WIDTH_CLASS}`}>
+          {/* Header row */}
+          <View className="flex-row items-center px-3 py-2 border-b border-border">
+            <Pressable
+              onPress={handleClose}
+              className="w-11 h-11 items-center justify-center rounded-full active:bg-surface"
+              accessibilityLabel="Close"
+            >
+              <MaterialCommunityIcons
+                name="close"
+                size={24}
+                color={theme.colors.text}
+              />
+            </Pressable>
+            <Text className="flex-1 text-foreground text-lg font-semibold ml-2">
+              {editingContact ? "Edit contact" : "New contact"}
+            </Text>
+            <Pressable
+              onPress={handleSave}
+              disabled={!canSave}
+              className={`h-11 px-5 rounded-full items-center justify-center ${
+                canSave ? "bg-primary active:opacity-80" : "bg-muted opacity-60"
+              }`}
+              accessibilityLabel="Save contact"
+            >
+              <Text
+                className={`text-sm font-semibold ${
+                  canSave ? "text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                Save
+              </Text>
+            </Pressable>
+          </View>
 
-          {/* Emoji picker */}
-          <Text className="text-muted-foreground text-xs mb-2">Avatar</Text>
-          <Card className="p-3 mb-4">
-            <View className="flex-row flex-wrap gap-2">
-              {EMOJI_OPTIONS.map((e) => (
-                <Pressable
-                  key={e}
-                  className={`w-9 h-9 rounded-lg items-center justify-center ${
-                    emoji === e
-                      ? "bg-primary/20 border border-primary"
-                      : "bg-background"
-                  }`}
-                  onPress={() => setEmoji(e)}
-                >
-                  <Text className="text-lg">{e}</Text>
-                </Pressable>
-              ))}
+          <ScrollView
+            className="flex-1"
+            contentContainerClassName="pb-12"
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Large initial avatar */}
+            <View className="items-center pt-8 pb-6">
+              <ContactAvatar
+                name={name || (editingContact?.name ?? "")}
+                size={96}
+              />
             </View>
-          </Card>
 
-          {/* Name input */}
-          <Text className="text-muted-foreground text-xs mb-1">Name</Text>
-          <Card className="px-3 py-2.5 mb-3">
-            <TextInput
-              className="text-foreground text-sm"
-              placeholder="Contact name"
-              placeholderTextColor={theme.colors.textSecondary}
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-            />
-          </Card>
+            {/* Form fields */}
+            <View className="mt-2">
+              <FormField
+                label="Name"
+                icon="account-outline"
+                value={name}
+                onChangeText={setName}
+                placeholder="Contact name"
+                autoCapitalize="words"
+                autoCorrect={false}
+                focused={focusedField === "name"}
+                onFocus={() => setFocusedField("name")}
+                onBlur={() => setFocusedField(null)}
+              />
 
-          {/* Address input */}
-          <Text className="text-muted-foreground text-xs mb-1">Address</Text>
-          <Card className="px-3 py-2.5 mb-3">
-            <View className="flex-row items-center">
-              <TextInput
-                className="flex-1 text-foreground text-sm mr-2"
-                placeholder="FairCoin address"
-                placeholderTextColor={theme.colors.textSecondary}
+              <FormField
+                label="Address"
+                icon="key-outline"
                 value={address}
                 onChangeText={setAddress}
+                placeholder="FairCoin address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                focused={focusedField === "address"}
+                onFocus={() => setFocusedField("address")}
+                onBlur={() => setFocusedField(null)}
+                trailing={
+                  <View className="flex-row items-center ml-2">
+                    <Pressable
+                      onPress={handlePaste}
+                      className="w-10 h-10 rounded-full items-center justify-center active:bg-surface"
+                      accessibilityLabel="Paste address from clipboard"
+                    >
+                      <MaterialCommunityIcons
+                        name="content-paste"
+                        size={20}
+                        color={theme.colors.primary}
+                      />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setShowQRScanner(true)}
+                      className="w-10 h-10 rounded-full items-center justify-center active:bg-surface"
+                      accessibilityLabel="Scan address from QR code"
+                    >
+                      <MaterialCommunityIcons
+                        name="qrcode-scan"
+                        size={20}
+                        color={theme.colors.primary}
+                      />
+                    </Pressable>
+                  </View>
+                }
               />
-              <Pressable
-                className="bg-background border border-border rounded-lg px-2 py-1 mr-1"
-                onPress={handlePaste}
-              >
-                <Text className="text-primary text-xs">Paste</Text>
-              </Pressable>
-              <Pressable
-                className="bg-background border border-border rounded-lg px-2 py-1"
-                onPress={() => setShowQRScanner(true)}
-              >
-                <Text className="text-primary text-xs">QR</Text>
-              </Pressable>
+
+              <FormField
+                label="Notes"
+                icon="note-text-outline"
+                value={notes}
+                onChangeText={setNotes}
+                placeholder="Optional notes"
+                autoCapitalize="sentences"
+                multiline
+                focused={focusedField === "notes"}
+                onFocus={() => setFocusedField("notes")}
+                onBlur={() => setFocusedField(null)}
+              />
             </View>
-          </Card>
-
-          {/* Notes input */}
-          <Text className="text-muted-foreground text-xs mb-1">Notes</Text>
-          <Card className="px-3 py-2.5 mb-4">
-            <TextInput
-              className="text-foreground text-sm"
-              placeholder="Optional notes"
-              placeholderTextColor={theme.colors.textSecondary}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={2}
-            />
-          </Card>
-
-          {/* Actions */}
-          <View className="gap-3">
-            <Button
-              title={editingContact ? "Save Changes" : "Add Contact"}
-              onPress={handleSave}
-              variant="primary"
-              disabled={!canSave}
-            />
-            <Button title="Cancel" onPress={handleClose} variant="secondary" />
-          </View>
-        </Card>
-      </View>
+          </ScrollView>
+        </View>
+      </SafeAreaView>
 
       <QRScanner
         visible={showQRScanner}
         onScan={handleQRScan}
         onClose={() => setShowQRScanner(false)}
       />
+
+      <Prompt.Basic
+        control={clipboardErrorControl}
+        title="Clipboard Error"
+        description="Failed to read from clipboard."
+        confirmButtonCta="OK"
+        onConfirm={() => {}}
+        showCancel={false}
+      />
     </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Contact list row — Google Contacts style
+// ---------------------------------------------------------------------------
+
+interface ContactRowItemProps {
+  contact: ContactRow;
+  onPress: () => void;
+  onLongPress: () => void;
+}
+
+function ContactRowItem({ contact, onPress, onLongPress }: ContactRowItemProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      className="flex-row items-center px-5 py-3 active:bg-surface"
+    >
+      <View className="mr-4">
+        <ContactAvatar name={contact.name} size={48} />
+      </View>
+      <View className="flex-1">
+        <Text
+          className="text-foreground text-base font-medium"
+          numberOfLines={1}
+        >
+          {contact.name}
+        </Text>
+        <Text
+          className="text-muted-foreground text-[13px] mt-0.5"
+          numberOfLines={1}
+        >
+          {truncateAddress(contact.address)}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -273,9 +388,11 @@ export default function ContactsScreen() {
   const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
   const [pendingDeleteContact, setPendingDeleteContact] =
     useState<ContactRow | null>(null);
+  const [longPressContact, setLongPressContact] =
+    useState<ContactRow | null>(null);
   const deleteContactControl = Prompt.usePromptControl();
+  const longPressMenuControl = Prompt.usePromptControl();
 
-  // Load contacts on mount via onShow-like mechanism (useFocusEffect equivalent)
   const handleLayout = useCallback(() => {
     const db = getDatabase();
     if (db) {
@@ -295,6 +412,11 @@ export default function ContactsScreen() {
     }
   }, []);
 
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery("");
+    setSearchResults(null);
+  }, []);
+
   const displayContacts = useMemo(
     () => searchResults ?? contacts,
     [searchResults, contacts],
@@ -311,7 +433,6 @@ export default function ContactsScreen() {
         router.back();
         return;
       }
-      // In management mode, tap opens edit
       setEditingContact(contact);
       setShowForm(true);
     },
@@ -320,43 +441,41 @@ export default function ContactsScreen() {
 
   const handleContactLongPress = useCallback(
     (contact: ContactRow) => {
-      Alert.alert(contact.name, truncateAddress(contact.address), [
-        {
-          text: "Edit",
-          onPress: () => {
-            setEditingContact(contact);
-            setShowForm(true);
-          },
-        },
-        {
-          text: "Copy Address",
-          onPress: () => {
-            Clipboard.setStringAsync(contact.address);
-          },
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            setPendingDeleteContact(contact);
-            deleteContactControl.open();
-          },
-        },
-        { text: "Cancel", style: "cancel" },
-      ]);
+      setLongPressContact(contact);
+      longPressMenuControl.open();
     },
-    [deleteContactControl],
+    [longPressMenuControl],
   );
 
+  const handleLongPressEdit = useCallback(() => {
+    if (!longPressContact) return;
+    setEditingContact(longPressContact);
+    setShowForm(true);
+    setLongPressContact(null);
+  }, [longPressContact]);
+
+  const handleLongPressCopy = useCallback(() => {
+    if (!longPressContact) return;
+    Clipboard.setStringAsync(longPressContact.address);
+    setLongPressContact(null);
+  }, [longPressContact]);
+
+  const handleLongPressDelete = useCallback(() => {
+    if (!longPressContact) return;
+    setPendingDeleteContact(longPressContact);
+    setLongPressContact(null);
+    deleteContactControl.open();
+  }, [longPressContact, deleteContactControl]);
+
   const handleFormSave = useCallback(
-    (name: string, address: string, notes: string, emoji: string) => {
+    (name: string, address: string, notes: string) => {
       const db = getDatabase();
       if (!db) return;
 
       if (editingContact) {
-        updateContact(db, editingContact.id, name, address, notes, emoji);
+        updateContact(db, editingContact.id, name, address, notes);
       } else {
-        addContact(db, name, address, notes, emoji);
+        addContact(db, name, address, notes);
       }
 
       setShowForm(false);
@@ -371,20 +490,14 @@ export default function ContactsScreen() {
   }, []);
 
   const renderItem = useCallback(
-    ({ item, index }: { item: ContactRow; index: number }) => (
-      <ListItem
-        title={item.name}
-        subtitle={truncateAddress(item.address)}
-        isLast={index === displayContacts.length - 1}
+    ({ item }: { item: ContactRow }) => (
+      <ContactRowItem
+        contact={item}
         onPress={() => handleContactPress(item)}
-        trailing={
-          <View className="w-10 h-10 rounded-full bg-background items-center justify-center">
-            <Text className="text-lg">{item.emoji}</Text>
-          </View>
-        }
+        onLongPress={() => handleContactLongPress(item)}
       />
     ),
-    [handleContactPress, displayContacts.length],
+    [handleContactPress, handleContactLongPress],
   );
 
   const keyExtractor = useCallback((item: ContactRow) => item.id, []);
@@ -395,69 +508,93 @@ export default function ContactsScreen() {
       edges={["top", "bottom", "left", "right"]}
       onLayout={handleLayout}
     >
-      {/* Header */}
-      <ScreenHeader
-        title="Contacts"
-        leftAction={
-          <Pressable onPress={() => router.back()} className="p-1">
+      <View className={`flex-1 ${CONTENT_MAX_WIDTH_CLASS}`}>
+        {/* Header */}
+        <View className="flex-row items-center px-3 py-2">
+          <Pressable
+            onPress={() => router.back()}
+            className="w-11 h-11 items-center justify-center rounded-full active:bg-surface"
+            accessibilityLabel="Back"
+          >
             <MaterialCommunityIcons
               name="arrow-left"
-              size={22}
-              color={theme.colors.primary}
+              size={24}
+              color={theme.colors.text}
             />
           </Pressable>
-        }
-        rightAction={
-          <Pressable onPress={handleAddPress} className="p-1">
+          <Text className="flex-1 text-foreground text-lg font-semibold ml-2">
+            Contacts
+          </Text>
+          <Pressable
+            onPress={handleAddPress}
+            className="w-11 h-11 items-center justify-center rounded-full active:bg-surface"
+            accessibilityLabel="Add contact"
+          >
             <MaterialCommunityIcons
               name="plus"
-              size={24}
+              size={26}
               color={theme.colors.primary}
             />
           </Pressable>
-        }
-      />
-
-      {/* Search bar */}
-      <View className="px-5 py-3">
-        <Card className="px-4 py-2.5">
-          <TextInput
-            className="text-foreground text-sm"
-            placeholder="Search by name or address..."
-            placeholderTextColor={theme.colors.textSecondary}
-            value={searchQuery}
-            onChangeText={handleSearch}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </Card>
-      </View>
-
-      {/* Contact list */}
-      {displayContacts.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <EmptyState
-            icon="book-open-variant"
-            title={
-              searchQuery
-                ? "No contacts match your search"
-                : "No contacts yet"
-            }
-            subtitle={
-              searchQuery ? undefined : "Add one to get started"
-            }
-          />
         </View>
-      ) : (
-        <FlatList
-          data={displayContacts}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          className="flex-1 px-5"
-          contentContainerClassName="pb-8"
-          ItemSeparatorComponent={null}
-        />
-      )}
+
+        {/* Search pill */}
+        <View className="px-4 pt-1 pb-3">
+          <View className="flex-row items-center bg-surface px-4 rounded-full min-h-[48px]">
+            <MaterialCommunityIcons
+              name="magnify"
+              size={22}
+              color={theme.colors.textSecondary}
+            />
+            <TextInput
+              className="flex-1 text-foreground text-base ml-3 py-2"
+              placeholder="Search contacts"
+              placeholderTextColor={theme.colors.textSecondary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 ? (
+              <Pressable
+                onPress={handleClearSearch}
+                className="w-8 h-8 items-center justify-center rounded-full active:bg-background"
+                accessibilityLabel="Clear search"
+              >
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  size={18}
+                  color={theme.colors.textSecondary}
+                />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
+        {/* Contact list */}
+        {displayContacts.length === 0 ? (
+          <View className="flex-1 items-center justify-center px-8">
+            <EmptyState
+              icon="book-open-variant"
+              title={
+                searchQuery
+                  ? "No contacts match your search"
+                  : "No contacts yet"
+              }
+              subtitle={searchQuery ? undefined : "Add one to get started"}
+            />
+          </View>
+        ) : (
+          <FlatList
+            data={displayContacts}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            className="flex-1"
+            contentContainerClassName="pb-24"
+          />
+        )}
+      </View>
 
       {/* Contact form modal */}
       <ContactForm
@@ -466,6 +603,37 @@ export default function ContactsScreen() {
         onSave={handleFormSave}
         onClose={handleFormClose}
       />
+
+      {/* Long-press action menu prompt */}
+      <Prompt.Outer
+        control={longPressMenuControl}
+        onClose={() => setLongPressContact(null)}
+      >
+        <Prompt.Content>
+          <Prompt.TitleText>{longPressContact?.name ?? ""}</Prompt.TitleText>
+          <Prompt.DescriptionText>
+            {longPressContact ? truncateAddress(longPressContact.address) : ""}
+          </Prompt.DescriptionText>
+        </Prompt.Content>
+        <Prompt.Actions>
+          <Prompt.Action
+            cta="Edit"
+            onPress={handleLongPressEdit}
+            color="primary"
+          />
+          <Prompt.Action
+            cta="Copy Address"
+            onPress={handleLongPressCopy}
+            color="primary_subtle"
+          />
+          <Prompt.Action
+            cta="Delete"
+            onPress={handleLongPressDelete}
+            color="negative"
+          />
+          <Prompt.Cancel />
+        </Prompt.Actions>
+      </Prompt.Outer>
 
       {/* Delete contact confirmation prompt */}
       <Prompt.Basic

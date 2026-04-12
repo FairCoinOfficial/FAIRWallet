@@ -9,6 +9,7 @@ import { useContactsStore } from "../../wallet/contacts-store";
 import { getDatabase } from "../../wallet/wallet-store";
 import type { ContactRow } from "../../storage/database";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { ContactAvatar } from "./ContactAvatar";
 
 interface ContactPickerProps {
   visible: boolean;
@@ -37,8 +38,8 @@ function ContactPickerItem({
       className="flex-row items-center px-4 py-3 border-b border-border active:bg-background"
       onPress={handlePress}
     >
-      <View className="w-10 h-10 rounded-full bg-background items-center justify-center mr-3">
-        <Text className="text-lg">{contact.emoji}</Text>
+      <View className="mr-3">
+        <ContactAvatar name={contact.name} size={40} />
       </View>
       <View className="flex-1">
         <Text className="text-foreground text-sm font-medium">{contact.name}</Text>

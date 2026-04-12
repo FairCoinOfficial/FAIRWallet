@@ -23,17 +23,7 @@ import {
   type PriceData,
 } from "../../src/services/price";
 import { useTheme } from "@oxyhq/bloom/theme";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatBalance(sats: bigint): string {
-  const whole = sats / 100_000_000n;
-  const frac = sats % 100_000_000n;
-  const fracStr = frac.toString().padStart(8, "0");
-  return `${whole.toString()}.${fracStr}`;
-}
+import { formatFair } from "../../src/core/format-amount";
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -205,7 +195,7 @@ export default function HomeScreen() {
                   <TransactionItem
                     txid={tx.txid}
                     type={tx.type}
-                    amount={formatBalance(
+                    amount={formatFair(
                       tx.amount < 0n ? -tx.amount : tx.amount,
                     )}
                     address={tx.address}

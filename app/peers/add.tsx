@@ -3,9 +3,10 @@
  */
 
 import { useCallback, useState } from "react";
-import { View, Text, ScrollView, TextInput, Alert } from "react-native";
+import { View, Text, ScrollView, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@oxyhq/bloom/theme";
+import * as Prompt from "@oxyhq/bloom/prompt";
 import { getDatabase } from "../../src/wallet/wallet-store";
 import { Card } from "../../src/ui/components/Card";
 import { Button } from "../../src/ui/components/Button";
@@ -49,6 +50,21 @@ export default function AddPeerScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [message, setMessage] = useState<{
+    title: string;
+    description: string;
+    onConfirm?: () => void;
+  } | null>(null);
+  const messageControl = Prompt.usePromptControl();
+
+  const showMessage = useCallback(
+    (title: string, description: string, onConfirm?: () => void) => {
+      setMessage({ title, description, onConfirm });
+      messageControl.open();
+    },
+    [messageControl],
+  );
+
   const handleAdd = useCallback(async () => {
     const trimmedIp = ip.trim();
     const trimmedPort = port.trim() || DEFAULT_PORT;
@@ -75,67 +91,82 @@ export default function AddPeerScreen() {
     }
 
     setLoading(false);
-    Alert.alert("Peer Added", `${trimmedIp}:${trimmedPort}`, [
-      { text: "OK", onPress: () => router.back() },
-    ]);
-  }, [ip, port, router]);
+    showMessage("Peer Added", `${trimmedIp}:${trimmedPort}`, () =>
+      router.back(),
+    );
+  }, [ip, port, router, showMessage]);
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="px-5 pt-6 pb-8"
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text className="text-muted-foreground text-sm mb-6">
-        Enter the IP address and port of a FairCoin node to connect to it
-        directly. The default port is {DEFAULT_PORT}.
-      </Text>
+    <>
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerClassName="px-5 pt-6 pb-8"
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text className="text-muted-foreground text-sm mb-6">
+          Enter the IP address and port of a FairCoin node to connect to it
+          directly. The default port is {DEFAULT_PORT}.
+        </Text>
 
-      <Card className="p-4 mb-6">
-        <Text className="text-muted-foreground text-xs mb-1">IP Address</Text>
-        <TextInput
-          className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-4"
-          placeholder="192.168.1.1"
-          placeholderTextColor={theme.colors.textSecondary}
-          value={ip}
-          onChangeText={(text) => {
-            setIp(text);
-            setError(null);
-          }}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="numbers-and-punctuation"
-          returnKeyType="next"
+        <Card className="p-4 mb-6">
+          <Text className="text-muted-foreground text-xs mb-1">IP Address</Text>
+          <TextInput
+            className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-4"
+            placeholder="192.168.1.1"
+            placeholderTextColor={theme.colors.textSecondary}
+            value={ip}
+            onChangeText={(text) => {
+              setIp(text);
+              setError(null);
+            }}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="numbers-and-punctuation"
+            returnKeyType="next"
+          />
+
+          <Text className="text-muted-foreground text-xs mb-1">Port</Text>
+          <TextInput
+            className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base"
+            placeholder={DEFAULT_PORT}
+            placeholderTextColor={theme.colors.textSecondary}
+            value={port}
+            onChangeText={(text) => {
+              setPort(text);
+              setError(null);
+            }}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="number-pad"
+            returnKeyType="done"
+          />
+        </Card>
+
+        {error ? (
+          <Text className="text-destructive text-sm mb-4 px-1">{error}</Text>
+        ) : null}
+
+        <Button
+          title="Add Peer"
+          onPress={handleAdd}
+          variant="primary"
+          loading={loading}
+          disabled={loading}
         />
+      </ScrollView>
 
-        <Text className="text-muted-foreground text-xs mb-1">Port</Text>
-        <TextInput
-          className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base"
-          placeholder={DEFAULT_PORT}
-          placeholderTextColor={theme.colors.textSecondary}
-          value={port}
-          onChangeText={(text) => {
-            setPort(text);
-            setError(null);
-          }}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="number-pad"
-          returnKeyType="done"
-        />
-      </Card>
-
-      {error ? (
-        <Text className="text-destructive text-sm mb-4 px-1">{error}</Text>
-      ) : null}
-
-      <Button
-        title="Add Peer"
-        onPress={handleAdd}
-        variant="primary"
-        loading={loading}
-        disabled={loading}
+      <Prompt.Basic
+        control={messageControl}
+        title={message?.title ?? ""}
+        description={message?.description ?? ""}
+        confirmButtonCta="OK"
+        onConfirm={() => {
+          const cb = message?.onConfirm;
+          setMessage(null);
+          cb?.();
+        }}
+        showCancel={false}
       />
-    </ScrollView>
+    </>
   );
 }
