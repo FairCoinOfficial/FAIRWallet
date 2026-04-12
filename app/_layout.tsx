@@ -19,6 +19,7 @@ import { AppState, type AppStateStatus, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import { useFonts } from "expo-font";
 import { vars } from "nativewind";
 import * as Linking from "expo-linking";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -33,6 +34,7 @@ import { useWalletStore } from "../src/wallet/wallet-store";
 import { getAutoLockTimeout } from "../src/storage/secure-store";
 import { initLanguage } from "../src/i18n";
 import { getItemAsync, setItemAsync } from "../src/storage/kv-store";
+import { OfflineBanner } from "../src/ui/components/OfflineBanner";
 
 // Module-level initialization (runs once before any component mounts)
 initLanguage();
@@ -130,10 +132,14 @@ export default function RootLayout() {
   useDeepLinkHandler();
   useAutoLock();
 
-  const [mode, setMode] = useState<ThemeMode>("dark");
-  const [ready, setReady] = useState(false);
+  const [fontsLoaded] = useFonts({
+    Phudu: require("../assets/fonts/Phudu.ttf"),
+  });
 
-  // Hydrate persisted theme mode once, then reveal the app
+  const [mode, setMode] = useState<ThemeMode>("dark");
+  const [themeReady, setThemeReady] = useState(false);
+
+  // Hydrate persisted theme mode once
   const hydrated = useRef(false);
   if (!hydrated.current) {
     hydrated.current = true;
@@ -141,7 +147,7 @@ export default function RootLayout() {
       if (stored === "light" || stored === "dark" || stored === "system") {
         setMode(stored);
       }
-      setReady(true);
+      setThemeReady(true);
     });
   }
 
@@ -150,8 +156,8 @@ export default function RootLayout() {
     setItemAsync(THEME_MODE_KEY, next);
   }, []);
 
-  // Keep splash screen visible until theme is loaded
-  if (!ready) return null;
+  // Keep splash screen until both fonts and theme are loaded
+  if (!fontsLoaded || !themeReady) return null;
 
   return (
     <SafeAreaProvider>
@@ -180,6 +186,7 @@ function AppContent() {
   return (
     <View style={[{ flex: 1 }, themeVars]}>
       <StatusBar style={theme.isDark ? "light" : "dark"} />
+      <OfflineBanner />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.colors.background },

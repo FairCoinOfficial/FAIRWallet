@@ -4,7 +4,7 @@
  * No heavy library dependencies - simple key-value translations.
  */
 
-import { getLocales } from "expo-localization";
+import { getLocales, getCalendars } from "expo-localization";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -130,6 +130,7 @@ const translations: Record<Language, Record<string, string>> = {
 // ---------------------------------------------------------------------------
 
 let currentLanguage: Language = "en";
+let currentLocale: string = "en-US";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -143,6 +144,7 @@ export function initLanguage(): void {
   const locales = getLocales();
   const deviceLang = locales[0]?.languageCode ?? "en";
   currentLanguage = deviceLang === "es" ? "es" : "en";
+  currentLocale = locales[0]?.languageTag ?? "en-US";
 }
 
 /**
@@ -165,4 +167,43 @@ export function setLanguage(lang: Language): void {
  */
 export function getLanguage(): Language {
   return currentLanguage;
+}
+
+/** Format a number with locale-appropriate separators */
+export function formatNumber(value: number, decimals: number = 2): string {
+  return new Intl.NumberFormat(currentLocale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value);
+}
+
+/** Format FAIR amount from satoshis with locale separators */
+export function formatFairAmount(sats: bigint): string {
+  const fair = Number(sats) / 100_000_000;
+  return new Intl.NumberFormat(currentLocale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
+  }).format(fair);
+}
+
+/** Format fiat currency amount with correct symbol and formatting */
+export function formatFiatAmount(amount: number, currency: string = "USD"): string {
+  return new Intl.NumberFormat(currentLocale, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+/** Get the user's default currency code */
+export function getDefaultCurrency(): string {
+  const locales = getLocales();
+  return locales[0]?.currencyCode ?? "USD";
+}
+
+/** Check if locale uses 24-hour clock */
+export function uses24HourClock(): boolean {
+  const calendars = getCalendars();
+  return calendars[0]?.uses24hourClock ?? false;
 }

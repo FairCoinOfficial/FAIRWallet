@@ -7,6 +7,7 @@ import { useCallback } from "react";
 import { View, Text, Pressable } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { hapticSelection, hapticImpact } from "../../utils/haptics";
 
 interface PinPadProps {
   onDigit: (digit: string) => void;
@@ -39,6 +40,7 @@ export function PinPad({
   const handleDigit = useCallback(
     (digit: string) => {
       if (!disabled) {
+        hapticSelection();
         onDigit(digit);
       }
     },
@@ -47,6 +49,7 @@ export function PinPad({
 
   const handleBack = useCallback(() => {
     if (!disabled) {
+      hapticImpact();
       onBackspace();
     }
   }, [disabled, onBackspace]);

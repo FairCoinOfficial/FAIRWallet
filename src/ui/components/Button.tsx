@@ -12,6 +12,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { hapticImpact } from "../../utils/haptics";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "outline" | "ghost";
 type ButtonSize = "sm" | "md" | "lg";
@@ -102,10 +103,13 @@ export function Button({
   const handlePress = useCallback(
     (event: GestureResponderEvent) => {
       if (!isDisabled) {
+        if (variant === "primary") {
+          hapticImpact();
+        }
         onPress(event);
       }
     },
-    [isDisabled, onPress],
+    [isDisabled, variant, onPress],
   );
 
   const spinnerColor = spinnerColors[variant];

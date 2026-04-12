@@ -2,14 +2,17 @@
  * Entry redirect screen.
  * Checks for existing wallet, initializes it from secure store,
  * and routes to the appropriate screen (onboarding, lock, or tabs).
+ *
+ * This screen renders inside BloomThemeProvider (child of root Stack),
+ * so useTheme() is available.
  */
 
 import { useCallback, useState } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import { Redirect, useFocusEffect } from "expo-router";
+import { useTheme } from "@oxyhq/bloom/theme";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { getMnemonic, hasPin } from "../src/storage/secure-store";
-import { useTheme } from "@oxyhq/bloom/theme";
 
 type AppState = "checking" | "onboarding" | "locked" | "ready" | "error";
 
@@ -19,7 +22,6 @@ export default function IndexScreen() {
   const hasWallet = useWalletStore((s) => s.hasWallet);
   const initialize = useWalletStore((s) => s.initialize);
   const initialized = useWalletStore((s) => s.initialized);
-  const theme = useTheme();
 
   useFocusEffect(
     useCallback(() => {
@@ -32,7 +34,6 @@ export default function IndexScreen() {
             return;
           }
 
-          // Wallet exists - load mnemonic and initialize
           if (!initialized) {
             const mnemonic = await getMnemonic();
             if (!mnemonic) {
@@ -42,14 +43,12 @@ export default function IndexScreen() {
             await initialize(mnemonic);
           }
 
-          // Check if PIN is set - route to lock screen if so
-          const pinSet = await hasPin();
-          if (pinSet) {
+          const hasPinSet = await hasPin();
+          if (hasPinSet) {
             if (!cancelled) setAppState("locked");
-            return;
+          } else {
+            if (!cancelled) setAppState("ready");
           }
-
-          if (!cancelled) setAppState("ready");
         } catch (err: unknown) {
           const msg =
             err instanceof Error ? err.message : "Failed to load wallet";
@@ -81,7 +80,7 @@ export default function IndexScreen() {
   if (appState === "error") {
     return (
       <View className="flex-1 bg-background items-center justify-center px-6">
-        <Text className="text-red-400 text-base text-center mb-4">
+        <Text className="text-destructive text-base text-center mb-4">
           {errorMsg}
         </Text>
         <Text className="text-muted-foreground text-sm text-center">
@@ -91,11 +90,12 @@ export default function IndexScreen() {
     );
   }
 
-  // "checking" state
   return (
     <View className="flex-1 bg-background items-center justify-center">
-      <ActivityIndicator size="large" color={theme.colors.primary} />
-      <Text className="text-muted-foreground text-sm mt-4">Loading wallet...</Text>
+      <ActivityIndicator size="large" color="#9ffb50" />
+      <Text className="text-muted-foreground text-sm mt-4">
+        Loading wallet...
+      </Text>
     </View>
   );
 }

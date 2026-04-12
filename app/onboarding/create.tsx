@@ -18,6 +18,7 @@ import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
 import { Card } from "../../src/ui/components/Card";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { hapticSuccess } from "../../src/utils/haptics";
 
 type Step = "generating" | "display" | "verify" | "complete";
 
@@ -122,6 +123,7 @@ export default function CreateWalletScreen() {
       const nextIdx = currentVerifyIdx + 1;
 
       if (nextIdx >= VERIFY_COUNT) {
+        hapticSuccess();
         setStep("complete");
         router.replace("/onboarding/pin-setup");
         return;

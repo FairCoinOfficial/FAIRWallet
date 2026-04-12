@@ -8,6 +8,7 @@
 import { useMemo } from "react";
 import { View, Text } from "react-native";
 import { Badge } from "./Badge";
+import { formatFairAmount, formatFiatAmount } from "../../i18n";
 
 const SATS_PER_FAIR = 100_000_000n;
 const FAIR_SYMBOL = "\u229C"; // ⊜
@@ -20,36 +21,6 @@ interface BalanceDisplayProps {
   change24h?: number | null;
   size?: BalanceSize;
   showFiatPrimary?: boolean;
-}
-
-function formatFair(sats: bigint): string {
-  const isNegative = sats < 0n;
-  const absSats = isNegative ? -sats : sats;
-  const whole = absSats / SATS_PER_FAIR;
-  const fraction = absSats % SATS_PER_FAIR;
-
-  // Format whole part with thousand separators
-  const wholeStr = whole.toLocaleString();
-
-  let result: string;
-  if (fraction === 0n) {
-    result = `${wholeStr}.00`;
-  } else {
-    const fracStr = fraction.toString().padStart(8, "0");
-    // Show at least 2 decimals, trim trailing zeros beyond that
-    const trimmed = fracStr.replace(/0+$/, "");
-    const decimals = trimmed.length < 2 ? fracStr.slice(0, 2) : trimmed;
-    result = `${wholeStr}.${decimals}`;
-  }
-
-  return isNegative ? `-${result}` : result;
-}
-
-function formatUsd(amount: number): string {
-  return amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 
 function formatChange(change: number): string {
@@ -95,7 +66,7 @@ export function BalanceDisplay({
   size = "lg",
   showFiatPrimary = false,
 }: BalanceDisplayProps) {
-  const fairFormatted = useMemo(() => formatFair(sats), [sats]);
+  const fairFormatted = useMemo(() => formatFairAmount(sats), [sats]);
 
   const usdValue = useMemo(() => {
     if (priceUsd == null || priceUsd === 0) return null;
@@ -104,7 +75,7 @@ export function BalanceDisplay({
 
   const usdFormatted = useMemo(() => {
     if (usdValue === null) return null;
-    return formatUsd(usdValue);
+    return formatFiatAmount(usdValue, "USD");
   }, [usdValue]);
 
   const changeInfo = useMemo(() => {
@@ -125,14 +96,9 @@ export function BalanceDisplay({
     return (
       <View className="items-center">
         {/* Primary: $X,XXX.XX */}
-        <View className="flex-row items-baseline">
-          <Text className={`text-foreground ${symbolClass} font-light mr-0.5`}>
-            $
-          </Text>
-          <Text className={`text-foreground ${primaryClass} font-bold tracking-tight`}>
-            {usdFormatted}
-          </Text>
-        </View>
+        <Text className={`text-foreground font-display ${primaryClass} font-bold tracking-tight`}>
+          {usdFormatted}
+        </Text>
 
         {/* Secondary: ⊜ X,XXX.XX FAIR */}
         <Text className={`text-muted-foreground ${secondaryClass} mt-1`}>
@@ -165,7 +131,7 @@ export function BalanceDisplay({
       {/* Secondary: ≈ $X.XX USD */}
       {usdFormatted !== null ? (
         <Text className={`text-muted-foreground ${secondaryClass} mt-1`}>
-          {"\u2248"} ${usdFormatted} USD
+          {"\u2248"} {usdFormatted}
         </Text>
       ) : null}
 

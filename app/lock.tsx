@@ -13,6 +13,7 @@ import { verifyPin, isBiometricsEnabled } from "../src/storage/secure-store";
 import { PinPad } from "../src/ui/components/PinPad";
 import { PinDots } from "../src/ui/components/PinDots";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { hapticSuccess, hapticError } from "../src/utils/haptics";
 
 const PIN_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
@@ -79,6 +80,7 @@ export default function LockScreen() {
       });
 
       if (result.success) {
+        hapticSuccess();
         navigateToTabs();
       }
     } catch (_biometricError: unknown) {
@@ -110,6 +112,7 @@ export default function LockScreen() {
             });
 
             if (result.success && !cancelled) {
+              hapticSuccess();
               navigateToTabs();
             }
           } catch (_e: unknown) {
@@ -144,8 +147,10 @@ export default function LockScreen() {
           verifyPin(next)
             .then((correct) => {
               if (correct) {
+                hapticSuccess();
                 navigateToTabs();
               } else {
+                hapticError();
                 const newAttempts = attempts + 1;
                 setAttempts(newAttempts);
 

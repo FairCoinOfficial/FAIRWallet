@@ -48,6 +48,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ["System"],
+        display: ["Phudu"],
       },
     },
   },

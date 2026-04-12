@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { savePin } from "../../src/storage/secure-store";
 import { PinPad } from "../../src/ui/components/PinPad";
 import { PinDots } from "../../src/ui/components/PinDots";
+import { hapticSuccess } from "../../src/utils/haptics";
 
 const PIN_LENGTH = 6;
 
@@ -48,6 +49,7 @@ export default function PinSetupScreen() {
           } else {
             setTimeout(() => {
               if (next === firstPin) {
+                hapticSuccess();
                 setSaving(true);
                 savePin(next)
                   .then(() => {
