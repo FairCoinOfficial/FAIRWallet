@@ -37,6 +37,7 @@ export default function TabLayout() {
       <NativeTabs
         backgroundColor={theme.colors.card}
         tintColor={theme.colors.tint}
+        indicatorColor={theme.colors.primarySubtle}
         iconColor={{
           default: theme.colors.icon,
           selected: theme.colors.tint,
