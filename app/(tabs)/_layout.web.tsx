@@ -1,16 +1,27 @@
 /**
  * Tab layout for Web (Electron desktop).
- * Uses headless tabs from expo-router/ui with custom styling.
- * NativeTabs is not available on web, so we use the JS-based approach.
- * Tab labels use the i18n system for translation.
+ * Uses headless tabs from expo-router/ui with Material Design 3 responsive
+ * navigation:
  *
- * Responsive: on narrow screens (< 768px) the tab bar sits at the bottom as a
- * row. On wide screens (>= 768px) it becomes a vertical sidebar on the left,
- * suitable for tablets, desktop browsers, and the Electron shell.
+ *   - Compact  (< 600px): bottom navigation bar (row, icon + label)
+ *   - Medium+  (>= 600px): navigation rail on the left (80px, icon centered
+ *                          with label below, rounded pill active indicator
+ *                          behind the icon only)
+ *
+ * On ultrawide displays (>= 1400px) the content column is capped at
+ * `CONTENT_MAX_WIDTH` so that text and cards don't stretch across the viewport.
  *
  * IMPORTANT: `TabTrigger` must appear as a direct child of `TabList`. Wrapping
  * them in helper components breaks expo-router's child parser, which looks up
  * triggers by React element type, not by the rendered output.
+ *
+ * Flex / scroll notes (react-native-web):
+ *   - `<Tabs>` defaults to `flexDirection: 'column'`; we pass an explicit
+ *     `flexDirection: 'row'` via `style` so the rail sits beside the content.
+ *   - `<TabSlot />` is wrapped in a `<View>` with `flex: 1, minHeight: 0` so
+ *     the screen container receives a bounded height; without `minHeight: 0`
+ *     react-native-web refuses to shrink flex children below their intrinsic
+ *     height, which breaks vertical scrolling inside `<ScrollView>`.
  */
 
 import { Tabs, TabList, TabTrigger, TabSlot } from "expo-router/ui";
@@ -27,10 +38,14 @@ import {
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { t } from "../../src/i18n";
 import { useTheme } from "@oxyhq/bloom/theme";
-import { FONT_PHUDU_BLACK } from "../../src/utils/fonts";
 
-const WIDE_BREAKPOINT = 768;
-const SIDEBAR_WIDTH = 240;
+const MEDIUM_BREAKPOINT = 600;
+const ULTRAWIDE_BREAKPOINT = 1400;
+const RAIL_WIDTH = 80;
+const CONTENT_MAX_WIDTH = 1200;
+const RAIL_INDICATOR_WIDTH = 56;
+const RAIL_INDICATOR_HEIGHT = 32;
+const RAIL_ICON_SIZE = 24;
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -55,12 +70,28 @@ function isActiveTab(pathname: string, href: TabDef["href"]): boolean {
 export default function TabLayout() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
-  const isWide = width >= WIDE_BREAKPOINT;
+  const showRail = width >= MEDIUM_BREAKPOINT;
+  const isUltrawide = width >= ULTRAWIDE_BREAKPOINT;
   const pathname = usePathname();
+
+  const tabsStyle: StyleProp<ViewStyle> = {
+    flex: 1,
+    flexDirection: showRail ? "row" : "column",
+    minHeight: 0,
+  };
+
+  const slotContainerStyle: StyleProp<ViewStyle> = isUltrawide
+    ? [styles.slotContainer, styles.slotContainerUltrawide]
+    : styles.slotContainer;
 
   const tabs: readonly TabDef[] = [
     { name: "index", href: "/", icon: "wallet", label: t("wallet.title") },
-    { name: "send", href: "/send", icon: "arrow-up-bold", label: t("wallet.send") },
+    {
+      name: "send",
+      href: "/send",
+      icon: "arrow-up-bold",
+      label: t("wallet.send"),
+    },
     {
       name: "receive",
       href: "/receive",
@@ -79,62 +110,77 @@ export default function TabLayout() {
     const active = isActiveTab(pathname, tab.href);
     const color = active ? theme.colors.primary : theme.colors.textSecondary;
 
-    const triggerStyle: StyleProp<ViewStyle> = isWide
-      ? [
-          styles.sidebarTab,
-          active && {
-            backgroundColor: `${theme.colors.primary}1A`,
-          },
-        ]
-      : styles.bottomTab;
-
-    const labelStyle: StyleProp<TextStyle> = isWide
-      ? [styles.sidebarLabel, { color }]
-      : [styles.bottomLabel, { color }];
+    if (showRail) {
+      return (
+        <TabTrigger
+          key={tab.name}
+          name={tab.name}
+          href={tab.href}
+          style={styles.railTab}
+        >
+          <View style={styles.railIconRow}>
+            <View
+              style={[
+                styles.railIndicator,
+                active && {
+                  backgroundColor: `${theme.colors.primary}1A`,
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name={tab.icon}
+                size={RAIL_ICON_SIZE}
+                color={color}
+              />
+            </View>
+          </View>
+          <Text style={[styles.railLabel, { color }]} numberOfLines={1}>
+            {tab.label}
+          </Text>
+        </TabTrigger>
+      );
+    }
 
     return (
-      <TabTrigger key={tab.name} name={tab.name} href={tab.href} style={triggerStyle}>
+      <TabTrigger
+        key={tab.name}
+        name={tab.name}
+        href={tab.href}
+        style={styles.bottomTab}
+      >
         <MaterialCommunityIcons name={tab.icon} size={22} color={color} />
-        <Text style={labelStyle}>{tab.label}</Text>
+        <Text style={[styles.bottomLabel, { color }]}>{tab.label}</Text>
       </TabTrigger>
     );
   };
 
   return (
     <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.background },
-        isWide && styles.containerWide,
-      ]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <Tabs>
-        {isWide ? (
+      <Tabs style={tabsStyle}>
+        {showRail ? (
           <>
             <TabList
               style={[
-                styles.sidebar,
+                styles.rail,
                 {
                   backgroundColor: theme.colors.background,
                   borderRightColor: theme.colors.border,
                 },
               ]}
             >
-              <View style={styles.brand}>
-                <Text
-                  style={[styles.brandText, { color: theme.colors.primary }]}
-                  numberOfLines={1}
-                >
-                  FAIRWallet
-                </Text>
-              </View>
               {tabs.map(renderTrigger)}
             </TabList>
-            <TabSlot />
+            <View style={slotContainerStyle}>
+              <TabSlot />
+            </View>
           </>
         ) : (
           <>
-            <TabSlot />
+            <View style={styles.slotContainer}>
+              <TabSlot />
+            </View>
             <TabList
               style={[
                 styles.bottomList,
@@ -156,43 +202,63 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    minHeight: 0,
   },
-  containerWide: {
-    flexDirection: "row",
-  },
-  sidebar: {
-    width: SIDEBAR_WIDTH,
+
+  // ── Navigation rail (>= 600px) ────────────────────────────────────────────
+  rail: {
+    width: RAIL_WIDTH,
     flexDirection: "column",
     alignItems: "stretch",
     justifyContent: "flex-start",
     borderRightWidth: 1,
-    paddingTop: 24,
-    paddingHorizontal: 12,
+    paddingTop: 16,
     paddingBottom: 16,
     gap: 4,
   },
-  brand: {
-    paddingHorizontal: 12,
-    paddingBottom: 24,
-  },
-  brandText: {
-    fontFamily: FONT_PHUDU_BLACK,
-    fontSize: 24,
-    letterSpacing: 0.5,
-  },
-  sidebarTab: {
-    flexDirection: "row",
+  railTab: {
+    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "flex-start",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    gap: 14,
+    justifyContent: "center",
+    paddingTop: 12,
+    paddingBottom: 12,
   },
-  sidebarLabel: {
-    fontSize: 14,
+  railIconRow: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  railIndicator: {
+    width: RAIL_INDICATOR_WIDTH,
+    height: RAIL_INDICATOR_HEIGHT,
+    borderRadius: RAIL_INDICATOR_HEIGHT / 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  railLabel: {
+    fontSize: 12,
     fontWeight: "500",
+    marginTop: 4,
+    textAlign: "center",
   },
+
+  // Wrapper around <TabSlot /> that owns the flex sizing. Without this the
+  // default TabSlot style (`flexShrink: 0`) prevents react-native-web's
+  // `<ScrollView>` from receiving a bounded height.
+  slotContainer: {
+    flex: 1,
+    minHeight: 0,
+    minWidth: 0,
+    alignSelf: "stretch",
+  },
+  // On ultrawide displays the content column is centered and capped.
+  slotContainerUltrawide: {
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: "center",
+    width: "100%",
+  },
+
+  // ── Bottom tab bar (< 600px) ──────────────────────────────────────────────
   bottomList: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -200,12 +266,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingVertical: 8,
     paddingBottom: 12,
+    paddingHorizontal: 4,
   },
   bottomTab: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 4,
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
+    minWidth: 0,
   },
   bottomLabel: {
     fontSize: 11,
