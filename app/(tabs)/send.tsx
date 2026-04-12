@@ -4,15 +4,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  Pressable,
-  Modal,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -36,6 +28,7 @@ import { ContactPicker } from "../../src/ui/components/ContactPicker";
 import { getCachedPrice } from "../../src/services/price";
 import type { RecentRecipientRow } from "../../src/storage/database";
 import { useTheme } from "@oxyhq/bloom/theme";
+import * as Prompt from "@oxyhq/bloom/prompt";
 import { hapticSuccess, hapticError } from "../../src/utils/haptics";
 
 const FEE_LEVELS: FeeLevel[] = ["low", "medium", "high"];
@@ -109,7 +102,6 @@ export default function SendScreen() {
   const [toAddress, setToAddress] = useState(params.address ?? "");
   const [amount, setAmount] = useState(params.amount ?? "");
   const [feeLevel, setFeeLevel] = useState<FeeLevel>("medium");
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +109,11 @@ export default function SendScreen() {
   const [recentRecipients, setRecentRecipients] = useState<
     RecentRecipientRow[]
   >([]);
+  const [pendingSaveAddress, setPendingSaveAddress] = useState<string | null>(
+    null,
+  );
+  const confirmControl = Prompt.usePromptControl();
+  const saveContactControl = Prompt.usePromptControl();
 
   const fee = useMemo(() => estimateFee(feeLevel), [estimateFee, feeLevel]);
 
@@ -221,11 +218,10 @@ export default function SendScreen() {
   const handleSendPress = useCallback(() => {
     setError(null);
     setSuccess(null);
-    setShowConfirmModal(true);
-  }, []);
+    confirmControl.open();
+  }, [confirmControl]);
 
   const handleConfirmSend = useCallback(async () => {
-    setShowConfirmModal(false);
     setError(null);
     try {
       const amountSats = parseFairToSats(amount);
@@ -250,19 +246,8 @@ export default function SendScreen() {
         // Prompt to save as contact if not already saved
         const existingContact = await getContactByAddress(db, sentAddress);
         if (!existingContact) {
-          const truncated =
-            sentAddress.length > 16
-              ? `${sentAddress.slice(0, 8)}...${sentAddress.slice(-8)}`
-              : sentAddress;
-          Alert.alert("Save Contact?", `Save ${truncated} to contacts?`, [
-            { text: "No", style: "cancel" },
-            {
-              text: "Save",
-              onPress: () => {
-                router.push("/contacts");
-              },
-            },
-          ]);
+          setPendingSaveAddress(sentAddress);
+          saveContactControl.open();
         }
       }
     } catch (e: unknown) {
@@ -278,12 +263,8 @@ export default function SendScreen() {
     sendTransaction,
     getContactByAddress,
     loadRecentRecipients,
-    router,
+    saveContactControl,
   ]);
-
-  const handleCancelSend = useCallback(() => {
-    setShowConfirmModal(false);
-  }, []);
 
   return (
     <View className="flex-1 bg-background" onLayout={loadRecentRecipients}>
@@ -486,18 +467,11 @@ export default function SendScreen() {
           loading={loading}
         />
 
-        {/* Confirmation modal */}
-        <Modal
-          visible={showConfirmModal}
-          transparent
-          animationType="fade"
-          onRequestClose={handleCancelSend}
-        >
-          <View className="flex-1 bg-black/70 items-center justify-center px-8">
-            <Card className="p-6 w-full max-w-sm border border-border">
-              <Text className="text-foreground text-lg font-bold mb-4 text-center">
-                Confirm Transaction
-              </Text>
+        {/* Confirmation prompt */}
+        <Prompt.Outer control={confirmControl}>
+          <Prompt.Content>
+            <Prompt.TitleText>Confirm Transaction</Prompt.TitleText>
+            <View className="mt-2">
               <ListItem
                 title="To"
                 subtitle={toAddress}
@@ -520,21 +494,42 @@ export default function SendScreen() {
                 showChevron={false}
                 isLast
               />
-              <View className="gap-3 mt-4">
-                <Button
-                  title="Confirm Send"
-                  onPress={handleConfirmSend}
-                  variant="primary"
-                />
-                <Button
-                  title="Cancel"
-                  onPress={handleCancelSend}
-                  variant="secondary"
-                />
-              </View>
-            </Card>
-          </View>
-        </Modal>
+            </View>
+          </Prompt.Content>
+          <Prompt.Actions>
+            <Prompt.Action
+              cta="Confirm Send"
+              onPress={handleConfirmSend}
+              color="primary"
+            />
+            <Prompt.Action
+              cta="Cancel"
+              onPress={() => confirmControl.close()}
+              color="secondary"
+            />
+          </Prompt.Actions>
+        </Prompt.Outer>
+
+        {/* Save contact prompt */}
+        <Prompt.Basic
+          control={saveContactControl}
+          title="Save Contact?"
+          description={
+            pendingSaveAddress
+              ? `Save ${
+                  pendingSaveAddress.length > 16
+                    ? `${pendingSaveAddress.slice(0, 8)}...${pendingSaveAddress.slice(-8)}`
+                    : pendingSaveAddress
+                } to contacts?`
+              : ""
+          }
+          confirmButtonCta="Save"
+          cancelButtonCta="No"
+          onConfirm={() => {
+            router.push("/contacts");
+            setPendingSaveAddress(null);
+          }}
+        />
 
         {/* QR Scanner */}
         <QRScanner

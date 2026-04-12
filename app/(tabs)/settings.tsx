@@ -39,6 +39,7 @@ import {
 import type { NetworkType } from "../../src/core/network";
 import { useBloomTheme } from "@oxyhq/bloom/theme";
 import type { ThemeMode } from "@oxyhq/bloom/theme";
+import * as Prompt from "@oxyhq/bloom/prompt";
 
 const APP_VERSION = "1.0.0";
 const PIN_LENGTH = 6;
@@ -157,48 +158,39 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
 // ---------------------------------------------------------------------------
 
 interface RecoveryModalProps {
-  visible: boolean;
+  control: Prompt.PromptControlProps;
   mnemonic: string;
   onDismiss: () => void;
 }
 
-function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
+function RecoveryModal({ control, mnemonic, onDismiss }: RecoveryModalProps) {
   const words = useMemo(() => mnemonic.split(" "), [mnemonic]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onDismiss}
-    >
-      <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <Card className="p-6 w-full max-w-sm border border-border">
-          <Text className="text-foreground text-lg font-bold mb-2 text-center">
-            Recovery Phrase
-          </Text>
-          <Text className="text-muted-foreground text-xs mb-4 text-center">
-            Keep these words safe and never share them.
-          </Text>
-
-          <View className="flex-row flex-wrap justify-center gap-2 mb-4">
-            {words.map((word, idx) => (
-              <View
-                key={`recovery-word-${idx}`}
-                className="bg-background rounded-lg px-3 py-1.5"
-              >
-                <Text className="text-foreground text-sm">
-                  <Text className="text-muted-foreground">{idx + 1}. </Text>
-                  {word}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <Button title="Done" onPress={onDismiss} variant="primary" />
-        </Card>
-      </View>
-    </Modal>
+    <Prompt.Outer control={control} onClose={onDismiss}>
+      <Prompt.Content>
+        <Prompt.TitleText>Recovery Phrase</Prompt.TitleText>
+        <Prompt.DescriptionText>
+          Keep these words safe and never share them.
+        </Prompt.DescriptionText>
+        <View className="flex-row flex-wrap justify-center gap-2 mt-2">
+          {words.map((word, idx) => (
+            <View
+              key={`recovery-word-${idx}`}
+              className="bg-background rounded-lg px-3 py-1.5"
+            >
+              <Text className="text-foreground text-sm">
+                <Text className="text-muted-foreground">{idx + 1}. </Text>
+                {word}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </Prompt.Content>
+      <Prompt.Actions>
+        <Prompt.Action cta="Done" onPress={onDismiss} color="primary" />
+      </Prompt.Actions>
+    </Prompt.Outer>
   );
 }
 
@@ -269,14 +261,16 @@ export default function SettingsScreen() {
   const exportBackup = useWalletStore((s) => s.exportBackup);
   const importBackup = useWalletStore((s) => s.importBackup);
 
-  const [showWipeModal, setShowWipeModal] = useState(false);
+  const wipeControl = Prompt.usePromptControl();
+  const switchNetworkControl = Prompt.usePromptControl();
+  const resyncControl = Prompt.usePromptControl();
+  const recoveryControl = Prompt.usePromptControl();
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinAction, setPinAction] = useState<"recovery" | "change_pin" | null>(
     null,
   );
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveryMnemonic, setRecoveryMnemonic] = useState("");
   const [autoLockMinutes, setAutoLockMinutes] = useState(5);
   const [displayCurrency, setDisplayCurrency] = useState("USD");
@@ -330,20 +324,12 @@ export default function SettingsScreen() {
   }, [router]);
 
   const handleToggleNetwork = useCallback(() => {
+    switchNetworkControl.open();
+  }, [switchNetworkControl]);
+
+  const handleConfirmSwitchNetwork = useCallback(() => {
     const targetNetwork: NetworkType = isMainnet ? "testnet" : "mainnet";
-    Alert.alert(
-      "Switch Network",
-      `Switch to ${isMainnet ? "testnet" : "mainnet"}? This will require a resync.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Switch",
-          onPress: () => {
-            switchNetwork(targetNetwork);
-          },
-        },
-      ],
-    );
+    switchNetwork(targetNetwork);
   }, [isMainnet, switchNetwork]);
 
   const handleShowRecovery = useCallback(() => {
@@ -371,7 +357,7 @@ export default function SettingsScreen() {
         const mnemonic = await getMnemonic();
         if (mnemonic) {
           setRecoveryMnemonic(mnemonic);
-          setShowRecoveryModal(true);
+          recoveryControl.open();
         } else {
           Alert.alert("Error", "Could not retrieve recovery phrase.");
         }
@@ -381,10 +367,9 @@ export default function SettingsScreen() {
     } else if (action === "change_pin") {
       router.push("/onboarding/pin-setup");
     }
-  }, [pinAction, router]);
+  }, [pinAction, router, recoveryControl]);
 
   const handleRecoveryDismiss = useCallback(() => {
-    setShowRecoveryModal(false);
     setRecoveryMnemonic("");
   }, []);
 
@@ -487,32 +472,17 @@ export default function SettingsScreen() {
   }, [importBackup]);
 
   const handleResync = useCallback(() => {
-    Alert.alert(
-      "Resync Wallet",
-      "This will re-download all blockchain data.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Resync",
-          onPress: () => refreshBalance(),
-        },
-      ],
-    );
+    resyncControl.open();
+  }, [resyncControl]);
+
+  const handleConfirmResync = useCallback(() => {
+    refreshBalance();
   }, [refreshBalance]);
 
-  const handleWipePress = useCallback(() => {
-    setShowWipeModal(true);
-  }, []);
-
   const handleConfirmWipe = useCallback(async () => {
-    setShowWipeModal(false);
     await wipeWallet();
     router.replace("/onboarding/welcome");
   }, [wipeWallet, router]);
-
-  const handleCancelWipe = useCallback(() => {
-    setShowWipeModal(false);
-  }, []);
 
   return (
     <View className="flex-1 bg-background">
@@ -691,43 +661,10 @@ export default function SettingsScreen() {
             iconBg="bg-red-500/10"
             iconColor="#f87171"
             destructive
-            onPress={handleWipePress}
+            onPress={() => wipeControl.open()}
             isLast
           />
         </Section>
-
-        {/* Wipe confirmation modal */}
-        <Modal
-          visible={showWipeModal}
-          transparent
-          animationType="fade"
-          onRequestClose={handleCancelWipe}
-        >
-          <View className="flex-1 bg-black/70 items-center justify-center px-8">
-            <Card className="p-6 w-full max-w-sm border border-border">
-              <Text className="text-foreground text-lg font-bold mb-2 text-center">
-                Wipe Wallet?
-              </Text>
-              <Text className="text-muted-foreground text-sm mb-6 text-center">
-                This will permanently delete all wallets from this device. Make
-                sure you have your recovery phrases backed up. This action cannot
-                be undone.
-              </Text>
-              <View className="gap-3">
-                <Button
-                  title="Wipe All Wallets"
-                  onPress={handleConfirmWipe}
-                  variant="danger"
-                />
-                <Button
-                  title="Cancel"
-                  onPress={handleCancelWipe}
-                  variant="secondary"
-                />
-              </View>
-            </Card>
-          </View>
-        </Modal>
 
         {/* PIN verification modal */}
         <PinModal
@@ -738,14 +675,42 @@ export default function SettingsScreen() {
           onCancel={handlePinCancel}
           onSuccess={handlePinSuccess}
         />
-
-        {/* Recovery phrase display modal */}
-        <RecoveryModal
-          visible={showRecoveryModal}
-          mnemonic={recoveryMnemonic}
-          onDismiss={handleRecoveryDismiss}
-        />
       </ScrollView>
+
+      {/* Wipe confirmation prompt */}
+      <Prompt.Basic
+        control={wipeControl}
+        title="Wipe Wallet?"
+        description="This will permanently delete all wallets from this device. Make sure you have your recovery phrases backed up. This action cannot be undone."
+        confirmButtonCta="Wipe All Wallets"
+        confirmButtonColor="negative"
+        onConfirm={handleConfirmWipe}
+      />
+
+      {/* Switch network prompt */}
+      <Prompt.Basic
+        control={switchNetworkControl}
+        title="Switch Network"
+        description={`Switch to ${isMainnet ? "testnet" : "mainnet"}? This will require a resync.`}
+        confirmButtonCta="Switch"
+        onConfirm={handleConfirmSwitchNetwork}
+      />
+
+      {/* Resync wallet prompt */}
+      <Prompt.Basic
+        control={resyncControl}
+        title="Resync Wallet"
+        description="This will re-download all blockchain data."
+        confirmButtonCta="Resync"
+        onConfirm={handleConfirmResync}
+      />
+
+      {/* Recovery phrase display prompt */}
+      <RecoveryModal
+        control={recoveryControl}
+        mnemonic={recoveryMnemonic}
+        onDismiss={handleRecoveryDismiss}
+      />
     </View>
   );
 }

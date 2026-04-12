@@ -29,6 +29,7 @@ import {
 } from "../src/ui/components";
 import { QRScanner } from "../src/ui/components/QRScanner";
 import { useTheme } from "@oxyhq/bloom/theme";
+import * as Prompt from "@oxyhq/bloom/prompt";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -270,6 +271,9 @@ export default function ContactsScreen() {
   const [searchResults, setSearchResults] = useState<ContactRow[] | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<ContactRow | null>(null);
+  const [pendingDeleteContact, setPendingDeleteContact] =
+    useState<ContactRow | null>(null);
+  const deleteContactControl = Prompt.usePromptControl();
 
   // Load contacts on mount via onShow-like mechanism (useFocusEffect equivalent)
   const handleLayout = useCallback(() => {
@@ -334,29 +338,14 @@ export default function ContactsScreen() {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            Alert.alert(
-              "Delete Contact",
-              `Are you sure you want to delete "${contact.name}"?`,
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Delete",
-                  style: "destructive",
-                  onPress: () => {
-                    const db = getDatabase();
-                    if (db) {
-                      deleteContact(db, contact.id);
-                    }
-                  },
-                },
-              ],
-            );
+            setPendingDeleteContact(contact);
+            deleteContactControl.open();
           },
         },
         { text: "Cancel", style: "cancel" },
       ]);
     },
-    [deleteContact],
+    [deleteContactControl],
   );
 
   const handleFormSave = useCallback(
@@ -476,6 +465,28 @@ export default function ContactsScreen() {
         editingContact={editingContact}
         onSave={handleFormSave}
         onClose={handleFormClose}
+      />
+
+      {/* Delete contact confirmation prompt */}
+      <Prompt.Basic
+        control={deleteContactControl}
+        title="Delete Contact"
+        description={
+          pendingDeleteContact
+            ? `Are you sure you want to delete "${pendingDeleteContact.name}"?`
+            : ""
+        }
+        confirmButtonCta="Delete"
+        confirmButtonColor="negative"
+        onConfirm={() => {
+          if (pendingDeleteContact) {
+            const db = getDatabase();
+            if (db) {
+              deleteContact(db, pendingDeleteContact.id);
+            }
+            setPendingDeleteContact(null);
+          }
+        }}
       />
     </SafeAreaView>
   );

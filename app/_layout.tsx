@@ -22,6 +22,8 @@ import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { vars } from "nativewind";
 import * as Linking from "expo-linking";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   BloomThemeProvider,
@@ -162,15 +164,19 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <BloomThemeProvider
-        mode={mode}
-        colorPreset="faircoin"
-        onModeChange={handleModeChange}
-      >
-        <AppContent ready={fontsLoaded && themeReady} />
-      </BloomThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <BloomThemeProvider
+          mode={mode}
+          colorPreset="faircoin"
+          onModeChange={handleModeChange}
+        >
+          <BottomSheetModalProvider>
+            <AppContent ready={fontsLoaded && themeReady} />
+          </BottomSheetModalProvider>
+        </BloomThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

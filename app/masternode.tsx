@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, Alert, Modal, TextInput } from "react-native";
+import { View, Text, ScrollView, Modal, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { useWalletStore } from "../src/wallet/wallet-store";
@@ -20,6 +20,7 @@ import {
   ScreenHeader,
 } from "../src/ui/components";
 import { useTheme } from "@oxyhq/bloom/theme";
+import * as Prompt from "@oxyhq/bloom/prompt";
 
 function truncateTxid(txid: string): string {
   if (txid.length <= 20) return txid;
@@ -74,6 +75,18 @@ export default function MasternodeScreen() {
   const [ipPortInput, setIpPortInput] = useState("");
   const [ipModalError, setIpModalError] = useState<string | null>(null);
 
+  const notReadyControl = Prompt.usePromptControl();
+  const confirmStartControl = Prompt.usePromptControl();
+  const broadcastSentControl = Prompt.usePromptControl();
+  const [pendingMasternode, setPendingMasternode] = useState<{
+    ip: string;
+    port: number;
+  } | null>(null);
+  const [broadcastResult, setBroadcastResult] = useState<{
+    ip: string;
+    port: number;
+  } | null>(null);
+
   useFocusEffect(
     useCallback(() => {
       refreshMasternodeUTXOs();
@@ -87,17 +100,14 @@ export default function MasternodeScreen() {
 
   const handleStartMasternode = useCallback(() => {
     if (!firstEligible) {
-      Alert.alert(
-        "Not Ready",
-        "No collateral UTXO with at least 15 confirmations found.",
-      );
+      notReadyControl.open();
       return;
     }
 
     setIpPortInput("");
     setIpModalError(null);
     setShowIpModal(true);
-  }, [firstEligible]);
+  }, [firstEligible, notReadyControl]);
 
   const handleIpModalCancel = useCallback(() => {
     setShowIpModal(false);
@@ -125,38 +135,9 @@ export default function MasternodeScreen() {
     setIpPortInput("");
     setIpModalError(null);
 
-    // Show confirmation dialog
-    Alert.alert(
-      "Confirm Masternode Start",
-      [
-        `Collateral: ${truncateTxid(firstEligible.txid)}:${firstEligible.vout}`,
-        `Address: ${firstEligible.address}`,
-        `Confirmations: ${firstEligible.confirmations}`,
-        `Masternode IP: ${parsed.ip}:${parsed.port}`,
-        "",
-        "This will broadcast a masternode announcement to the network.",
-      ].join("\n"),
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Start Masternode",
-          onPress: () => {
-            setIsBroadcasting(true);
-            // Actual P2P broadcast will be wired up when the SPV client
-            // supports masternode message relay. For now, show success.
-            setTimeout(() => {
-              setIsBroadcasting(false);
-              Alert.alert(
-                "Masternode Broadcast Sent",
-                `Masternode broadcast for ${parsed.ip}:${parsed.port} has been queued. ` +
-                  "It may take a few minutes for the network to recognize your masternode.",
-              );
-            }, 1500);
-          },
-        },
-      ],
-    );
-  }, [ipPortInput, firstEligible]);
+    setPendingMasternode(parsed);
+    confirmStartControl.open();
+  }, [ipPortInput, firstEligible, confirmStartControl]);
 
   return (
     <SafeAreaView
@@ -279,6 +260,104 @@ export default function MasternodeScreen() {
           </Card>
         </View>
       </Modal>
+
+      {/* Not ready prompt: shown when there is no eligible collateral UTXO */}
+      <Prompt.Outer control={notReadyControl}>
+        <Prompt.Content>
+          <Prompt.TitleText>Not Ready</Prompt.TitleText>
+          <Prompt.DescriptionText>
+            No collateral UTXO with at least 15 confirmations found.
+          </Prompt.DescriptionText>
+        </Prompt.Content>
+        <Prompt.Actions>
+          <Prompt.Action
+            cta="OK"
+            onPress={() => notReadyControl.close()}
+            color="primary"
+          />
+        </Prompt.Actions>
+      </Prompt.Outer>
+
+      {/* Confirm masternode start prompt: shows collateral details */}
+      <Prompt.Outer control={confirmStartControl}>
+        <Prompt.Content>
+          <Prompt.TitleText>Confirm Masternode Start</Prompt.TitleText>
+          {firstEligible && pendingMasternode ? (
+            <View className="mt-2 mb-2">
+              <Text className="text-muted-foreground text-sm mb-1">
+                Collateral:{" "}
+                <Text className="text-foreground">
+                  {truncateTxid(firstEligible.txid)}:{firstEligible.vout}
+                </Text>
+              </Text>
+              <Text className="text-muted-foreground text-sm mb-1">
+                Address:{" "}
+                <Text className="text-foreground">{firstEligible.address}</Text>
+              </Text>
+              <Text className="text-muted-foreground text-sm mb-1">
+                Confirmations:{" "}
+                <Text className="text-foreground">
+                  {firstEligible.confirmations}
+                </Text>
+              </Text>
+              <Text className="text-muted-foreground text-sm mb-3">
+                Masternode IP:{" "}
+                <Text className="text-foreground">
+                  {pendingMasternode.ip}:{pendingMasternode.port}
+                </Text>
+              </Text>
+              <Text className="text-muted-foreground text-xs">
+                This will broadcast a masternode announcement to the network.
+              </Text>
+            </View>
+          ) : null}
+        </Prompt.Content>
+        <Prompt.Actions>
+          <Prompt.Action
+            cta="Start Masternode"
+            onPress={() => {
+              if (!pendingMasternode) return;
+              const parsed = pendingMasternode;
+              setIsBroadcasting(true);
+              // Actual P2P broadcast will be wired up when the SPV client
+              // supports masternode message relay. For now, show success.
+              setTimeout(() => {
+                setIsBroadcasting(false);
+                setBroadcastResult(parsed);
+                broadcastSentControl.open();
+              }, 1500);
+              setPendingMasternode(null);
+            }}
+            color="primary"
+          />
+          <Prompt.Action
+            cta="Cancel"
+            onPress={() => {
+              setPendingMasternode(null);
+            }}
+            color="secondary"
+          />
+        </Prompt.Actions>
+      </Prompt.Outer>
+
+      {/* Broadcast sent prompt: info-only result dialog */}
+      <Prompt.Outer control={broadcastSentControl}>
+        <Prompt.Content>
+          <Prompt.TitleText>Masternode Broadcast Sent</Prompt.TitleText>
+          <Prompt.DescriptionText>
+            {broadcastResult
+              ? `Masternode broadcast for ${broadcastResult.ip}:${broadcastResult.port} has been queued. It may take a few minutes for the network to recognize your masternode.`
+              : ""}
+          </Prompt.DescriptionText>
+        </Prompt.Content>
+        <Prompt.Actions>
+          <Prompt.Action
+            cta="OK"
+            onPress={() => setBroadcastResult(null)}
+            color="primary"
+          />
+        </Prompt.Actions>
+      </Prompt.Outer>
     </SafeAreaView>
   );
 }

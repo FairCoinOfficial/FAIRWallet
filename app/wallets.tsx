@@ -28,6 +28,7 @@ import {
   ScreenHeader,
 } from "../src/ui/components";
 import { useTheme } from "@oxyhq/bloom/theme";
+import * as Prompt from "@oxyhq/bloom/prompt";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -331,53 +332,44 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
 // ---------------------------------------------------------------------------
 
 interface MnemonicModalProps {
-  visible: boolean;
+  control: Prompt.PromptControlProps;
   mnemonic: string;
   onDismiss: () => void;
 }
 
-function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
+function MnemonicModal({ control, mnemonic, onDismiss }: MnemonicModalProps) {
   const words = useMemo(() => mnemonic.split(" "), [mnemonic]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onDismiss}
-    >
-      <View className="flex-1 bg-black/70 items-center justify-center px-8">
-        <Card className="p-6 w-full max-w-sm">
-          <Text className="text-foreground text-lg font-bold mb-2 text-center">
-            Recovery Phrase
-          </Text>
-          <Text className="text-muted-foreground text-xs mb-4 text-center">
-            Write down these words in order. They are the only way to recover
-            this wallet.
-          </Text>
-
-          <View className="flex-row flex-wrap justify-center gap-2 mb-4">
-            {words.map((word, idx) => (
-              <View
-                key={`word-${idx}`}
-                className="bg-background rounded-lg px-3 py-1.5"
-              >
-                <Text className="text-foreground text-sm">
-                  <Text className="text-muted-foreground">{idx + 1}. </Text>
-                  {word}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <Button
-            title="I've Written It Down"
-            onPress={onDismiss}
-            variant="primary"
-          />
-        </Card>
-      </View>
-    </Modal>
+    <Prompt.Outer control={control} onClose={onDismiss}>
+      <Prompt.Content>
+        <Prompt.TitleText>Recovery Phrase</Prompt.TitleText>
+        <Prompt.DescriptionText>
+          Write down these words in order. They are the only way to recover
+          this wallet.
+        </Prompt.DescriptionText>
+        <View className="flex-row flex-wrap justify-center gap-2 mt-2">
+          {words.map((word, idx) => (
+            <View
+              key={`word-${idx}`}
+              className="bg-background rounded-lg px-3 py-1.5"
+            >
+              <Text className="text-foreground text-sm">
+                <Text className="text-muted-foreground">{idx + 1}. </Text>
+                {word}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </Prompt.Content>
+      <Prompt.Actions>
+        <Prompt.Action
+          cta="I've Written It Down"
+          onPress={onDismiss}
+          color="primary"
+        />
+      </Prompt.Actions>
+    </Prompt.Outer>
   );
 }
 
@@ -401,9 +393,16 @@ export default function WalletsScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showWatchOnlyModal, setShowWatchOnlyModal] = useState(false);
-  const [showMnemonicModal, setShowMnemonicModal] = useState(false);
   const [newMnemonic, setNewMnemonic] = useState("");
   const [switching, setSwitching] = useState(false);
+  const [pendingDeleteWallet, setPendingDeleteWallet] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const mnemonicControl = Prompt.usePromptControl();
+  const deleteWalletControl = Prompt.usePromptControl();
+  const cannotDeleteControl = Prompt.usePromptControl();
 
   // Load wallet list on focus
   useFocusEffect(
@@ -425,29 +424,13 @@ export default function WalletsScreen() {
   const handleDelete = useCallback(
     (walletId: string, walletName: string) => {
       if (wallets.length <= 1) {
-        Alert.alert(
-          "Cannot Delete",
-          "You must have at least one wallet. Create a new wallet before deleting this one.",
-        );
+        cannotDeleteControl.open();
         return;
       }
-
-      Alert.alert(
-        "Delete Wallet",
-        `Are you sure you want to delete "${walletName}"? This action cannot be undone. Make sure you have the recovery phrase backed up.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: async () => {
-              await deleteWallet(walletId);
-            },
-          },
-        ],
-      );
+      setPendingDeleteWallet({ id: walletId, name: walletName });
+      deleteWalletControl.open();
     },
-    [wallets.length, deleteWallet],
+    [wallets.length, deleteWalletControl, cannotDeleteControl],
   );
 
   const handleCreateWallet = useCallback(
@@ -456,12 +439,12 @@ export default function WalletsScreen() {
       try {
         const mnemonic = await createNewWallet(name);
         setNewMnemonic(mnemonic);
-        setShowMnemonicModal(true);
+        mnemonicControl.open();
       } catch {
         Alert.alert("Error", "Failed to create wallet. Please try again.");
       }
     },
-    [createNewWallet],
+    [createNewWallet, mnemonicControl],
   );
 
   const handleImportWallet = useCallback(
@@ -481,9 +464,9 @@ export default function WalletsScreen() {
   );
 
   const handleMnemonicDismiss = useCallback(() => {
-    setShowMnemonicModal(false);
+    mnemonicControl.close();
     setNewMnemonic("");
-  }, []);
+  }, [mnemonicControl]);
 
   const handleOpenCreate = useCallback(() => {
     setShowCreateModal(true);
@@ -628,10 +611,45 @@ export default function WalletsScreen() {
         onImport={handleImportWatchOnly}
       />
       <MnemonicModal
-        visible={showMnemonicModal}
+        control={mnemonicControl}
         mnemonic={newMnemonic}
         onDismiss={handleMnemonicDismiss}
       />
+
+      <Prompt.Basic
+        control={deleteWalletControl}
+        title="Delete Wallet"
+        description={
+          pendingDeleteWallet
+            ? `Are you sure you want to delete "${pendingDeleteWallet.name}"? This action cannot be undone. Make sure you have the recovery phrase backed up.`
+            : ""
+        }
+        confirmButtonCta="Delete"
+        confirmButtonColor="negative"
+        onConfirm={async () => {
+          if (pendingDeleteWallet) {
+            await deleteWallet(pendingDeleteWallet.id);
+            setPendingDeleteWallet(null);
+          }
+        }}
+      />
+
+      <Prompt.Outer control={cannotDeleteControl}>
+        <Prompt.Content>
+          <Prompt.TitleText>Cannot Delete</Prompt.TitleText>
+          <Prompt.DescriptionText>
+            You must have at least one wallet. Create a new wallet before
+            deleting this one.
+          </Prompt.DescriptionText>
+        </Prompt.Content>
+        <Prompt.Actions>
+          <Prompt.Action
+            cta="OK"
+            onPress={() => cannotDeleteControl.close()}
+            color="primary"
+          />
+        </Prompt.Actions>
+      </Prompt.Outer>
     </SafeAreaView>
   );
 }

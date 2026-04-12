@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@gorhom/bottom-sheet": "^5.2.9",
     "@noble/hashes": "1.8.0",
     "@noble/secp256k1": "^2.2.3",
     "@oxyhq/bloom": "0.1.32",
@@ -46,6 +47,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "^0.83.4",
+    "react-native-gesture-handler": "^2.31.1",
     "react-native-qrcode-svg": "^6.3.21",
     "react-native-reanimated": "4.2.1",
     "react-native-safe-area-context": "~5.6.2",
