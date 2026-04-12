@@ -15,7 +15,7 @@ import "../src/crypto-polyfill";
 import "../global.css";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AppState, type AppStateStatus, View } from "react-native";
+import { AppState, type AppStateStatus, Platform, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -24,8 +24,17 @@ import { vars } from "nativewind";
 import * as Linking from "expo-linking";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { KeyboardProvider } from "react-native-keyboard-controller";
+import { KeyboardProvider as NativeKeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
+// react-native-keyboard-controller ships no web build — its KeyboardControllerView
+// is a native-only component that breaks the flex height chain on web and leaves
+// all scrollables with 0 bounded height. Web has no virtual keyboard anyway, so
+// we pass children straight through.
+const KeyboardProvider =
+  Platform.OS === "web"
+    ? ({ children }: { children: React.ReactNode }) => <>{children}</>
+    : NativeKeyboardProvider;
 import {
   BloomThemeProvider,
   useBloomTheme,
