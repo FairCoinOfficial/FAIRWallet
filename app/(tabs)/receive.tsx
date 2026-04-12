@@ -99,7 +99,7 @@ export default function ReceiveScreen() {
       >
         {/* Title */}
         <View>
-          <Text className="text-white text-xl font-bold mb-1 text-center">
+          <Text className="text-foreground text-xl font-bold mb-1 text-center">
             {t("receive.title")}
           </Text>
           <Text className="text-muted-foreground text-sm text-center">
@@ -121,7 +121,7 @@ export default function ReceiveScreen() {
           </View>
           <Pressable onPress={handleCopy}>
             <Text
-              className="text-white text-sm text-center font-mono"
+              className="text-foreground text-sm text-center font-mono"
               selectable
             >
               {displayAddress}

@@ -100,13 +100,13 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <Card className="p-6 w-full max-w-sm">
-          <Text className="text-white text-lg font-bold mb-4 text-center">
+          <Text className="text-foreground text-lg font-bold mb-4 text-center">
             Import Wallet
           </Text>
 
           <Text className="text-muted-foreground text-xs mb-1">Wallet Name</Text>
           <TextInput
-            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
             placeholder="My Wallet"
             placeholderTextColor={theme.colors.textSecondary}
             value={name}
@@ -117,7 +117,7 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
 
           <Text className="text-muted-foreground text-xs mb-1">Recovery Phrase</Text>
           <TextInput
-            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
             placeholder="Enter 12 or 24 word recovery phrase"
             placeholderTextColor={theme.colors.textSecondary}
             value={mnemonic}
@@ -202,13 +202,13 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <Card className="p-6 w-full max-w-sm">
-          <Text className="text-white text-lg font-bold mb-4 text-center">
+          <Text className="text-foreground text-lg font-bold mb-4 text-center">
             Watch-Only Wallet
           </Text>
 
           <Text className="text-muted-foreground text-xs mb-1">Wallet Name</Text>
           <TextInput
-            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
             placeholder="My Watch Wallet"
             placeholderTextColor={theme.colors.textSecondary}
             value={name}
@@ -221,7 +221,7 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
             Extended Public Key (xpub)
           </Text>
           <TextInput
-            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
             placeholder="xpub..."
             placeholderTextColor={theme.colors.textSecondary}
             value={xpub}
@@ -295,13 +295,13 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <Card className="p-6 w-full max-w-sm">
-          <Text className="text-white text-lg font-bold mb-4 text-center">
+          <Text className="text-foreground text-lg font-bold mb-4 text-center">
             Create New Wallet
           </Text>
 
           <Text className="text-muted-foreground text-xs mb-1">Wallet Name</Text>
           <TextInput
-            className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
+            className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
             placeholder="My Wallet"
             placeholderTextColor={theme.colors.textSecondary}
             value={name}
@@ -348,7 +348,7 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <Card className="p-6 w-full max-w-sm">
-          <Text className="text-white text-lg font-bold mb-2 text-center">
+          <Text className="text-foreground text-lg font-bold mb-2 text-center">
             Recovery Phrase
           </Text>
           <Text className="text-muted-foreground text-xs mb-4 text-center">
@@ -362,7 +362,7 @@ function MnemonicModal({ visible, mnemonic, onDismiss }: MnemonicModalProps) {
                 key={`word-${idx}`}
                 className="bg-background rounded-lg px-3 py-1.5"
               >
-                <Text className="text-white text-sm">
+                <Text className="text-foreground text-sm">
                   <Text className="text-muted-foreground">{idx + 1}. </Text>
                   {word}
                 </Text>

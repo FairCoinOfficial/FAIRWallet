@@ -118,7 +118,7 @@ export function TransactionItem({
 
       {/* Label + address */}
       <View className="flex-1 mr-3">
-        <Text className="text-white text-sm font-medium" numberOfLines={1}>
+        <Text className="text-foreground text-sm font-medium" numberOfLines={1}>
           {staticConfig.label}
         </Text>
         <View className="flex-row items-center mt-0.5">

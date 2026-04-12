@@ -26,7 +26,7 @@ export function ScreenHeader({
 
       {/* Center: title + subtitle */}
       <View className="flex-1 items-center">
-        <Text className="text-white text-lg font-semibold" numberOfLines={1}>
+        <Text className="text-foreground text-lg font-semibold" numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (

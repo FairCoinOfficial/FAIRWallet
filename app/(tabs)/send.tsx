@@ -304,7 +304,7 @@ export default function SendScreen() {
                     onPress={() => handleRecentRecipientPress(r.address)}
                   >
                     <Card className="px-3 py-2">
-                      <Text className="text-white text-xs">
+                      <Text className="text-foreground text-xs">
                         {r.address.length > 16
                           ? `${r.address.slice(0, 6)}...${r.address.slice(-6)}`
                           : r.address}
@@ -322,7 +322,7 @@ export default function SendScreen() {
           <View className="px-4 py-3">
             <View className="flex-row items-center">
               <TextInput
-                className="flex-1 text-white text-base mr-2"
+                className="flex-1 text-foreground text-base mr-2"
                 placeholder="FairCoin address"
                 placeholderTextColor={theme.colors.textSecondary}
                 onChangeText={setToAddress}
@@ -383,7 +383,7 @@ export default function SendScreen() {
                 {"\u29BE"}
               </Text>
               <TextInput
-                className="flex-1 text-white text-base mr-2"
+                className="flex-1 text-foreground text-base mr-2"
                 placeholder="0.00000000"
                 placeholderTextColor={theme.colors.textSecondary}
                 value={amount}
@@ -492,7 +492,7 @@ export default function SendScreen() {
         >
           <View className="flex-1 bg-black/70 items-center justify-center px-8">
             <Card className="p-6 w-full max-w-sm border border-border">
-              <Text className="text-white text-lg font-bold mb-4 text-center">
+              <Text className="text-foreground text-lg font-bold mb-4 text-center">
                 Confirm Transaction
               </Text>
               <ListItem

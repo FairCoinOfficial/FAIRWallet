@@ -249,7 +249,7 @@ export default function TransactionDetailScreen() {
         <Section title="Note" className="mb-6">
           <Card className="p-3">
             <TextInput
-              className="text-white text-sm"
+              className="text-foreground text-sm"
               placeholder="Add a note for this transaction..."
               placeholderTextColor={theme.colors.textSecondary}
               value={note}

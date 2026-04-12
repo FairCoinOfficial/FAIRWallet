@@ -43,7 +43,7 @@ export function ListItem({
 
   const titleColor = useMemo(() => {
     if (destructive) return "text-red-400";
-    return "text-white";
+    return "text-foreground";
   }, [destructive]);
 
   const borderClass = isLast ? "" : "border-b border-border";

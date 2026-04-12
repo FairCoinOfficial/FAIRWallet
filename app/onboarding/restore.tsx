@@ -67,7 +67,7 @@ export default function RestoreWalletScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
-        <Text className="text-white text-xl font-bold mb-2 text-center">
+        <Text className="text-foreground text-xl font-bold mb-2 text-center">
           Restore Your Wallet
         </Text>
         <Text className="text-muted-foreground text-sm mb-8 text-center leading-5">
@@ -77,7 +77,7 @@ export default function RestoreWalletScreen() {
         {/* Mnemonic input area */}
         <View className="bg-surface border border-border rounded-2xl p-5 mb-4">
           <TextInput
-            className="text-white text-base leading-6 min-h-[140px] font-mono"
+            className="text-foreground text-base leading-6 min-h-[140px] font-mono"
             placeholder="word1 word2 word3 ..."
             placeholderTextColor={theme.colors.textSecondary}
             value={mnemonicInput}

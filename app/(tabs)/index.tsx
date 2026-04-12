@@ -98,7 +98,7 @@ export default function HomeScreen() {
             className="flex-row items-center active:opacity-60"
             onPress={() => router.push("/wallets")}
           >
-            <Text className="text-white text-base font-semibold">
+            <Text className="text-foreground text-base font-semibold">
               {activeWalletName || "FAIRWallet"}
             </Text>
             <MaterialCommunityIcons
@@ -184,7 +184,7 @@ export default function HomeScreen() {
           <Divider className="mb-5" />
 
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-white text-lg font-semibold">Activity</Text>
+            <Text className="text-foreground text-lg font-semibold">Activity</Text>
             {transactions.length > 0 ? (
               <Text className="text-muted-foreground text-xs">
                 {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}

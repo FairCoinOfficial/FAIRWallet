@@ -129,7 +129,7 @@ export function BalanceDisplay({
           <Text className={`text-muted-foreground ${symbolClass} font-light mr-0.5`}>
             $
           </Text>
-          <Text className={`text-white ${primaryClass} font-bold tracking-tight`}>
+          <Text className={`text-foreground ${primaryClass} font-bold tracking-tight`}>
             {usdFormatted}
           </Text>
         </View>
@@ -157,7 +157,7 @@ export function BalanceDisplay({
         <Text className={`text-primary ${symbolClass} font-light mr-1`}>
           {FAIR_SYMBOL}
         </Text>
-        <Text className={`text-white ${primaryClass} font-bold tracking-tight`}>
+        <Text className={`text-foreground ${primaryClass} font-bold tracking-tight`}>
           {fairFormatted}
         </Text>
       </View>

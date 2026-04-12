@@ -169,7 +169,7 @@ export default function MasternodeScreen() {
       >
         {/* Requirements info card */}
         <Card className="mb-6 p-4">
-          <Text className="text-white text-base font-semibold mb-2">
+          <Text className="text-foreground text-base font-semibold mb-2">
             Masternode Requirements
           </Text>
           <Text className="text-muted-foreground text-sm leading-5">
@@ -239,7 +239,7 @@ export default function MasternodeScreen() {
       >
         <View className="flex-1 bg-black/70 items-center justify-center px-8">
           <Card className="p-6 w-full max-w-sm">
-            <Text className="text-white text-lg font-bold mb-2 text-center">
+            <Text className="text-foreground text-lg font-bold mb-2 text-center">
               Masternode IP Address
             </Text>
             <Text className="text-muted-foreground text-sm mb-4 text-center">
@@ -248,7 +248,7 @@ export default function MasternodeScreen() {
             </Text>
 
             <TextInput
-              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
               placeholder="203.0.113.50:46372"
               placeholderTextColor={theme.colors.textSecondary}
               value={ipPortInput}

@@ -91,7 +91,7 @@ export default function PinSetupScreen() {
         <View className="items-center flex-1 justify-center">
           <Text className="text-primary text-5xl mb-8">{"\u229C"}</Text>
 
-          <Text className="text-white text-xl font-semibold mb-2">
+          <Text className="text-foreground text-xl font-semibold mb-2">
             {title}
           </Text>
           <Text className="text-muted-foreground text-sm text-center mb-10">

@@ -25,7 +25,7 @@ export default function WelcomeScreen() {
         {/* Brand */}
         <View className="flex-1 items-center justify-center">
           <Text className="text-primary text-7xl mb-6">{"\u229C"}</Text>
-          <Text className="text-white text-3xl font-bold tracking-wider mb-3">
+          <Text className="text-foreground text-3xl font-bold tracking-wider mb-3">
             FAIRWallet
           </Text>
           <Text className="text-muted-foreground text-base tracking-widest">

@@ -207,7 +207,7 @@ export default function LockScreen() {
         <View className="items-center flex-1 justify-center">
           <Text className="text-primary text-5xl mb-8">{"\u229C"}</Text>
 
-          <Text className="text-white text-xl font-semibold mb-8">
+          <Text className="text-foreground text-xl font-semibold mb-8">
             Enter your passcode
           </Text>
 

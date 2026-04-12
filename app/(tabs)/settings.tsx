@@ -116,7 +116,7 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <Card className="p-6 w-full max-w-sm border border-border">
-          <Text className="text-white text-lg font-bold mb-2 text-center">
+          <Text className="text-foreground text-lg font-bold mb-2 text-center">
             {title}
           </Text>
           <Text className="text-muted-foreground text-sm mb-4 text-center">
@@ -174,7 +174,7 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <Card className="p-6 w-full max-w-sm border border-border">
-          <Text className="text-white text-lg font-bold mb-2 text-center">
+          <Text className="text-foreground text-lg font-bold mb-2 text-center">
             Recovery Phrase
           </Text>
           <Text className="text-muted-foreground text-xs mb-4 text-center">
@@ -187,7 +187,7 @@ function RecoveryModal({ visible, mnemonic, onDismiss }: RecoveryModalProps) {
                 key={`recovery-word-${idx}`}
                 className="bg-background rounded-lg px-3 py-1.5"
               >
-                <Text className="text-white text-sm">
+                <Text className="text-foreground text-sm">
                   <Text className="text-muted-foreground">{idx + 1}. </Text>
                   {word}
                 </Text>
@@ -705,7 +705,7 @@ export default function SettingsScreen() {
         >
           <View className="flex-1 bg-black/70 items-center justify-center px-8">
             <Card className="p-6 w-full max-w-sm border border-border">
-              <Text className="text-white text-lg font-bold mb-2 text-center">
+              <Text className="text-foreground text-lg font-bold mb-2 text-center">
                 Wipe Wallet?
               </Text>
               <Text className="text-muted-foreground text-sm mb-6 text-center">

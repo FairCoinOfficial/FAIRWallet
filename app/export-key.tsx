@@ -192,7 +192,7 @@ export default function ExportKeyScreen() {
         edges={["top", "bottom", "left", "right"]}
       >
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-white text-xl font-bold mb-2">Verify PIN</Text>
+          <Text className="text-foreground text-xl font-bold mb-2">Verify PIN</Text>
           <Text className="text-muted-foreground text-sm mb-6 text-center">
             Enter your PIN to access private key export
           </Text>
@@ -282,7 +282,7 @@ export default function ExportKeyScreen() {
           <Card className="p-4 mt-4 mb-4">
             <Text className="text-muted-foreground text-xs mb-1">Passphrase</Text>
             <TextInput
-              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
               placeholder="Enter passphrase (min 8 characters)"
               placeholderTextColor={theme.colors.textSecondary}
               value={passphrase}
@@ -296,7 +296,7 @@ export default function ExportKeyScreen() {
               Confirm Passphrase
             </Text>
             <TextInput
-              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base"
               placeholder="Confirm passphrase"
               placeholderTextColor={theme.colors.textSecondary}
               value={confirmPassphrase}

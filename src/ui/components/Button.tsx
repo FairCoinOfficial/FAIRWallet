@@ -39,8 +39,8 @@ const VARIANT_CONTAINER_CLASSES: Record<ButtonVariant, string> = {
 
 const VARIANT_TEXT_CLASSES: Record<ButtonVariant, string> = {
   primary: "text-primary-foreground",
-  secondary: "text-white",
-  danger: "text-white",
+  secondary: "text-foreground",
+  danger: "text-destructive-foreground",
   outline: "text-primary",
   ghost: "text-primary",
 };

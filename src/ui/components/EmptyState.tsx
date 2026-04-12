@@ -23,7 +23,7 @@ export function EmptyState({ icon, title, subtitle }: EmptyStateProps) {
       <View className="w-16 h-16 rounded-full bg-surface items-center justify-center mb-4">
         <MaterialCommunityIcons name={icon} size={28} color={theme.colors.textSecondary} />
       </View>
-      <Text className="text-white text-base font-medium text-center">
+      <Text className="text-foreground text-base font-medium text-center">
         {title}
       </Text>
       {subtitle ? (

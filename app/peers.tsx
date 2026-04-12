@@ -198,13 +198,13 @@ export default function PeersScreen() {
         <Card className="p-4 mb-6">
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-muted-foreground text-sm">Connected Peers</Text>
-            <Text className="text-white text-sm font-semibold">
+            <Text className="text-foreground text-sm font-semibold">
               {connectedPeers}
             </Text>
           </View>
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-muted-foreground text-sm">Chain Height</Text>
-            <Text className="text-white text-sm font-semibold">
+            <Text className="text-foreground text-sm font-semibold">
               {chainHeight > 0 ? chainHeight.toLocaleString() : "Unknown"}
             </Text>
           </View>
@@ -259,7 +259,7 @@ export default function PeersScreen() {
           <Card className="p-4">
             <Text className="text-muted-foreground text-xs mb-1">IP Address</Text>
             <TextInput
-              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
               placeholder="192.168.1.1"
               placeholderTextColor={theme.colors.textSecondary}
               value={ipInput}
@@ -274,7 +274,7 @@ export default function PeersScreen() {
 
             <Text className="text-muted-foreground text-xs mb-1">Port</Text>
             <TextInput
-              className="bg-background border border-border rounded-xl px-4 py-3 text-white text-base mb-3"
+              className="bg-background border border-border rounded-xl px-4 py-3 text-foreground text-base mb-3"
               placeholder={DEFAULT_PORT}
               placeholderTextColor={theme.colors.textSecondary}
               value={portInput}

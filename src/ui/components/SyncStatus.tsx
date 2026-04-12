@@ -57,7 +57,7 @@ export function SyncStatus({
         {/* Status dot + text */}
         <View className="flex-row items-center flex-1 mr-2">
           <View className={`w-2.5 h-2.5 rounded-full ${dotColor} mr-2`} />
-          <Text className="text-white text-sm flex-shrink" numberOfLines={2}>
+          <Text className="text-foreground text-sm flex-shrink" numberOfLines={2}>
             {statusLabel}
           </Text>
         </View>

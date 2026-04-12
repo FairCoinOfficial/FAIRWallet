@@ -149,7 +149,7 @@ function ContactForm({
     >
       <View className="flex-1 bg-black/70 items-center justify-center px-6">
         <Card className="p-6 w-full max-w-sm">
-          <Text className="text-white text-lg font-bold mb-4 text-center">
+          <Text className="text-foreground text-lg font-bold mb-4 text-center">
             {editingContact ? "Edit Contact" : "New Contact"}
           </Text>
 
@@ -177,7 +177,7 @@ function ContactForm({
           <Text className="text-muted-foreground text-xs mb-1">Name</Text>
           <Card className="px-3 py-2.5 mb-3">
             <TextInput
-              className="text-white text-sm"
+              className="text-foreground text-sm"
               placeholder="Contact name"
               placeholderTextColor={theme.colors.textSecondary}
               value={name}
@@ -191,7 +191,7 @@ function ContactForm({
           <Card className="px-3 py-2.5 mb-3">
             <View className="flex-row items-center">
               <TextInput
-                className="flex-1 text-white text-sm mr-2"
+                className="flex-1 text-foreground text-sm mr-2"
                 placeholder="FairCoin address"
                 placeholderTextColor={theme.colors.textSecondary}
                 value={address}
@@ -218,7 +218,7 @@ function ContactForm({
           <Text className="text-muted-foreground text-xs mb-1">Notes</Text>
           <Card className="px-3 py-2.5 mb-4">
             <TextInput
-              className="text-white text-sm"
+              className="text-foreground text-sm"
               placeholder="Optional notes"
               placeholderTextColor={theme.colors.textSecondary}
               value={notes}
@@ -433,7 +433,7 @@ export default function ContactsScreen() {
       <View className="px-5 py-3">
         <Card className="px-4 py-2.5">
           <TextInput
-            className="text-white text-sm"
+            className="text-foreground text-sm"
             placeholder="Search by name or address..."
             placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}

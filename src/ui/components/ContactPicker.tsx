@@ -41,7 +41,7 @@ function ContactPickerItem({
         <Text className="text-lg">{contact.emoji}</Text>
       </View>
       <View className="flex-1">
-        <Text className="text-white text-sm font-medium">{contact.name}</Text>
+        <Text className="text-foreground text-sm font-medium">{contact.name}</Text>
         <Text className="text-muted-foreground text-xs mt-0.5">
           {truncateAddress(contact.address)}
         </Text>
@@ -123,7 +123,7 @@ export function ContactPicker({
       <View className="flex-1 bg-background">
         {/* Header */}
         <View className="pt-14 pb-3 px-6 flex-row items-center justify-between bg-background border-b border-border">
-          <Text className="text-white text-lg font-bold">Pick Contact</Text>
+          <Text className="text-foreground text-lg font-bold">Pick Contact</Text>
           <Pressable onPress={handleClose} className="p-2">
             <Text className="text-primary text-base font-semibold">
               Close
@@ -135,7 +135,7 @@ export function ContactPicker({
         <View className="px-4 py-3">
           <View className="bg-surface border border-border rounded-xl px-4 py-2.5">
             <TextInput
-              className="text-white text-sm"
+              className="text-foreground text-sm"
               placeholder="Search contacts..."
               placeholderTextColor={theme.colors.textSecondary}
               value={searchQuery}

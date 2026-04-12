@@ -162,7 +162,7 @@ export default function CreateWalletScreen() {
             </>
           ) : (
             <>
-              <Text className="text-white text-xl font-semibold mb-3">
+              <Text className="text-foreground text-xl font-semibold mb-3">
                 Create your wallet
               </Text>
               <Text className="text-muted-foreground text-sm text-center mb-8">
@@ -191,7 +191,7 @@ export default function CreateWalletScreen() {
         >
           <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
 
-          <Text className="text-white text-xl font-bold mb-2 text-center">
+          <Text className="text-foreground text-xl font-bold mb-2 text-center">
             Your Recovery Phrase
           </Text>
           <Text className="text-muted-foreground text-sm mb-8 text-center leading-5">
@@ -207,7 +207,7 @@ export default function CreateWalletScreen() {
               >
                 <View className="flex-row items-baseline gap-1.5">
                   <Text className="text-muted-foreground text-xs">{idx + 1}</Text>
-                  <Text className="text-white text-sm font-medium">{word}</Text>
+                  <Text className="text-foreground text-sm font-medium">{word}</Text>
                 </View>
               </Card>
             ))}
@@ -244,7 +244,7 @@ export default function CreateWalletScreen() {
         <View className="flex-1 px-6 pt-24">
           <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
 
-          <Text className="text-white text-xl font-bold mb-2 text-center">
+          <Text className="text-foreground text-xl font-bold mb-2 text-center">
             Verify Your Phrase
           </Text>
           <Text className="text-muted-foreground text-sm mb-8 text-center">
@@ -282,7 +282,7 @@ export default function CreateWalletScreen() {
                 className="w-[31%] bg-surface border border-border rounded-2xl py-4 items-center active:border-primary active:bg-primary/10"
                 onPress={() => handleVerifySelect(option)}
               >
-                <Text className="text-white text-base font-medium">
+                <Text className="text-foreground text-base font-medium">
                   {option}
                 </Text>
               </Pressable>
@@ -297,7 +297,7 @@ export default function CreateWalletScreen() {
   return (
     <View className="flex-1 bg-background items-center justify-center">
       <ActivityIndicator size="large" color={theme.colors.primary} />
-      <Text className="text-white text-base mt-4">Setting up wallet...</Text>
+      <Text className="text-foreground text-base mt-4">Setting up wallet...</Text>
     </View>
   );
 }
