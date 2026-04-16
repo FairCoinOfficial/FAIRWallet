@@ -146,6 +146,77 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "send.watchOnly.subtitle":
       "Sending is disabled for watch-only wallets. Import the full wallet with a recovery phrase to enable sending.",
 
+    // ---------- Buy ----------
+    "buy.title": "Buy FAIR",
+    "buy.subtitle": "Get FairCoin delivered to your wallet",
+    "buy.amount.label": "How much FAIR?",
+    "buy.usdApprox": "\u2248 ${amount} USD",
+    "buy.method.label": "Pay with",
+    "buy.payment.recommended": "Recommended",
+    "buy.payment.comingSoon": "Coming soon",
+    "buy.payment.usdcBase.label": "USDC on Base",
+    "buy.payment.usdcBase.description": "Lowest fees, ~1 minute settlement",
+    "buy.payment.ethBase.label": "ETH on Base",
+    "buy.payment.ethBase.description": "Bridge auto-converts to USDC",
+    "buy.payment.ethMainnet.label": "ETH on Ethereum",
+    "buy.payment.ethMainnet.description": "Higher gas, slower bridge",
+    "buy.payment.btc.label": "Bitcoin",
+    "buy.payment.btc.description": "Slower confirmations (~10-30 min)",
+    "buy.payment.card.label": "Card / Apple Pay / Google Pay",
+    "buy.payment.card.description": "Powered by a regulated partner",
+    "buy.cta.getInstructions": "Get payment instructions",
+    "buy.error.belowMinimum": "Minimum order is {min} FAIR",
+    "buy.error.aboveMaximum": "Maximum order is {max} FAIR",
+    "buy.error.watchOnly":
+      "Watch-only wallets cannot derive a delivery address. Import the wallet with its recovery phrase first.",
+    "buy.error.cardNotConfigured":
+      "Card payments are coming soon. Apply for early access at fairco.in/contact.",
+    "buy.error.poolUnavailable":
+      "Pool quote unavailable right now. Please try again in a moment.",
+    "buy.error.network":
+      "Network error contacting the bridge. Check your connection and retry.",
+    "buy.error.generic": "Could not create your buy order: {message}",
+    "buy.disclosure":
+      "FAIR is a cryptocurrency. Purchases are non-refundable. Risk of loss applies.",
+    "buy.deliveryTo": "Delivering to",
+    "buy.feeBreakdown.title": "Includes",
+    "buy.feeBreakdown.bridge": "Bridge fee {bps}%",
+    "buy.feeBreakdown.slippage": "Slippage buffer {bps}%",
+    "buy.instructions.title": "Send your payment",
+    "buy.instructions.sendTo":
+      "Send {symbol} on {network} to this address",
+    "buy.instructions.exactAmount": "Send exactly",
+    "buy.instructions.networkWarning":
+      "Send {symbol} on the {network} network only. Funds sent on a different network will be lost.",
+    "buy.instructions.expiresIn": "Expires in",
+    "buy.instructions.copiedAddress": "Address copied",
+    "buy.instructions.copiedAmount": "Amount copied",
+    "buy.instructions.cancel": "Cancel order",
+    "buy.instructions.viewTx": "View on Explorer",
+    "buy.instructions.openCardWebview": "Open card payment page",
+    "buy.status.awaiting.title": "Waiting for payment",
+    "buy.status.awaiting.subtitle":
+      "Send the amount above; we will detect it automatically.",
+    "buy.status.detected.title": "Payment received",
+    "buy.status.detected.subtitle": "Confirming on the network...",
+    "buy.status.swapping.title": "Swapping on Uniswap",
+    "buy.status.swapping.subtitle": "Converting your payment to FAIR",
+    "buy.status.burning.title": "Bridging to FairCoin",
+    "buy.status.burning.subtitle":
+      "Burning WFAIR with your address attached",
+    "buy.status.delivering.title": "Delivering FAIR",
+    "buy.status.delivering.subtitle":
+      "Broadcasting on the FairCoin network...",
+    "buy.status.delivered.title": "FAIR delivered",
+    "buy.status.delivered.subtitle":
+      "Your FAIR has arrived. Tap below to view the transaction.",
+    "buy.status.expired.title": "Quote expired",
+    "buy.status.expired.subtitle":
+      "Your payment window passed without a deposit. Start a new order to get a fresh quote.",
+    "buy.status.failed.title": "Something went wrong",
+    "buy.status.failed.subtitle":
+      "We hit an unexpected issue processing your payment. Contact support if funds were sent.",
+
     // ---------- Receive ----------
     "receive.title": "Receive FAIR",
     "receive.copy": "Copy Address",
@@ -755,6 +826,77 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "send.watchOnly.title": "Billetera de Solo Lectura",
     "send.watchOnly.subtitle":
       "El env\u00edo est\u00e1 deshabilitado para billeteras de solo lectura. Importa la billetera completa con una frase de recuperaci\u00f3n para habilitar el env\u00edo.",
+
+    // ---------- Buy ----------
+    "buy.title": "Comprar FAIR",
+    "buy.subtitle": "Recibe FairCoin en tu billetera",
+    "buy.amount.label": "\u00bfCu\u00e1nto FAIR?",
+    "buy.usdApprox": "\u2248 ${amount} USD",
+    "buy.method.label": "Pagar con",
+    "buy.payment.recommended": "Recomendado",
+    "buy.payment.comingSoon": "Pr\u00f3ximamente",
+    "buy.payment.usdcBase.label": "USDC en Base",
+    "buy.payment.usdcBase.description": "Comisi\u00f3n m\u00ednima, ~1 minuto",
+    "buy.payment.ethBase.label": "ETH en Base",
+    "buy.payment.ethBase.description": "El bridge convierte autom\u00e1ticamente a USDC",
+    "buy.payment.ethMainnet.label": "ETH en Ethereum",
+    "buy.payment.ethMainnet.description": "Gas m\u00e1s alto, m\u00e1s lento",
+    "buy.payment.btc.label": "Bitcoin",
+    "buy.payment.btc.description": "Confirmaciones m\u00e1s lentas (~10-30 min)",
+    "buy.payment.card.label": "Tarjeta / Apple Pay / Google Pay",
+    "buy.payment.card.description": "A trav\u00e9s de un partner regulado",
+    "buy.cta.getInstructions": "Ver instrucciones de pago",
+    "buy.error.belowMinimum": "El m\u00ednimo es {min} FAIR",
+    "buy.error.aboveMaximum": "El m\u00e1ximo es {max} FAIR",
+    "buy.error.watchOnly":
+      "Las billeteras de solo lectura no pueden derivar una direcci\u00f3n de entrega. Importa la billetera con su frase de recuperaci\u00f3n primero.",
+    "buy.error.cardNotConfigured":
+      "El pago con tarjeta llegar\u00e1 pronto. Reg\u00edstrate para acceso anticipado en fairco.in/contact.",
+    "buy.error.poolUnavailable":
+      "Cotizaci\u00f3n no disponible. Vuelve a intentarlo en un momento.",
+    "buy.error.network":
+      "Error de red al contactar al bridge. Comprueba tu conexi\u00f3n y reintenta.",
+    "buy.error.generic": "No se pudo crear tu orden: {message}",
+    "buy.disclosure":
+      "FAIR es una criptomoneda. Las compras no son reembolsables. Existe riesgo de p\u00e9rdida.",
+    "buy.deliveryTo": "Entregar a",
+    "buy.feeBreakdown.title": "Incluye",
+    "buy.feeBreakdown.bridge": "Comisi\u00f3n del bridge {bps}%",
+    "buy.feeBreakdown.slippage": "Margen de deslizamiento {bps}%",
+    "buy.instructions.title": "Env\u00eda tu pago",
+    "buy.instructions.sendTo":
+      "Env\u00eda {symbol} en {network} a esta direcci\u00f3n",
+    "buy.instructions.exactAmount": "Env\u00eda exactamente",
+    "buy.instructions.networkWarning":
+      "Env\u00eda {symbol} solo en la red {network}. Los fondos enviados en otra red se perder\u00e1n.",
+    "buy.instructions.expiresIn": "Vence en",
+    "buy.instructions.copiedAddress": "Direcci\u00f3n copiada",
+    "buy.instructions.copiedAmount": "Cantidad copiada",
+    "buy.instructions.cancel": "Cancelar orden",
+    "buy.instructions.viewTx": "Ver en el explorador",
+    "buy.instructions.openCardWebview": "Abrir p\u00e1gina de pago con tarjeta",
+    "buy.status.awaiting.title": "Esperando el pago",
+    "buy.status.awaiting.subtitle":
+      "Env\u00eda la cantidad de arriba; lo detectaremos autom\u00e1ticamente.",
+    "buy.status.detected.title": "Pago recibido",
+    "buy.status.detected.subtitle": "Confirmando en la red...",
+    "buy.status.swapping.title": "Intercambiando en Uniswap",
+    "buy.status.swapping.subtitle": "Convirtiendo tu pago a FAIR",
+    "buy.status.burning.title": "Pasando por el bridge a FairCoin",
+    "buy.status.burning.subtitle":
+      "Quemando WFAIR con tu direcci\u00f3n adjunta",
+    "buy.status.delivering.title": "Entregando FAIR",
+    "buy.status.delivering.subtitle":
+      "Difundiendo en la red FairCoin...",
+    "buy.status.delivered.title": "FAIR entregado",
+    "buy.status.delivered.subtitle":
+      "Tu FAIR ha llegado. Toca abajo para ver la transacci\u00f3n.",
+    "buy.status.expired.title": "Cotizaci\u00f3n caducada",
+    "buy.status.expired.subtitle":
+      "Tu ventana de pago se cerr\u00f3 sin recibir dep\u00f3sito. Empieza una nueva orden para una cotizaci\u00f3n fresca.",
+    "buy.status.failed.title": "Algo sali\u00f3 mal",
+    "buy.status.failed.subtitle":
+      "Tuvimos un problema procesando tu pago. Contacta con soporte si enviaste fondos.",
 
     // ---------- Receive ----------
     "receive.title": "Recibir FAIR",

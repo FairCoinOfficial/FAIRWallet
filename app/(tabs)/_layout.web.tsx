@@ -109,7 +109,7 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
 
 type TabDef = {
   name: string;
-  href: "/" | "/send" | "/receive" | "/settings";
+  href: "/" | "/send" | "/receive" | "/buy" | "/settings";
   icon: IconName;
   label: string;
 };
@@ -151,6 +151,12 @@ export default function TabLayout() {
       href: "/receive",
       icon: "arrow-down-bold",
       label: t("wallet.receive"),
+    },
+    {
+      name: "buy",
+      href: "/buy",
+      icon: "credit-card-plus-outline",
+      label: t("wallet.buy"),
     },
     {
       name: "settings",

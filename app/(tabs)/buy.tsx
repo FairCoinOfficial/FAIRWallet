@@ -1,0 +1,298 @@
+/**
+ * Buy tab — entry screen for the Buy-FAIR flow.
+ *
+ * The user picks how much FAIR they want and how they want to pay. On
+ * "Get payment instructions", the wallet:
+ *
+ *   1. Derives a fresh receive address on the buy-only HD chain
+ *      (`m/44'/119'/0'/2/{nextBuyIndex}`) for FAIR delivery.
+ *   2. Calls `requestBuyQuote` against the bridge to lock a price and
+ *      allocate a per-order payment address.
+ *   3. Navigates to `/buy/quote?orderId=…` which renders the QR + status.
+ *
+ * Watch-only wallets cannot derive addresses, so we surface a friendly
+ * empty state instead of disabling the tab outright (the bottom-bar entry
+ * stays consistent across wallet types).
+ */
+
+import { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useTheme } from "@oxyhq/bloom/theme";
+import { parseFairToUnits } from "@fairco.in/core";
+import { Button, Card, EmptyState } from "../../src/ui/components";
+import { BuyAmountInput } from "../../src/components/buy/AmountInput";
+import {
+  PaymentMethodPicker,
+  type PaymentMethodOption,
+} from "../../src/components/buy/PaymentMethodPicker";
+import {
+  BuyApiError,
+  requestBuyQuote,
+  type PaymentCurrency,
+} from "../../src/api/buy";
+import { useWalletStore } from "../../src/wallet/wallet-store";
+import { deriveNextBuyAddress } from "../../src/wallet/derive-buy-address";
+import { FONT_PHUDU_BLACK } from "../../src/utils/fonts";
+import { t } from "../../src/i18n";
+
+const CONTENT_MAX_WIDTH = 600;
+const PRESETS = ["10", "50", "100", "500"] as const;
+
+const PAYMENT_OPTIONS: ReadonlyArray<PaymentMethodOption> = [
+  {
+    currency: "USDC_BASE",
+    label: t("buy.payment.usdcBase.label"),
+    description: t("buy.payment.usdcBase.description"),
+    icon: "currency-usd",
+    recommended: true,
+  },
+  {
+    currency: "ETH_BASE",
+    label: t("buy.payment.ethBase.label"),
+    description: t("buy.payment.ethBase.description"),
+    icon: "ethereum",
+    comingSoon: true,
+  },
+  {
+    currency: "ETH_MAINNET",
+    label: t("buy.payment.ethMainnet.label"),
+    description: t("buy.payment.ethMainnet.description"),
+    icon: "ethereum",
+    comingSoon: true,
+  },
+  {
+    currency: "BTC",
+    label: t("buy.payment.btc.label"),
+    description: t("buy.payment.btc.description"),
+    icon: "bitcoin",
+    comingSoon: true,
+  },
+  {
+    currency: "CARD",
+    label: t("buy.payment.card.label"),
+    description: t("buy.payment.card.description"),
+    icon: "credit-card-outline",
+    comingSoon: true,
+  },
+];
+
+function truncateMid(value: string, head: number, tail: number): string {
+  if (value.length <= head + tail + 1) return value;
+  return `${value.slice(0, head)}\u2026${value.slice(-tail)}`;
+}
+
+export default function BuyScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const theme = useTheme();
+  const isWatchOnly = useWalletStore((s) => s.isWatchOnly);
+  const activeWalletId = useWalletStore((s) => s.activeWalletId);
+  const network = useWalletStore((s) => s.network);
+
+  const [amount, setAmount] = useState("");
+  const [paymentCurrency, setPaymentCurrency] =
+    useState<PaymentCurrency>("USDC_BASE");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const amountSats = useMemo(() => parseFairToUnits(amount), [amount]);
+  const canSubmit =
+    amountSats !== null &&
+    amountSats > 0n &&
+    !submitting &&
+    activeWalletId !== null;
+
+  const handleSubmit = useCallback(async () => {
+    if (!activeWalletId) {
+      setError(t("buy.error.watchOnly"));
+      return;
+    }
+    if (amountSats === null || amountSats <= 0n) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const derived = await deriveNextBuyAddress({
+        walletId: activeWalletId,
+        network,
+      });
+      const quote = await requestBuyQuote({
+        fairAmount: amount,
+        paymentCurrency,
+        fairDestinationAddress: derived.address,
+        userIdentifier: activeWalletId,
+      });
+      router.push({
+        pathname: "/buy/quote",
+        params: { orderId: quote.id },
+      });
+    } catch (err: unknown) {
+      if (err instanceof BuyApiError) {
+        if (err.code === "below_minimum") {
+          setError(t("buy.error.belowMinimum", { min: "1" }));
+        } else if (err.code === "above_maximum") {
+          setError(t("buy.error.aboveMaximum", { max: "1000" }));
+        } else if (err.code === "card_not_configured") {
+          setError(t("buy.error.cardNotConfigured"));
+        } else if (err.code === "pool_quote_failed") {
+          setError(t("buy.error.poolUnavailable"));
+        } else {
+          setError(t("buy.error.generic", { message: err.message }));
+        }
+      } else if (err instanceof Error) {
+        setError(t("buy.error.generic", { message: err.message }));
+      } else {
+        setError(t("buy.error.network"));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }, [activeWalletId, amount, amountSats, network, paymentCurrency, router]);
+
+  if (isWatchOnly) {
+    return (
+      <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+        <EmptyState
+          icon="lock"
+          title={t("buy.title")}
+          subtitle={t("buy.error.watchOnly")}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-background">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="pb-40 gap-5"
+        contentContainerStyle={{
+          paddingTop: insets.top + 12,
+          paddingHorizontal: 16,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View
+          className="w-full self-center gap-5"
+          style={{ maxWidth: CONTENT_MAX_WIDTH }}
+        >
+          {/* Header */}
+          <View className="items-center pt-2">
+            <Text
+              className="text-foreground"
+              style={{ fontFamily: FONT_PHUDU_BLACK, fontSize: 28 }}
+            >
+              {t("buy.title")}
+            </Text>
+            <Text className="text-muted-foreground text-sm mt-1 text-center">
+              {t("buy.subtitle")}
+            </Text>
+          </View>
+
+          {/* Amount */}
+          <Card className="px-4 pt-2 pb-5">
+            <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider px-2 mt-2">
+              {t("buy.amount.label")}
+            </Text>
+            <BuyAmountInput
+              value={amount}
+              onValueChange={setAmount}
+              presets={PRESETS}
+            />
+          </Card>
+
+          {/* Payment method */}
+          <View className="gap-2">
+            <Text className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider px-1">
+              {t("buy.method.label")}
+            </Text>
+            <PaymentMethodPicker
+              options={PAYMENT_OPTIONS}
+              value={paymentCurrency}
+              onChange={setPaymentCurrency}
+            />
+          </View>
+
+          {/* Disclosure */}
+          <View className="flex-row items-start gap-2 px-1">
+            <MaterialCommunityIcons
+              name="information-outline"
+              size={14}
+              color={theme.colors.textSecondary}
+              style={{ marginTop: 2 }}
+            />
+            <Text className="text-[11px] text-muted-foreground flex-1">
+              {t("buy.disclosure")}
+            </Text>
+          </View>
+
+          {/* Active-wallet badge: confirms which wallet receives FAIR. */}
+          {activeWalletId ? (
+            <Card className="p-3 flex-row items-center gap-3">
+              <View className="w-9 h-9 rounded-full bg-primary/10 items-center justify-center">
+                <MaterialCommunityIcons
+                  name="wallet"
+                  size={18}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <View className="flex-1">
+                <Text className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                  {t("buy.deliveryTo")}
+                </Text>
+                <Text
+                  className="text-foreground text-sm font-semibold"
+                  numberOfLines={1}
+                >
+                  {truncateMid(activeWalletId, 6, 6)}
+                </Text>
+              </View>
+            </Card>
+          ) : null}
+
+          {error ? (
+            <Card className="border border-destructive/50 p-4">
+              <Text className="text-destructive text-sm text-center">
+                {error}
+              </Text>
+            </Card>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      {/* Fixed bottom CTA */}
+      <View
+        className="absolute left-0 right-0 bottom-0 bg-background border-t border-border"
+        style={{ paddingBottom: insets.bottom + 12, paddingTop: 12 }}
+      >
+        <View
+          className="w-full self-center px-4"
+          style={{ maxWidth: CONTENT_MAX_WIDTH }}
+        >
+          {submitting ? (
+            <View className="items-center py-2">
+              <ActivityIndicator color={theme.colors.primary} />
+            </View>
+          ) : (
+            <Button
+              title={t("buy.cta.getInstructions")}
+              onPress={handleSubmit}
+              variant="primary"
+              size="lg"
+              disabled={!canSubmit}
+            />
+          )}
+          <Pressable accessibilityRole="none" />
+        </View>
+      </View>
+    </View>
+  );
+}

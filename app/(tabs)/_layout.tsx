@@ -81,6 +81,17 @@ export default function TabLayout() {
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger
+          name="buy"
+          contentStyle={{ backgroundColor: theme.colors.background }}
+        >
+          <NativeTabs.Trigger.Icon
+            sf={{ default: "creditcard.and.123", selected: "creditcard.and.123" }}
+            md="account_balance_wallet"
+          />
+          <NativeTabs.Trigger.Label>{t("wallet.buy")}</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+
+        <NativeTabs.Trigger
           name="settings"
           contentStyle={{ backgroundColor: theme.colors.background }}
         >
