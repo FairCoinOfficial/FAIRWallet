@@ -42,7 +42,7 @@ import {
   type PriceData,
 } from "../../src/services/price";
 import { useTheme } from "@oxyhq/bloom/theme";
-import { BUY_BASE_URL } from "../../src/core/branding";
+import { BUY_BASE_URL } from "@fairco.in/core";
 import { t } from "../../src/i18n";
 
 // ---------------------------------------------------------------------------

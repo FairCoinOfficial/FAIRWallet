@@ -5,7 +5,7 @@
  */
 
 import { getLocales, getCalendars } from "expo-localization";
-import { UNITS_PER_COIN } from "../core/branding";
+import { UNITS_PER_COIN } from "@fairco.in/core";
 import { getItemAsync, setItemAsync } from "../storage/kv-store";
 import { isSupportedLanguage } from "./languages";
 

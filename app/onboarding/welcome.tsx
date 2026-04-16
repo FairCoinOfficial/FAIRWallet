@@ -8,7 +8,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../src/ui/components/Button";
 import { FONT_PHUDU_BLACK } from "../../src/utils/fonts";
-import { APP_NAME } from "../../src/core/branding";
+import { APP_NAME } from "@fairco.in/core";
 import { findLanguageOption, t } from "../../src/i18n";
 import { useLanguageStore } from "../../src/i18n/store";
 

@@ -14,8 +14,7 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { t } from "../i18n";
-import { COIN_TICKER } from "../core/branding";
-import { formatFair } from "../core/format-amount";
+import { COIN_TICKER, formatFair } from "@fairco.in/core";
 
 const TRANSACTIONS_CHANNEL_ID = "transactions";
 

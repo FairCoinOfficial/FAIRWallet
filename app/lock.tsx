@@ -15,7 +15,7 @@ import { PinDots } from "../src/ui/components/PinDots";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { hapticSuccess, hapticError } from "../src/utils/haptics";
 import { playUnlocked } from "../src/services/sounds";
-import { APP_NAME } from "../src/core/branding";
+import { APP_NAME } from "@fairco.in/core";
 import { t } from "../src/i18n";
 
 const PIN_LENGTH = 6;

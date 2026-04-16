@@ -10,7 +10,7 @@ import * as Prompt from "@oxyhq/bloom/prompt";
 import { getDatabase } from "../../src/wallet/wallet-store";
 import { Card } from "../../src/ui/components/Card";
 import { Button } from "../../src/ui/components/Button";
-import { COIN_NAME } from "../../src/core/branding";
+import { COIN_NAME } from "@fairco.in/core";
 import { t } from "../../src/i18n";
 
 const DEFAULT_PORT = "46372";

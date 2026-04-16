@@ -31,7 +31,7 @@ import {
   setCurrency,
 } from "../../src/storage/secure-store";
 import { Card, Button, PinDots, PinPad, ScreenHeader } from "../../src/ui/components";
-import type { NetworkType } from "../../src/core/network";
+import type { NetworkType } from "@fairco.in/core";
 import { useBloomTheme } from "@oxyhq/bloom/theme";
 import type { ThemeMode } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";

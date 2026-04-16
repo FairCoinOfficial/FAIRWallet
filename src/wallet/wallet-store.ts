@@ -9,17 +9,21 @@
  */
 
 import { create } from "zustand";
-import { generateMnemonic, validateMnemonic } from "../core/hd-wallet";
-import type { NetworkType, NetworkConfig } from "../core/network";
-import { getNetwork } from "../core/network";
-import { hexToBytes, bytesToHex, decodeAddress } from "../core/encoding";
 import {
+  generateMnemonic,
+  validateMnemonic,
+  getNetwork,
+  hexToBytes,
+  bytesToHex,
+  decodeAddress,
   buildTransaction,
   signInput,
   serializeTransaction,
   hashTransaction,
+  type NetworkType,
+  type NetworkConfig,
   type UTXO as TxUTXO,
-} from "../core/transaction";
+} from "@fairco.in/core";
 import { SPVClient } from "../p2p/spv-client";
 import { DatabaseHeaderStore } from "../p2p/header-store";
 import { createSocketProvider } from "../p2p/socket-provider";

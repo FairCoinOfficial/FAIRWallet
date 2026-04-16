@@ -13,8 +13,7 @@ import * as Clipboard from "expo-clipboard";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { verifyPin } from "../src/storage/secure-store";
-import { encryptBIP38 } from "../src/core/bip38";
-import { getNetwork } from "../src/core/network";
+import { encryptBIP38, getNetwork } from "@fairco.in/core";
 import { KeyManager } from "../src/wallet/key-manager";
 import {
   Card,

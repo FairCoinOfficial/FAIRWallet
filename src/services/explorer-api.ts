@@ -3,7 +3,7 @@
  * Wraps all calls to the Explorer backend REST API.
  */
 
-import { EXPLORER_BASE_URL } from "../core/branding";
+import { EXPLORER_BASE_URL } from "@fairco.in/core";
 
 const EXPLORER_API = EXPLORER_BASE_URL;
 

@@ -22,7 +22,7 @@ import {
 } from "../src/ui/components";
 import { ScrollView } from "react-native";
 import { useTheme } from "@oxyhq/bloom/theme";
-import { COIN_TICKER } from "../src/core/branding";
+import { COIN_TICKER } from "@fairco.in/core";
 import { t } from "../src/i18n";
 
 // ---------------------------------------------------------------------------

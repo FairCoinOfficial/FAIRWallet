@@ -9,8 +9,7 @@
 
 import { describe, test, expect } from "bun:test";
 
-import { MAINNET, TESTNET } from "../core/network";
-import { bytesToHex, hexToBytes } from "../core/encoding";
+import { MAINNET, TESTNET, bytesToHex, hexToBytes } from "@fairco.in/core";
 import {
   HEADER_SIZE,
   INV_TX,

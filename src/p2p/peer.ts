@@ -6,7 +6,7 @@
  * and Electron (Node.js `net`) can supply the underlying transport.
  */
 
-import type { NetworkConfig } from "../core/network";
+import type { NetworkConfig } from "@fairco.in/core";
 import {
   type MessageHeader,
   type VersionPayload,

@@ -38,13 +38,14 @@ import * as Prompt from "@oxyhq/bloom/prompt";
 import { hapticSuccess, hapticError } from "../../src/utils/haptics";
 import { playSent } from "../../src/services/sounds";
 import { FONT_PHUDU_BLACK, FONT_PHUDU_LIGHT } from "../../src/utils/fonts";
-import { formatFair, parseFairToUnits } from "../../src/core/format-amount";
 import {
+  formatFair,
+  parseFairToUnits,
   COIN_SYMBOL,
   COIN_TICKER,
   UNITS_PER_COIN,
   explorerTxUrl,
-} from "../../src/core/branding";
+} from "@fairco.in/core";
 import { t } from "../../src/i18n";
 
 const FEE_LEVELS: FeeLevel[] = ["low", "medium", "high"];

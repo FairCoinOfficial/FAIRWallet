@@ -4,7 +4,7 @@
  * and performs coin selection for transaction building.
  */
 
-import { UNITS_PER_COIN, SMALLEST_UNIT_NAME } from "../core/branding";
+import { UNITS_PER_COIN, SMALLEST_UNIT_NAME } from "@fairco.in/core";
 
 // ---------------------------------------------------------------------------
 // Types

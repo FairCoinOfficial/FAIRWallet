@@ -8,7 +8,7 @@
 
 import { Text, type TextProps } from "react-native";
 import { NumericFormat } from "react-number-format";
-import { UNITS_PER_COIN } from "../../core/branding";
+import { UNITS_PER_COIN } from "@fairco.in/core";
 
 export interface AmountTextProps extends Omit<TextProps, "children"> {
   /** Amount in smallest units (m⊜). */

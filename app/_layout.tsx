@@ -41,7 +41,7 @@ import {
   APP_COLOR_PRESETS,
 } from "@oxyhq/bloom/theme";
 import type { ThemeMode } from "@oxyhq/bloom/theme";
-import { parseFairCoinURI } from "../src/core/uri";
+import { parseFairCoinURI } from "@fairco.in/core";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { getAutoLockTimeout } from "../src/storage/secure-store";
 import { initLanguage } from "../src/i18n";

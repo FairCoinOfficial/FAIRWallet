@@ -12,7 +12,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { Button } from "../src/ui/components/Button";
 import { FONT_PHUDU_BLACK } from "../src/utils/fonts";
-import { APP_NAME } from "../src/core/branding";
+import { APP_NAME } from "@fairco.in/core";
 import { t } from "../src/i18n";
 
 export default function NotFoundScreen() {

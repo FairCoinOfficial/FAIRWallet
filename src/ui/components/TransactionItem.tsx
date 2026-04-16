@@ -9,7 +9,7 @@ import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { AmountText } from "./AmountText";
-import { COIN_SYMBOL } from "../../core/branding";
+import { COIN_SYMBOL } from "@fairco.in/core";
 import { t } from "../../i18n";
 
 type TransactionType = "send" | "receive" | "stake" | "masternode_reward";

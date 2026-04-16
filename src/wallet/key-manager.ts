@@ -8,8 +8,7 @@ import { HDKey } from "@scure/bip32";
 import { mnemonicToSeedSync } from "@scure/bip39";
 import { sha256 } from "@noble/hashes/sha256";
 import { ripemd160 } from "@noble/hashes/ripemd160";
-import { encodeAddress } from "../core/encoding";
-import type { NetworkConfig } from "../core/network";
+import { encodeAddress, type NetworkConfig } from "@fairco.in/core";
 
 // ---------------------------------------------------------------------------
 // Types

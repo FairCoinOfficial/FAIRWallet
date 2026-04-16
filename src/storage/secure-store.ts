@@ -11,7 +11,7 @@
 
 import { getItemAsync, setItemAsync, deleteItemAsync } from "./kv-store";
 import { sha256 } from "@noble/hashes/sha256";
-import { bytesToHex } from "../core/encoding";
+import { bytesToHex } from "@fairco.in/core";
 
 // ---------------------------------------------------------------------------
 // Storage keys

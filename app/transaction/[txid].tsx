@@ -28,8 +28,7 @@ import {
 import type { ContactRow } from "../../src/storage/database";
 import { useTheme } from "@oxyhq/bloom/theme";
 import * as Prompt from "@oxyhq/bloom/prompt";
-import { formatUnits } from "../../src/core/format-amount";
-import { COIN_TICKER, explorerTxUrl } from "../../src/core/branding";
+import { formatUnits, COIN_TICKER, explorerTxUrl } from "@fairco.in/core";
 import { t } from "../../src/i18n";
 
 // ---------------------------------------------------------------------------

@@ -19,7 +19,7 @@ import { Button } from "../../src/ui/components/Button";
 import { Card } from "../../src/ui/components/Card";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { hapticSuccess } from "../../src/utils/haptics";
-import { COIN_SYMBOL } from "../../src/core/branding";
+import { COIN_SYMBOL } from "@fairco.in/core";
 import { t } from "../../src/i18n";
 
 type Step = "generating" | "display" | "verify" | "complete";

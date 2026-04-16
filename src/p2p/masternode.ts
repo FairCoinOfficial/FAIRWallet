@@ -13,7 +13,7 @@
 import { sha256 } from "@noble/hashes/sha256";
 import * as secp256k1 from "@noble/secp256k1";
 
-import { BufferWriter, bytesToHex } from "../core/encoding";
+import { BufferWriter, bytesToHex } from "@fairco.in/core";
 import { ipv4ToMappedIPv6 } from "./messages";
 
 // ---------------------------------------------------------------------------

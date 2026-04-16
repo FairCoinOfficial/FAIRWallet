@@ -13,8 +13,7 @@
  * SWIFTTX_SIGNATURES_REQUIRED (6) votes from unique masternodes.
  */
 
-import { BufferReader, bytesToHex } from "../core/encoding";
-import { UNITS_PER_COIN } from "../core/branding";
+import { BufferReader, bytesToHex, UNITS_PER_COIN } from "@fairco.in/core";
 
 // ---------------------------------------------------------------------------
 // Constants

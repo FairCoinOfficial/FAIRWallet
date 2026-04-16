@@ -5,7 +5,7 @@
  * rotation, reconnection, and dispatches incoming messages.
  */
 
-import type { NetworkConfig } from "../core/network";
+import type { NetworkConfig } from "@fairco.in/core";
 import { resolveDNSSeeds, type NativeDnsResolver } from "./dns-seeds";
 import { Peer, type PeerConfig, type PeerEvents, type SocketProvider } from "./peer";
 

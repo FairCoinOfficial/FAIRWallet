@@ -6,8 +6,8 @@
  */
 
 import { sha256 } from "@noble/hashes/sha256";
-import type { NetworkConfig } from "../core/network";
-import { hashBlockHeader as quarkHashBlockHeader, type BlockHeader } from "../core/quark-hash";
+import type { NetworkConfig, BlockHeader } from "@fairco.in/core";
+import { hashBlockHeader as quarkHashBlockHeader } from "@fairco.in/core";
 import { BloomFilter } from "./bloom-filter";
 import {
   type BlockHeaderMsg,

@@ -11,7 +11,7 @@ import { Badge } from "./Badge";
 import { AmountText } from "./AmountText";
 import { formatFiatAmount } from "../../i18n";
 import { FONT_PHUDU_LIGHT, FONT_PHUDU_BLACK } from "../../utils/fonts";
-import { COIN_SYMBOL, UNITS_PER_COIN } from "../../core/branding";
+import { COIN_SYMBOL, UNITS_PER_COIN } from "@fairco.in/core";
 
 type BalanceSize = "sm" | "md" | "lg";
 

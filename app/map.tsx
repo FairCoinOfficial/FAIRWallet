@@ -78,7 +78,7 @@ import {
 } from "../src/data/places";
 import { EmptyState } from "../src/ui/components/EmptyState";
 import { hapticSelection } from "../src/utils/haptics";
-import { COIN_TICKER } from "../src/core/branding";
+import { COIN_TICKER } from "@fairco.in/core";
 
 // ---------------------------------------------------------------------------
 // MapLibre access token

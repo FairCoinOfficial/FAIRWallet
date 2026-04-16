@@ -7,7 +7,7 @@
 
 import type { HeaderStore, StoredBlockHeader } from "./spv-client";
 import type { Database, BlockHeaderRow } from "../storage/database";
-import { hexToBytes, bytesToHex } from "../core/encoding";
+import { hexToBytes, bytesToHex } from "@fairco.in/core";
 
 // ---------------------------------------------------------------------------
 // DatabaseHeaderStore
