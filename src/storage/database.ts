@@ -69,6 +69,13 @@ export interface AddressRow {
   used: number;
 }
 
+export interface WatchAddressRow {
+  address: string;
+  redeem_script: string;
+  label: string;
+  created_at: number;
+}
+
 export interface PeerRow {
   host: string;
   port: number;
@@ -166,6 +173,13 @@ const SCHEMA_SQL = `
     index_num INTEGER NOT NULL,
     is_change INTEGER DEFAULT 0,
     used INTEGER DEFAULT 0
+  );
+
+  CREATE TABLE IF NOT EXISTS watch_addresses (
+    address TEXT PRIMARY KEY,
+    redeem_script TEXT NOT NULL,
+    label TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS peers (
@@ -795,6 +809,32 @@ export class Database {
     await this.db.runAsync(
       "UPDATE addresses SET used = 1 WHERE address = ?",
       address,
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // Watch addresses (non-HD, e.g. multisig)
+  // -----------------------------------------------------------------------
+
+  async insertWatchAddress(
+    address: string,
+    redeemScript: string,
+    label: string,
+  ): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    await this.db.runAsync(
+      `INSERT OR IGNORE INTO watch_addresses (address, redeem_script, label, created_at)
+       VALUES (?, ?, ?, ?)`,
+      address,
+      redeemScript,
+      label,
+      now,
+    );
+  }
+
+  async getWatchAddresses(): Promise<WatchAddressRow[]> {
+    return this.db.getAllAsync<WatchAddressRow>(
+      "SELECT * FROM watch_addresses ORDER BY created_at",
     );
   }
 
