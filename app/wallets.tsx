@@ -16,7 +16,6 @@ import {
 import { SafeAreaView } from "../src/ui/safe-area-view";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useWalletStore } from "../src/wallet/wallet-store";
-import type { WalletInfo } from "../src/storage/secure-store";
 import {
   ListItem,
   Button,
@@ -453,7 +452,6 @@ export default function WalletsScreen() {
 
   const mnemonicControl = useDialogControl();
   const deleteWalletControl = useDialogControl();
-  const cannotDeleteControl = useDialogControl();
 
   // Load wallet list on focus
   useFocusEffect(
@@ -475,13 +473,13 @@ export default function WalletsScreen() {
   const handleDelete = useCallback(
     (walletId: string, walletName: string) => {
       if (wallets.length <= 1) {
-        cannotDeleteControl.open();
+        toast.error(t("wallets.cannotDelete.description"));
         return;
       }
       setPendingDeleteWallet({ id: walletId, name: walletName });
       deleteWalletControl.open();
     },
-    [wallets.length, deleteWalletControl, cannotDeleteControl],
+    [wallets.length, deleteWalletControl],
   );
 
   const handleCreateWallet = useCallback(
@@ -618,6 +616,7 @@ export default function WalletsScreen() {
                   onPress={() => {
                     if (!isActive) handleSwitch(wallet.id);
                   }}
+                  onLongPress={() => handleDelete(wallet.id, wallet.name)}
                   trailing={
                     isActive ? (
                       <Badge text={t("wallets.active")} variant="success" />
@@ -695,14 +694,6 @@ export default function WalletsScreen() {
           },
           { label: t("common.cancel"), color: "cancel" },
         ]}
-      />
-
-      <Dialog
-        control={cannotDeleteControl}
-        placement="bottom"
-        title={t("wallets.cannotDelete.title")}
-        description={t("wallets.cannotDelete.description")}
-        actions={[{ label: t("common.ok") }]}
       />
     </SafeAreaView>
   );
