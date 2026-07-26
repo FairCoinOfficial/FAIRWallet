@@ -27,6 +27,7 @@ import {
 import { useTheme } from "@oxyhq/bloom/theme";
 import { Dialog, useDialogControl } from "@oxyhq/bloom/dialog";
 import type { DialogControlProps } from "@oxyhq/bloom/dialog";
+import { toast } from "@oxyhq/bloom/toast";
 import { t } from "../src/i18n";
 
 // ---------------------------------------------------------------------------
@@ -449,23 +450,10 @@ export default function WalletsScreen() {
     id: string;
     name: string;
   } | null>(null);
-  const [message, setMessage] = useState<{
-    title: string;
-    description: string;
-  } | null>(null);
 
   const mnemonicControl = useDialogControl();
   const deleteWalletControl = useDialogControl();
   const cannotDeleteControl = useDialogControl();
-  const messageControl = useDialogControl();
-
-  const showMessage = useCallback(
-    (title: string, description: string) => {
-      setMessage({ title, description });
-      messageControl.open();
-    },
-    [messageControl],
-  );
 
   // Load wallet list on focus
   useFocusEffect(
@@ -504,10 +492,10 @@ export default function WalletsScreen() {
         setNewMnemonic(mnemonic);
         mnemonicControl.open();
       } catch {
-        showMessage(t("common.error"), t("wallets.create.error.failed"));
+        toast.error(t("wallets.create.error.failed"));
       }
     },
-    [createNewWallet, mnemonicControl, showMessage],
+    [createNewWallet, mnemonicControl],
   );
 
   const handleImportWallet = useCallback(
@@ -517,13 +505,10 @@ export default function WalletsScreen() {
         await importWallet(name, mnemonic);
         router.back();
       } catch {
-        showMessage(
-          t("wallets.import.failed.title"),
-          t("wallets.import.failed.description"),
-        );
+        toast.error(t("wallets.import.failed.description"));
       }
     },
-    [importWallet, router, showMessage],
+    [importWallet, router],
   );
 
   const handleMnemonicDismiss = useCallback(() => {
@@ -560,22 +545,16 @@ export default function WalletsScreen() {
       setShowWatchOnlyModal(false);
       try {
         await importWatchOnly(name, xpub);
-        showMessage(
-          t("wallets.watchOnly.imported.title"),
-          t("wallets.watchOnly.imported.description"),
-        );
+        toast.success(t("wallets.watchOnly.imported.description"));
       } catch (err: unknown) {
         // Surface the store's precise reason (e.g. invalid extended public key)
         // rather than a generic message, so the user can correct the input.
         const detail =
           err instanceof Error ? err.message : null;
-        showMessage(
-          t("wallets.watchOnly.failed.title"),
-          detail ?? t("wallets.watchOnly.failed.description"),
-        );
+        toast.error(detail ?? t("wallets.watchOnly.failed.description"));
       }
     },
-    [importWatchOnly, showMessage],
+    [importWatchOnly],
   );
 
   if (switching || loading) {
@@ -609,6 +588,7 @@ export default function WalletsScreen() {
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-5 pt-4 pb-8"
+        showsVerticalScrollIndicator={false}
       >
         {/* Wallet list — card-less surface group with a subtle border and
             inter-row hairlines (matches the home / wallet-switcher pattern). */}
@@ -723,14 +703,6 @@ export default function WalletsScreen() {
         title={t("wallets.cannotDelete.title")}
         description={t("wallets.cannotDelete.description")}
         actions={[{ label: t("common.ok") }]}
-      />
-
-      <Dialog
-        control={messageControl}
-        placement="bottom"
-        title={message?.title ?? ""}
-        description={message?.description ?? ""}
-        actions={[{ label: t("common.ok"), onPress: () => setMessage(null) }]}
       />
     </SafeAreaView>
   );

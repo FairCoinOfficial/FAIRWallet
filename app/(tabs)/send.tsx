@@ -28,6 +28,7 @@ export default function SendScreen() {
           paddingHorizontal: 16,
         }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <SendSheet address={params.address} amount={params.amount} />
       </ScrollView>

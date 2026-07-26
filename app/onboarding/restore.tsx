@@ -69,6 +69,7 @@ export default function RestoreWalletScreen() {
         className="flex-1"
         contentContainerClassName="px-6 pt-24 pb-10"
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <Text className="text-foreground text-xl font-bold mb-2 text-center">

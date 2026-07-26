@@ -198,6 +198,7 @@ export default function CreateWalletScreen() {
         <ScrollView
           className="flex-1"
           contentContainerClassName="px-6 pt-24 pb-10"
+          showsVerticalScrollIndicator={false}
         >
           <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
 
