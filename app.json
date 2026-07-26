@@ -25,7 +25,7 @@
         "backgroundColor": "#1b1e09"
       },
       "predictiveBackGestureEnabled": true,
-      "package": "in.fairco.wallet",
+      "package": "in.fairco.walletapp",
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
@@ -73,6 +73,13 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "FAIRWallet needs photo access to set a Pocket image.",
+          "cameraPermission": "FAIRWallet needs camera access to take a Pocket photo."
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "FAIRWallet uses your location to show nearby places that accept FairCoin."
@@ -103,7 +110,8 @@
       "expo-asset"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "reactCompiler": true
     }
   }
 }
