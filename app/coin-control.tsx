@@ -17,8 +17,11 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
-import { ScrollView } from "react-native";
 import { useTheme } from "@oxyhq/bloom/theme";
+import { GestureDetector } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
+import { RefreshRainbowBar } from "../src/ui/components/RefreshRainbowBar";
+import { usePullToRefreshBand } from "../src/hooks/usePullToRefreshBand";
 import { t } from "../src/i18n";
 
 // ---------------------------------------------------------------------------
@@ -83,9 +86,7 @@ export default function CoinControlScreen() {
     [messageControl],
   );
 
-  // Load UTXOs on layout (similar to useFocusEffect without useEffect)
-  const handleLayout = useCallback(() => {
-    if (loaded) return;
+  const loadUtxos = useCallback(() => {
     const db = getDatabase();
     if (!db) return;
 
@@ -104,7 +105,16 @@ export default function CoinControlScreen() {
       setUtxos(items);
       setLoaded(true);
     });
-  }, [loaded, chainHeight]);
+  }, [chainHeight]);
+
+  // Load once on layout (no useEffect); a pull re-reads, so confirmations catch
+  // up with the chain tip without leaving and re-entering the screen.
+  const handleLayout = useCallback(() => {
+    if (loaded) return;
+    loadUtxos();
+  }, [loaded, loadUtxos]);
+
+  const { gesture, scrollHandler, bandStyle } = usePullToRefreshBand(loadUtxos);
 
   const handleToggle = useCallback((txid: string, vout: number) => {
     const key = `${txid}:${vout}`;
@@ -133,7 +143,7 @@ export default function CoinControlScreen() {
   }, [utxos, selected]);
 
   const handleApply = useCallback(() => {
-    const selectedUtxos: Array<{ txid: string; vout: number }> = [];
+    const selectedUtxos: { txid: string; vout: number }[] = [];
     for (const utxo of utxos) {
       const key = `${utxo.txid}:${utxo.vout}`;
       if (selected.has(key)) {
@@ -178,7 +188,17 @@ export default function CoinControlScreen() {
         }
         onBack={() => router.back()}
       />
-      <ScrollView className="flex-1" contentContainerClassName="px-5 pb-4">
+      <Animated.View style={[bandStyle, { overflow: "hidden" }]}>
+        <RefreshRainbowBar />
+      </Animated.View>
+
+      <GestureDetector gesture={gesture}>
+        <Animated.ScrollView
+          className="flex-1"
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+          contentContainerClassName="px-5 pb-4"
+        >
         {/* Selection actions — borderless pills */}
         <View className="flex-row gap-2 mt-2 mb-5">
           <Pressable
@@ -279,7 +299,8 @@ export default function CoinControlScreen() {
             />
           </View>
         ) : null}
-      </ScrollView>
+        </Animated.ScrollView>
+      </GestureDetector>
 
       {/* Bottom action bar */}
       <View className="px-5 py-4 border-t border-border">

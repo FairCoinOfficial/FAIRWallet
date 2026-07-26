@@ -209,7 +209,7 @@ function RecoveryModal({ control, mnemonic, onDismiss }: RecoveryModalProps) {
 function AppearancePicker() {
   const { theme, mode, setMode } = useBloomTheme();
 
-  const modes: Array<{ value: ThemeMode; label: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"] }> = [
+  const modes: { value: ThemeMode; label: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"] }[] = [
     { value: "light", label: t("settings.appearance.light"), icon: "white-balance-sunny" },
     { value: "dark", label: t("settings.appearance.dark"), icon: "moon-waning-crescent" },
     { value: "system", label: t("settings.appearance.system"), icon: "cellphone" },
