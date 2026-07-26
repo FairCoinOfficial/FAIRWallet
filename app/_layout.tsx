@@ -26,15 +26,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { KeyboardProvider as NativeKeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-
-// react-native-keyboard-controller ships no web build — its KeyboardControllerView
-// is a native-only component that breaks the flex height chain on web and leaves
-// all scrollables with 0 bounded height. Web has no virtual keyboard anyway, so
-// we pass children straight through.
-const KeyboardProvider =
-  Platform.OS === "web"
-    ? ({ children }: { children: React.ReactNode }) => <>{children}</>
-    : NativeKeyboardProvider;
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BloomThemeProvider, useBloomTheme } from "@oxyhq/bloom/theme";
 import type { ThemeMode } from "@oxyhq/bloom/theme";
@@ -44,6 +35,8 @@ import { useExplorerRealtime } from "../src/hooks/useExplorerRealtime";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { useLockStore } from "../src/wallet/lock-store";
 import { LockGate } from "../src/ui/components/LockGate";
+import { ErrorBoundary } from "../src/ui/components/ErrorBoundary";
+import { installCrashHandler } from "../src/services/crash-log";
 import { getAutoLockTimeout } from "../src/storage/secure-store";
 import { initLanguage } from "../src/i18n";
 import { useLanguageStore } from "../src/i18n/store";
@@ -53,6 +46,15 @@ import { startSyncNotifier } from "../src/services/sync-notifier";
 import { startPushRegistration } from "../src/services/push-registration";
 import { handleIncomingPush } from "../src/services/push-handler";
 import { registerBackgroundSync } from "../src/services/background-sync";
+
+// react-native-keyboard-controller ships no web build — its KeyboardControllerView
+// is a native-only component that breaks the flex height chain on web and leaves
+// all scrollables with 0 bounded height. Web has no virtual keyboard anyway, so
+// we pass children straight through.
+const KeyboardProvider =
+  Platform.OS === "web"
+    ? ({ children }: { children: React.ReactNode }) => <>{children}</>
+    : NativeKeyboardProvider;
 
 // Module-level initialization. Resolves the persisted or device language,
 // then syncs the reactive store so React components see the correct value.
@@ -64,6 +66,10 @@ const languageInitPromise = initLanguage()
     // Defaults from `initLanguage` remain in place; `hydrate` is still safe.
     useLanguageStore.getState().hydrate();
   });
+
+// Capture uncaught JS errors before anything else runs, so a crash during the
+// module-scope startup below is still recorded.
+installCrashHandler();
 
 // Start watching wallet transactions for incoming-payment alerts. Must run
 // before any wallet state is hydrated so the subscriber sees every new tx
@@ -89,6 +95,12 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 const THEME_MODE_KEY = "fairwallet_theme_mode";
+
+// Read the persisted theme at module scope, alongside `languageInitPromise`, so
+// the storage round-trip is already in flight before the first render instead of
+// being kicked off from inside it (a render-phase side effect that React 19
+// rejects with "state update on a component that hasn't mounted yet").
+const themeModePromise = getItemAsync(THEME_MODE_KEY).catch(() => null);
 
 // ---------------------------------------------------------------------------
 // Hooks
@@ -246,19 +258,22 @@ export default function RootLayout() {
   const [languageReady, setLanguageReady] = useState(false);
   const language = useLanguageStore((s) => s.language);
 
-  const hydrated = useRef(false);
-  if (!hydrated.current) {
-    hydrated.current = true;
-    getItemAsync(THEME_MODE_KEY).then((stored) => {
+  useEffect(() => {
+    let active = true;
+    themeModePromise.then((stored) => {
+      if (!active) return;
       if (stored === "light" || stored === "dark" || stored === "system") {
         setMode(stored);
       }
       setThemeReady(true);
     });
     languageInitPromise.then(() => {
-      setLanguageReady(true);
+      if (active) setLanguageReady(true);
     });
-  }
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleModeChange = useCallback((next: ThemeMode) => {
     setMode(next);
@@ -277,10 +292,15 @@ export default function RootLayout() {
           >
             <BottomSheetModalProvider>
               <QueryClientProvider client={queryClient}>
-                <AppContent
-                  key={language}
-                  ready={fontsLoaded && themeReady && languageReady}
-                />
+                {/* Inside the theme provider so the fallback screen is themed,
+                    and around AppContent so a throw in any screen is contained
+                    instead of unmounting the app to a black screen. */}
+                <ErrorBoundary>
+                  <AppContent
+                    key={language}
+                    ready={fontsLoaded && themeReady && languageReady}
+                  />
+                </ErrorBoundary>
               </QueryClientProvider>
             </BottomSheetModalProvider>
           </BloomThemeProvider>
@@ -297,12 +317,14 @@ function AppContent({ ready }: { ready: boolean }) {
   // Overview's network stats tick live off the WebSocket.
   useExplorerRealtime();
 
-  // Hide splash screen once fonts and theme are loaded
-  const splashHidden = useRef(false);
-  if (ready && !splashHidden.current) {
-    splashHidden.current = true;
-    SplashScreen.hideAsync();
-  }
+  // Hide the splash once fonts and theme are loaded. `ready` only ever flips
+  // false → true, so this runs exactly once.
+  useEffect(() => {
+    if (!ready) return;
+    SplashScreen.hideAsync().catch(() => {
+      // Already hidden, or no activity attached yet (dev-client reload).
+    });
+  }, [ready]);
 
   return (
     <View style={{ flex: 1 }}>
