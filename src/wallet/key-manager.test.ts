@@ -10,10 +10,16 @@
  */
 
 import { describe, test, expect } from "bun:test";
-import { getNetwork } from "@fairco.in/core";
+import { getNetwork , deriveAddress } from "@fairco.in/core";
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeedSync } from "@scure/bip39";
 import { KeyManager } from "./key-manager";
+
+// ---------------------------------------------------------------------------
+// BIP44 account index (Pockets). Each account is an isolated subtree; account 0
+// must remain byte-for-byte identical to the pre-Pockets single-account wallet.
+// ---------------------------------------------------------------------------
+
 
 const MAINNET = getNetwork("mainnet");
 
@@ -256,13 +262,6 @@ describe("KeyManager.wipe (M1 zeroization)", () => {
     expect(watch.getAllAddresses()).toHaveLength(0);
   });
 });
-
-// ---------------------------------------------------------------------------
-// BIP44 account index (Pockets). Each account is an isolated subtree; account 0
-// must remain byte-for-byte identical to the pre-Pockets single-account wallet.
-// ---------------------------------------------------------------------------
-
-import { deriveAddress } from "@fairco.in/core";
 
 describe("KeyManager account index (Pockets)", () => {
   test("defaults to account 0 and reports it via getAccount()", () => {
