@@ -15,7 +15,7 @@
  */
 
 import type React from "react";
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { View, Text, TextInput, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -40,7 +40,7 @@ import {
 import { FairCoinSymbol } from "../components/FairCoinSymbol";
 import { QRScanner } from "../components/QRScanner";
 import { ContactPicker } from "../components/ContactPicker";
-import { getCachedPrice, subscribeToPrice } from "../../services/price";
+import { usePrice } from "../../hooks/usePrice";
 import type { RecentRecipientRow, ContactRow } from "../../storage/database";
 import { useTheme } from "@oxyhq/bloom/theme";
 import { Divider } from "@oxyhq/bloom/divider";
@@ -242,16 +242,7 @@ export function SendSheet({
     amountSats > 0n &&
     validationError === null;
 
-  // Subscribed rather than read straight from module state: the price cache
-  // lives outside React, so a bare `getCachedPrice()` in render is invisible to
-  // the renderer and gets frozen by the React Compiler's auto-memoisation.
-  // `getCachedPrice` is a valid snapshot — the object identity only changes
-  // when a poll actually stores a new price.
-  const cachedPrice = useSyncExternalStore(
-    subscribeToPrice,
-    getCachedPrice,
-    getCachedPrice,
-  );
+  const cachedPrice = usePrice();
   const usdEquivalent =
     cachedPrice && amountSats !== null && amountSats > 0n
       ? ((Number(amountSats) / Number(UNITS_PER_COIN)) * cachedPrice.usd).toFixed(2)
