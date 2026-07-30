@@ -1,0 +1,77 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    // Glance widgets are `@Composable`, so this module needs the Kotlin Compose
+    // compiler plugin. `kotlinVersion` is the root-project extra that
+    // `expo-root-project` sets from the Expo version catalog (2.1.20 for this
+    // SDK), so the plugin is always the exact match for the Kotlin the rest of
+    // the build uses — the two must move in lockstep or the build fails on a
+    // compiler-metadata mismatch rather than anything readable.
+    classpath("org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin:${kotlinVersion}")
+  }
+}
+
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+
+// NOT `in.fairco.walletapp.widgets`, and do not "fix" it to match the app's
+// applicationId — it does not compile.
+//
+// `in` is a Kotlin KEYWORD. The app's own hand-written sources get away with it
+// by escaping the segment (`package `in`.fairco.wallet` in MainActivity.kt), but
+// an Expo module's class name is also written into GENERATED code —
+// `node_modules/expo/android/build/generated/.../ExpoModulesPackageList.kt` —
+// and that generator does not escape keywords. It emits a bare
+// `in.fairco.walletapp.widgets.FairWalletWidgetsModule::class.java`, which fails
+// with "Syntax error: Expecting an expression" in a file no one can edit,
+// because it is regenerated on every build.
+//
+// A library's namespace only has to be unique, not to match the application id,
+// so the `in` segment is simply dropped.
+group = 'fairco.wallet.widgets'
+version = '1.0.0'
+
+android {
+  namespace "fairco.wallet.widgets"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+
+  buildFeatures {
+    compose true
+  }
+}
+
+dependencies {
+  // Jetpack Glance — the widget UI and its Material 3 components. 1.1.1 is the
+  // newest STABLE release (1.2.0 never left rc, 1.3.0 is alpha).
+  implementation "androidx.glance:glance-appwidget:1.1.1"
+
+  // Glance depends on `androidx.compose.runtime` only at RUNTIME scope (and at
+  // a 2022-era version), so the compile classpath needs it declared here.
+  // Pinned to a Compose release built for this project's Kotlin 2.1.20.
+  implementation "androidx.compose.runtime:runtime:1.9.0"
+
+  // The snapshot store the app writes and the widgets read. Already present as
+  // a runtime-scope transitive of Glance; declaring it only puts it on this
+  // module's compile classpath.
+  implementation "androidx.datastore:datastore-preferences:1.2.1"
+
+  // Every per-size and per-format decision in this module is written as a pure
+  // function precisely so it can be tested on a plain JVM — nothing in
+  // `src/test` touches Glance, a Canvas or a launcher, which need a device.
+  //
+  // This source set did not exist anywhere in the project before this module:
+  // the app has no `src/test`, no `testImplementation`, and its JS tests run
+  // under `bun test`. It is created here rather than skipped because widget
+  // layout arithmetic is the classic case of logic that is wrong in a way
+  // nobody notices until someone resizes a widget on a real home screen.
+  testImplementation "junit:junit:4.13.2"
+}
