@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Provider metadata for the actions widget.
+
+  Same attributes as the balance provider, and the same reasoning behind each;
+  see `fairwallet_balance_widget_info.xml`. The one difference worth stating is
+  the height ceiling: this widget is two buttons, so growing it vertically only
+  adds empty space, and its `maxResizeHeight` is set to two cells rather than
+  five.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:description="@string/fairwallet_actions_widget_description"
+    android:minWidth="@dimen/fairwallet_actions_widget_min_width"
+    android:minHeight="@dimen/fairwallet_actions_widget_min_height"
+    android:minResizeWidth="@dimen/fairwallet_actions_widget_min_resize_width"
+    android:minResizeHeight="@dimen/fairwallet_actions_widget_min_resize_height"
+    android:maxResizeWidth="@dimen/fairwallet_actions_widget_max_resize_width"
+    android:maxResizeHeight="@dimen/fairwallet_actions_widget_max_resize_height"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal"
+    android:widgetCategory="home_screen" />

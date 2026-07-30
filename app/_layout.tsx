@@ -47,6 +47,7 @@ import { startSyncNotifier } from "../src/services/sync-notifier";
 import { startPushRegistration } from "../src/services/push-registration";
 import { handleIncomingPush } from "../src/services/push-handler";
 import { registerBackgroundSync } from "../src/services/background-sync";
+import { startWalletWidgetSync } from "../src/services/widget-sync";
 
 // react-native-keyboard-controller ships no web build — its KeyboardControllerView
 // is a native-only component that breaks the flex height chain on web and leaves
@@ -89,6 +90,10 @@ startPushRegistration();
 // Best-effort background task registration for wake-up payment alerts.
 // Safe on platforms that don't support background tasks (web / electron).
 void registerBackgroundSync();
+
+// Mirror the wallet's balance to the Android home-screen widgets. Idempotent,
+// and a no-op on every platform without them, so it needs no guard here.
+startWalletWidgetSync();
 
 // Prevent splash from auto-hiding — we hide it manually after loading
 SplashScreen.preventAutoHideAsync().catch(() => {

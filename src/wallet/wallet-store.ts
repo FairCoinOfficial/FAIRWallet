@@ -78,6 +78,7 @@ import {
   setActivePocket,
   clearPockets,
 } from "../storage/pockets-store";
+import { clearWalletWidgets } from "../services/widget-sync";
 import {
   type PocketInfo,
   MAIN_POCKET_ACCOUNT,
@@ -2275,6 +2276,15 @@ export const useWalletStore = create<WalletState>((set, get) => ({
             activeWalletName: "",
             wallets: [],
           });
+
+          // Take the balance off the home screen too. The widget-sync
+          // subscription cannot do this on its own: the state above is a
+          // zero-balance wallet, which is indistinguishable from a real empty
+          // one, so a widget left to follow it would show "0.00 FAIR" for a
+          // device that no longer has a wallet at all. Awaited so the store is
+          // never reported as reset while the widget still holds the old
+          // balance.
+          await clearWalletWidgets();
         }
       } else {
         // Not the active wallet, just update the list

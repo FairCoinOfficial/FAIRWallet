@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home-screen sizes, in the launcher's own grid units.
+
+  Every value is `70 × cells − 30` dp, the conversion the App Widget sizing
+  guide gives for turning a cell count into the `minWidth` / `minHeight` a
+  provider declares (developer.android.com/develop/ui/views/appwidgets
+  § "Determine widget sizing"):
+
+      1 cell → 40dp    2 cells → 110dp    3 cells → 180dp
+      4 cells → 250dp  5 cells → 320dp
+
+  These are PLACEMENT sizes only — the default each provider asks for and the
+  range a launcher may resize it within. They are NOT breakpoints: both widgets
+  use `SizeMode.Exact`, so the balance card lays out for the height it is
+  actually given (`balanceCardContent`) rather than for the nearest of a
+  declared set.
+-->
+<resources>
+  <!--
+    The balance widget. Default placement 4 cells wide by 3 tall.
+
+    THREE tall rather than two, and the number came out of the arithmetic in
+    `WalletWidgetStyle.kt` rather than out of taste. The actions row is a 48dp
+    tap target — Material's minimum, so it cannot be shaved — plus its 8dp gap,
+    and the whole design (Pocket, balance, fiat, stamp, actions) does not fit
+    under about 180dp. A 2-cell default would therefore have shipped a card with
+    no shortcuts on it for everyone who never resized, which is most people.
+    At 3 cells the full design fits whenever nothing is pending, and the pending
+    line displaces the shortcuts on the rare card that needs it.
+  -->
+  <dimen name="fairwallet_balance_widget_min_width">250dp</dimen>
+  <dimen name="fairwallet_balance_widget_min_height">180dp</dimen>
+
+  <!--
+    It may be dragged down to 2 cells wide and ONE tall, where it still has a
+    form worth showing: the balance and its stamp, with everything else shed.
+    60dp rather than 40dp because two lines of type — a 24sp balance and an 11sp
+    stamp, each occupying about 1.3× its size in a TextView, inside 12dp of
+    padding — come to a little under it, and a `minResizeHeight` is a floor a
+    launcher measures a drag against rather than a size the widget is ever
+    given, so it does not have to be a whole number of cells.
+  -->
+  <dimen name="fairwallet_balance_widget_min_resize_width">110dp</dimen>
+  <dimen name="fairwallet_balance_widget_min_resize_height">60dp</dimen>
+
+  <!--
+    The ceiling: 5×5 is where the card runs out of things to reveal, so a larger
+    placement would only stretch what is already there.
+  -->
+  <dimen name="fairwallet_balance_widget_max_resize_width">320dp</dimen>
+  <dimen name="fairwallet_balance_widget_max_resize_height">320dp</dimen>
+
+  <!--
+    The actions widget. Two buttons side by side and nothing else, so it asks
+    for 2 cells by 1 and never needs to grow: its height ceiling is the same
+    single cell it starts at, because a 48dp pill centred in a 250dp-tall widget
+    would be a lot of empty green.
+  -->
+  <dimen name="fairwallet_actions_widget_min_width">110dp</dimen>
+  <dimen name="fairwallet_actions_widget_min_height">40dp</dimen>
+  <dimen name="fairwallet_actions_widget_min_resize_width">110dp</dimen>
+  <dimen name="fairwallet_actions_widget_min_resize_height">40dp</dimen>
+  <dimen name="fairwallet_actions_widget_max_resize_width">320dp</dimen>
+  <dimen name="fairwallet_actions_widget_max_resize_height">110dp</dimen>
+</resources>

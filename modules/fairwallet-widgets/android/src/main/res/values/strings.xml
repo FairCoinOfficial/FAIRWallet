@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The widgets render in the SYSTEM's language, without the app's i18n runtime
+  ever being loaded, so every string a widget draws has to exist as an Android
+  resource rather than as a key in `src/i18n/index.ts`.
+
+  Only `values/` (English) and `values-es/` (Spanish) are shipped. The app
+  declares twenty languages in `src/i18n/languages.ts` but exactly two carry
+  `translated: true` — the rest fall back to English through
+  `resolveTranslationTable`. Shipping widget strings for locales the app itself
+  does not translate would make the home screen the only translated surface.
+
+  Where a string already exists in the app it is kept word for word (the app's
+  own key is named in the comment) so the widget and the wallet read the same.
+-->
+<resources>
+  <!--
+    What the launcher's widget picker shows. Two widgets that differ in exactly
+    one way, so the labels have to make that difference the whole message.
+  -->
+  <string name="fairwallet_balance_widget_label">FAIR balance</string>
+  <string name="fairwallet_balance_widget_description">Your FairCoin balance, with shortcuts to receive and send.</string>
+
+  <string name="fairwallet_actions_widget_label">FAIR shortcuts</string>
+  <string name="fairwallet_actions_widget_description">Receive and send FairCoin. Shows no balance.</string>
+
+  <!--
+    The balance itself. `%1$s` is the amount, already formatted with the
+    reader's own grouping and decimal marks.
+
+    The TICKER rather than the ⊜ symbol (U+229C) the app uses in
+    `FairCoinSymbol.tsx`: a widget is drawn with the launcher's font stack,
+    which we neither control nor can test across OEMs, and a missing glyph
+    renders as tofu next to someone's money. "FAIR" always renders.
+  -->
+  <string name="fairwallet_widget_balance_amount">%1$s FAIR</string>
+
+  <!--
+    Money in flight, drawn only when there is some. The leading plus is part of
+    the meaning: this is on top of the balance above, not a share of it.
+    Mirrors `transaction.status.pending`.
+  -->
+  <string name="fairwallet_widget_balance_pending">+%1$s FAIR pending</string>
+
+  <!--
+    What the balance is worth. The tilde is not decoration — the quote is a
+    market price for a bridged token on a thin pool, and stating it as an exact
+    conversion would claim more than it is.
+  -->
+  <string name="fairwallet_widget_balance_fiat">≈ %1$s</string>
+
+  <!--
+    When the balance was last true.
+
+    Load-bearing rather than decorative: nothing advances a balance unless
+    someone opens the app (`src/services/background-sync.ts` is a stub that
+    returns Success and does nothing), so an always-visible number with no date
+    on it reads as live when it may be days old. Two forms, chosen by
+    `stampForm`: the time alone for a balance observed today, and the date as
+    well for anything else.
+  -->
+  <string name="fairwallet_widget_balance_stamp_time">as of %1$s</string>
+  <string name="fairwallet_widget_balance_stamp_date">as of %1$s, %2$s</string>
+
+  <!--
+    Before the app has ever published a balance. Never "0.00 FAIR" — a zero is a
+    specific claim about someone's money, and this is the absence of one.
+  -->
+  <string name="fairwallet_widget_balance_empty">Open FAIRWallet to see your balance</string>
+
+  <!-- The two shortcuts. Word for word from `wallet.receive` / `wallet.send`. -->
+  <string name="fairwallet_widget_action_receive">Receive</string>
+  <string name="fairwallet_widget_action_send">Send</string>
+</resources>
