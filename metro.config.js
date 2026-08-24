@@ -33,7 +33,12 @@ const originalResolveRequest = config.resolver?.resolveRequest;
 
 config.resolver = {
   ...config.resolver,
-  assetExts: [...(config.resolver?.assetExts ?? []), "wasm"],
+  // `wasm`: expo-sqlite ships wa-sqlite as a WebAssembly binary on web.
+  // `woff2`/`woff`: Bloom's web theme entry imports its four web fonts straight
+  // from JS (`fonts/font-urls.web`), and Metro carries neither extension in its
+  // default `assetExts`, so without them the web bundle fails to resolve them
+  // as modules — `fonts={false}` does not help, the import is module-level.
+  assetExts: [...(config.resolver?.assetExts ?? []), "wasm", "woff2", "woff"],
   resolveRequest(context, moduleName, platform) {
     // On web, replace react-native-tcp-socket with an empty shim
     // (TCP sockets are not available in browsers; Electron uses IPC instead)
