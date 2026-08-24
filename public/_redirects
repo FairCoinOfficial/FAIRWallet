@@ -1,0 +1,6 @@
+# Expo Router exports this app with `web.output: "single"` — one index.html and
+# client-side routing for every path. Cloudflare Pages serves static files and
+# 404s anything without one, so a deep link (/pockets, /transaction/<txid>) or a
+# reload away from "/" would 404 without this rewrite. 200, not 301: the URL the
+# router reads must stay the one the user asked for.
+/*  /index.html  200
