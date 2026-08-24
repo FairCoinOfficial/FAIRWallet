@@ -36,6 +36,7 @@ import { useExplorerRealtime } from "../src/hooks/useExplorerRealtime";
 import { useWalletStore } from "../src/wallet/wallet-store";
 import { useLockStore } from "../src/wallet/lock-store";
 import { LockGate } from "../src/ui/components/LockGate";
+import { WebWelcomeDialog } from "../src/ui/components/WebWelcomeDialog";
 import { ErrorBoundary } from "../src/ui/components/ErrorBoundary";
 import { installCrashHandler } from "../src/services/crash-log";
 import { getAutoLockTimeout } from "../src/storage/secure-store";
@@ -363,6 +364,10 @@ function AppContent({ ready }: { ready: boolean }) {
       {/* Full-screen lock overlay: covers every authenticated route while the
           app is locked so no screen can be reached behind it (finding C1). */}
       <LockGate />
+      {/* Browser-only first-visit notice: the web build stores keys in plain
+          site storage, so it says so once before the wallet is used. Renders
+          null on native and under Electron. */}
+      <WebWelcomeDialog />
     </View>
   );
 }
