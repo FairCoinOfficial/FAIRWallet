@@ -866,6 +866,15 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "notificationsSettings.events.incomingPending": "Incoming (pending)",
     "notificationsSettings.events.incomingConfirmed": "Incoming (confirmed)",
     "notificationsSettings.events.outgoingConfirmed": "Sent (confirmed)",
+
+    // ---------- Web build welcome ----------
+    "webWelcome.title": "FAIRWallet in your browser",
+    "webWelcome.description": "This is the full wallet, running entirely in this tab — your keys never leave it. The native apps still protect them better.",
+    "webWelcome.caveat.storage": "In a browser your keys sit in this site's storage as plain text: there is no Keychain or Android keystore to lock them into.",
+    "webWelcome.caveat.lock": "No biometric or device unlock — anyone with access to this browser profile reaches the wallet.",
+    "webWelcome.caveat.siteData": "Clearing site data deletes the wallet. Back up your recovery phrase before you fund it.",
+    "webWelcome.getApp": "Get the app",
+    "webWelcome.continue": "Continue in browser",
   },
   es: {
     // ---------- Common ----------
@@ -1724,6 +1733,15 @@ const translations: Record<TranslatedLanguage, Record<string, string>> = {
     "notificationsSettings.events.incomingPending": "Entrante (pendiente)",
     "notificationsSettings.events.incomingConfirmed": "Entrante (confirmado)",
     "notificationsSettings.events.outgoingConfirmed": "Enviado (confirmado)",
+
+    // ---------- Bienvenida a la versión web ----------
+    "webWelcome.title": "FAIRWallet en tu navegador",
+    "webWelcome.description": "Es la billetera completa, funcionando entera en esta pestaña: tus claves no salen de aquí. Aun así, las apps nativas las protegen mejor.",
+    "webWelcome.caveat.storage": "En el navegador tus claves se guardan en texto plano en el almacenamiento del sitio: no hay Keychain ni keystore de Android donde encerrarlas.",
+    "webWelcome.caveat.lock": "Sin desbloqueo biométrico ni del dispositivo: quien tenga acceso a este perfil del navegador llega a la billetera.",
+    "webWelcome.caveat.siteData": "Si borras los datos del sitio, borras la billetera. Guarda tu frase de recuperación antes de meterle fondos.",
+    "webWelcome.getApp": "Descargar la app",
+    "webWelcome.continue": "Seguir en el navegador",
   },
 };
 
