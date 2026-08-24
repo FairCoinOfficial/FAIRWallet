@@ -1,3 +1,12 @@
+# Metro emits assets that live inside dependencies under
+# `assets/node_modules/…`, and wrangler's Pages upload skips every
+# `node_modules` path — the icon font, Bloom's web fonts and `wa-sqlite.wasm`
+# never reach the CDN. `scripts/pack-pages.ts` moves that tree to
+# `assets/vendor/…` and this rule points the emitted paths at it, so the bundles
+# stay byte-identical. It MUST precede the catch-all below, which would
+# otherwise answer these paths with index.html.
+/assets/node_modules/*  /assets/vendor/:splat  200
+
 # Expo Router exports this app with `web.output: "single"` — one index.html and
 # client-side routing for every path. Cloudflare Pages serves static files and
 # 404s anything without one, so a deep link (/pockets, /transaction/<txid>) or a
