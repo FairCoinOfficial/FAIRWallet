@@ -1,0 +1,98 @@
+name: Deploy Web
+
+# The browser build of the wallet (wallet.fairco.in), on Cloudflare Pages —
+# the same host every Oxy frontend uses. It follows CI rather than the push, so
+# nothing reaches production that has not typechecked, linted and passed the
+# suite first.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-fairwallet-web
+  cancel-in-progress: false
+
+env:
+  # `workflow_run` reports the commit CI actually verified; a manual dispatch
+  # runs against the ref it was launched from.
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  deploy:
+    # `workflow_run` fires on EVERY conclusion of CI, failures and fork pull
+    # requests included. Only a green push to this repository's own main may
+    # reach production.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout the verified commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build the web bundle
+        run: bun run export:web
+
+      - name: Validate the static hosting contract
+        # `_redirects` and `_headers` are copied out of `public/` by the export.
+        # If either goes missing the deploy is still green — and every deep link
+        # 404s, or every visitor keeps a stale bundle. Fail here instead.
+        run: |
+          set -euo pipefail
+          for file in dist/index.html dist/_redirects dist/_headers; do
+            if [[ ! -s "$file" ]]; then
+              echo "::error::$file is missing from the export"
+              exit 1
+            fi
+          done
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: bun
+          command: pages deploy dist --project-name=fairwallet --branch=main
+
+      - name: Smoke test wallet.fairco.in
+        # Two assertions, because they fail independently: the entry document
+        # must carry the bundle this build just emitted (proves the promotion
+        # landed, not that some older deployment answers), and a route with no
+        # file behind it must return 200 (proves `_redirects` is in force).
+        run: |
+          set -euo pipefail
+          bundle="$(basename dist/_expo/static/js/web/entry-*.js)"
+          for attempt in $(seq 1 20); do
+            body="$(curl --fail --silent --show-error https://wallet.fairco.in/ || true)"
+            deep="$(curl --output /dev/null --silent --write-out '%{http_code}' https://wallet.fairco.in/pockets || true)"
+            if [[ "$body" == *"$bundle"* && "$deep" == "200" ]]; then
+              echo "wallet.fairco.in serves $bundle and rewrites deep links."
+              exit 0
+            fi
+            if [[ "$attempt" -eq 20 ]]; then
+              echo "::error::wallet.fairco.in did not converge on $bundle (deep link: $deep)."
+              exit 1
+            fi
+            sleep 15
+          done

@@ -1,0 +1,11 @@
+# Metro fingerprints every bundle and asset it emits under /_expo/static, so
+# those URLs are immutable: a new build is a new path and can never be served
+# from a stale cache entry.
+/_expo/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The entry document is the one file whose URL never changes, so it must be
+# revalidated on every load — otherwise a browser keeps pointing at the bundle
+# hashes of a previous deploy.
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
