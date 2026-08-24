@@ -54,6 +54,13 @@ jobs:
       - name: Build the web bundle
         run: bun run export:web
 
+      - name: Repackage the export for Pages
+        # Wrangler's Pages upload skips every `node_modules` path, and the SPA
+        # rewrite answers the skipped assets with index.html, so the loss is
+        # invisible from outside. `pack:pages` moves that tree and proves every
+        # referenced asset resolves.
+        run: bun run pack:pages
+
       - name: Validate the static hosting contract
         # `_redirects` and `_headers` are copied out of `public/` by the export.
         # If either goes missing the deploy is still green — and every deep link
@@ -83,15 +90,24 @@ jobs:
         run: |
           set -euo pipefail
           bundle="$(basename dist/_expo/static/js/web/entry-*.js)"
+          # A dependency asset the bundles reference by its ORIGINAL emitted
+          # path. It must come back as a font, not as index.html: that is the
+          # one assertion that fails when the `node_modules` tree goes missing.
+          # Globbed from the RENAMED tree, requested under the path the
+          # bundles actually reference — `pack:pages` has already moved
+          # `assets/node_modules` away by the time this runs.
+          font_rel="$(cd dist/assets/vendor && echo @expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.*.ttf)"
+          font="assets/node_modules/$font_rel"
           for attempt in $(seq 1 20); do
             body="$(curl --fail --silent --show-error https://wallet.fairco.in/ || true)"
             deep="$(curl --output /dev/null --silent --write-out '%{http_code}' https://wallet.fairco.in/pockets || true)"
-            if [[ "$body" == *"$bundle"* && "$deep" == "200" ]]; then
-              echo "wallet.fairco.in serves $bundle and rewrites deep links."
+            font_type="$(curl --output /dev/null --silent --write-out '%{content_type}' "https://wallet.fairco.in/$font" || true)"
+            if [[ "$body" == *"$bundle"* && "$deep" == "200" && "$font_type" == font/* ]]; then
+              echo "wallet.fairco.in serves $bundle, rewrites deep links, and serves $font as $font_type."
               exit 0
             fi
             if [[ "$attempt" -eq 20 ]]; then
-              echo "::error::wallet.fairco.in did not converge on $bundle (deep link: $deep)."
+              echo "::error::wallet.fairco.in did not converge on $bundle (deep link: $deep, font: $font_type)."
               exit 1
             fi
             sleep 15

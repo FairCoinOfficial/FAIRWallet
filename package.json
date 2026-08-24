@@ -14,6 +14,7 @@
     "electron": "electron electron/main.js",
     "electron:build": "bun run export:web && electron-builder",
     "export:web": "expo export --platform web",
+    "pack:pages": "bun scripts/pack-pages.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
     "lint": "expo lint",

@@ -4,6 +4,12 @@
 /_expo/static/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Metro content-hashes every asset it copies out of the app and its
+# dependencies too, so the same reasoning covers /assets — including the
+# `assets/vendor` tree that `scripts/pack-pages.ts` renames for Pages.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
 # The entry document is the one file whose URL never changes, so it must be
 # revalidated on every load — otherwise a browser keeps pointing at the bundle
 # hashes of a previous deploy.
