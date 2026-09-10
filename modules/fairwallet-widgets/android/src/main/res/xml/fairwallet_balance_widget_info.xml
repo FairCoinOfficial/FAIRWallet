@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Provider metadata for the balance widget.
+
+  `initialLayout` is Glance's own loading layout — what the launcher shows
+  between the widget being placed and the first composition arriving.
+
+  `resizeMode` is `horizontal|vertical` because the card is designed to shed
+  elements as it shrinks rather than to be stretched, and the range in
+  dimens.xml is what keeps a resize inside sizes it has a form for.
+
+  `updatePeriodMillis` is deliberately ABSENT rather than set. The system clamps
+  it to 30 minutes anyway, and there is nothing for a periodic update to do: the
+  balance only advances when the app syncs in the foreground, and the store's
+  Flow already redraws a live widget the moment that happens. Setting it would
+  buy a wake-up every half hour to re-render identical content.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:description="@string/fairwallet_balance_widget_description"
+    android:minWidth="@dimen/fairwallet_balance_widget_min_width"
+    android:minHeight="@dimen/fairwallet_balance_widget_min_height"
+    android:minResizeWidth="@dimen/fairwallet_balance_widget_min_resize_width"
+    android:minResizeHeight="@dimen/fairwallet_balance_widget_min_resize_height"
+    android:maxResizeWidth="@dimen/fairwallet_balance_widget_max_resize_width"
+    android:maxResizeHeight="@dimen/fairwallet_balance_widget_max_resize_height"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />

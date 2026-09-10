@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="fairwallet_balance_widget_label">Saldo FAIR</string>
+  <string name="fairwallet_balance_widget_description">Tu saldo de FairCoin, con accesos directos para recibir y enviar.</string>
+
+  <string name="fairwallet_actions_widget_label">Accesos FAIR</string>
+  <string name="fairwallet_actions_widget_description">Recibe y envía FairCoin. No muestra ningún saldo.</string>
+
+  <string name="fairwallet_widget_balance_amount">%1$s FAIR</string>
+
+  <!-- Mirrors `transaction.status.pending` ("Pendiente"). -->
+  <string name="fairwallet_widget_balance_pending">+%1$s FAIR pendiente</string>
+
+  <string name="fairwallet_widget_balance_fiat">≈ %1$s</string>
+
+  <string name="fairwallet_widget_balance_stamp_time">a las %1$s</string>
+  <string name="fairwallet_widget_balance_stamp_date">el %1$s a las %2$s</string>
+
+  <string name="fairwallet_widget_balance_empty">Abre FAIRWallet para ver tu saldo</string>
+
+  <!-- Word for word from `wallet.receive` / `wallet.send`. -->
+  <string name="fairwallet_widget_action_receive">Recibir</string>
+  <string name="fairwallet_widget_action_send">Enviar</string>
+</resources>

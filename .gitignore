@@ -2,8 +2,13 @@ node_modules/
 .expo/
 dist/
 web-build/
-android/
-ios/
+# Root-anchored: these are the CNG-generated native projects that
+# `expo prebuild` rewrites. A bare `android/` would also match
+# `modules/*/android/`, which is hand-written source that MUST be committed —
+# git cannot re-include a path whose parent directory is excluded, so the
+# anchor is the fix rather than a negation below.
+/android/
+/ios/
 *.tsbuildinfo
 *.log
 .DS_Store
