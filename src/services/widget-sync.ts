@@ -56,6 +56,17 @@ function publish(): void {
 
   const price = getCachedPrice();
 
+  // The user's `fairwallet_currency` preference is DELIBERATELY not carried,
+  // and this is the line where it would go if it were.
+  //
+  // The only quote that exists is FAIR->USD (the Explorer's `/api/price`,
+  // sourced from WFAIR on Base) and the app holds no FX rate to convert it
+  // with — which is why both places the app itself renders a fiat figure,
+  // `BalanceDisplay.tsx` and `PriceSparkline.tsx`, hardcode USD too. Passing
+  // the preference through would not convert anything; it would only relabel a
+  // dollar figure with a euro sign, which is a worse bug than the missing
+  // feature and one that looks deliberate. Carry it when there is a rate to
+  // carry it with, not before.
   syncWalletWidgets({
     balanceSats: state.confirmedBalance.toString(),
     pendingSats: state.unconfirmedBalance.toString(),
