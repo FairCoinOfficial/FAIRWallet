@@ -17,6 +17,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as WebBrowser from "expo-web-browser";
 import * as Localization from "expo-localization";
 import { useWalletStore } from "../../src/wallet/wallet-store";
+import { useTabScreenBottomInset } from "../../src/ui/navigation/tabs";
 import {
   BalanceDisplay,
   ActionButton,
@@ -118,6 +119,7 @@ function groupByDay(transactions: StoreTransaction[]): ActivityGroup[] {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const bottomInset = useTabScreenBottomInset();
   const theme = useTheme();
 
   const balance = useWalletStore((s) => s.balance);
@@ -302,7 +304,7 @@ export default function HomeScreen() {
           onScroll={scrollHandler}
           scrollEventThrottle={16}
           className="flex-1"
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: bottomInset + 24 }}
           showsVerticalScrollIndicator={false}
         >
           {/* ---- Balance ---- */}

@@ -9,10 +9,12 @@
 
 import { View, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTabScreenBottomInset } from "../../src/ui/navigation/tabs";
 import { ReceiveSheet } from "../../src/ui/sheets/ReceiveSheet";
 
 export default function ReceiveScreen() {
   const insets = useSafeAreaInsets();
+  const bottomInset = useTabScreenBottomInset();
 
   return (
     <View className="flex-1 bg-background">
@@ -20,7 +22,7 @@ export default function ReceiveScreen() {
         className="flex-1"
         contentContainerStyle={{
           paddingTop: insets.top + 12,
-          paddingBottom: insets.bottom + 24,
+          paddingBottom: bottomInset + 24,
           paddingHorizontal: 16,
         }}
         showsVerticalScrollIndicator={false}

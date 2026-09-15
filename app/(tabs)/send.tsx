@@ -10,11 +10,13 @@
 
 import { View, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTabScreenBottomInset } from "../../src/ui/navigation/tabs";
 import { useLocalSearchParams } from "expo-router";
 import { SendSheet } from "../../src/ui/sheets/SendSheet";
 
 export default function SendScreen() {
   const insets = useSafeAreaInsets();
+  const bottomInset = useTabScreenBottomInset();
   // Deep link params (from a `faircoin:` URI or QR scan navigation).
   const params = useLocalSearchParams<{ address?: string; amount?: string }>();
 
@@ -24,7 +26,7 @@ export default function SendScreen() {
         className="flex-1"
         contentContainerStyle={{
           paddingTop: insets.top + 12,
-          paddingBottom: insets.bottom + 24,
+          paddingBottom: bottomInset + 24,
           paddingHorizontal: 16,
         }}
         keyboardShouldPersistTaps="handled"

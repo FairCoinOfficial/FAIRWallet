@@ -1,71 +1,56 @@
 /**
- * Tab layout for Android and iOS using native system tab bar.
- * Background, tint, and icon colors all come from Bloom's theme.
+ * Tab layout — one tab navigator for iOS, Android, web and Electron.
+ *
+ * The bar is Bloom, rendered through the navigator's `tabBar` slot:
+ *
+ *   - a wide browser window  -> Bloom `Rail`, beside the screens
+ *                               (`tabBarPosition: "left"`)
+ *   - everything else        -> Bloom's floating `TabBar` pill
+ *
+ * It replaced two layouts: native `NativeTabs` (the platform's own bar) and a
+ * hand-built headless-tabs rail/bottom-list for web. The destinations, their
+ * order and their labels come from `src/ui/navigation/tabs.tsx`, so rail and
+ * bar cannot disagree.
+ *
+ * The bar FLOATS over the screens. A tab screen keeps its last row clear of it
+ * with `useTabScreenBottomInset()`.
+ *
+ * `TabBarMinimizeProvider` wraps the navigator rather than sitting inside it:
+ * it has to be an ancestor of both the screens that could drive the minimize
+ * signal and the bar that reads it.
  */
 
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { Tabs } from "expo-router/tabs";
+import { TabBarMinimizeProvider } from "@oxy.so/bloom/tab-bar";
 import { useTheme } from "@oxy.so/bloom/theme";
-import { t } from "../../src/i18n";
+import { WalletRail } from "../../src/ui/navigation/WalletRail";
+import { WalletTabBar } from "../../src/ui/navigation/WalletTabBar";
+import { WALLET_TABS, useWalletNavLayout } from "../../src/ui/navigation/tabs";
 
 export default function TabLayout() {
   const theme = useTheme();
+  const layout = useWalletNavLayout();
+  const tabs = WALLET_TABS;
 
   return (
-    <NativeTabs
-      backgroundColor={theme.colors.card}
-      tintColor={theme.colors.tint}
-      indicatorColor={theme.colors.primarySubtle}
-      iconColor={{
-        default: theme.colors.icon,
-        selected: theme.colors.tint,
-      }}
-      labelStyle={{
-        color: theme.colors.textSecondary,
-      }}
-    >
-      <NativeTabs.Trigger
-        name="index"
-        contentStyle={{ backgroundColor: theme.colors.background }}
+    <TabBarMinimizeProvider>
+      <Tabs
+        tabBar={(props) =>
+          layout === "rail" ? <WalletRail {...props} tabs={tabs} /> : <WalletTabBar {...props} tabs={tabs} />
+        }
+        screenOptions={{
+          headerShown: false,
+          tabBarPosition: layout === "rail" ? "left" : "bottom",
+          sceneStyle: { backgroundColor: theme.colors.background },
+        }}
       >
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "creditcard", selected: "creditcard.fill" }}
-          md="wallet"
-        />
-        <NativeTabs.Trigger.Label>{t("wallet.title")}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger
-        name="map"
-        contentStyle={{ backgroundColor: theme.colors.background }}
-      >
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "map", selected: "map.fill" }}
-          md="map"
-        />
-        <NativeTabs.Trigger.Label>{t("wallet.places")}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger
-        name="buy"
-        contentStyle={{ backgroundColor: theme.colors.background }}
-      >
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "creditcard.and.123", selected: "creditcard.and.123" }}
-          md="account_balance_wallet"
-        />
-        <NativeTabs.Trigger.Label>{t("wallet.buy")}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger
-        name="settings"
-        contentStyle={{ backgroundColor: theme.colors.background }}
-      >
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "gearshape", selected: "gearshape.fill" }}
-          md="settings"
-        />
-        <NativeTabs.Trigger.Label>{t("wallet.settings")}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="map" />
+        <Tabs.Screen name="send" />
+        <Tabs.Screen name="receive" />
+        <Tabs.Screen name="buy" />
+        <Tabs.Screen name="settings" />
+      </Tabs>
+    </TabBarMinimizeProvider>
   );
 }
