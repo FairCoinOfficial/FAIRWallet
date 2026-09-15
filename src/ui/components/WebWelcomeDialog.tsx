@@ -17,8 +17,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Linking, Platform, Text, View } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Dialog } from "@oxyhq/bloom/dialog";
-import { useTheme } from "@oxyhq/bloom/theme";
+import { Dialog } from "@oxy.so/bloom/dialog";
+import { useTheme } from "@oxy.so/bloom/theme";
 import { t } from "../../i18n";
 import { getItemAsync, setItemAsync } from "../../storage/kv-store";
 

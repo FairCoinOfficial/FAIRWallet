@@ -15,7 +15,7 @@ import { useCallback, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "@oxyhq/bloom/theme";
+import { useTheme } from "@oxy.so/bloom/theme";
 import { getDatabase } from "../../wallet/wallet-store";
 import {
   listBuyOrders,

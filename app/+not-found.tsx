@@ -9,7 +9,7 @@ import { View, Text, Image, Pressable } from "react-native";
 import { SafeAreaView } from "../src/ui/safe-area-view";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "@oxyhq/bloom/theme";
+import { useTheme } from "@oxy.so/bloom/theme";
 import { Button } from "../src/ui/components/Button";
 import { FONT_PHUDU_BLACK } from "../src/utils/fonts";
 import { APP_NAME } from "@fairco.in/core";

@@ -23,10 +23,10 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
-import { useTheme } from "@oxyhq/bloom/theme";
-import { Dialog, useDialogControl } from "@oxyhq/bloom/dialog";
-import type { DialogControlProps } from "@oxyhq/bloom/dialog";
-import { toast } from "@oxyhq/bloom/toast";
+import { useTheme } from "@oxy.so/bloom/theme";
+import { Dialog, useDialogControl } from "@oxy.so/bloom/dialog";
+import type { DialogControlProps } from "@oxy.so/bloom/dialog";
+import { toast } from "@oxy.so/bloom/toast";
 import { t } from "../src/i18n";
 
 // ---------------------------------------------------------------------------

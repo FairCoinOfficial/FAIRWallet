@@ -5,8 +5,8 @@
 import { useCallback, useState } from "react";
 import { View, Text, ScrollView, TextInput } from "react-native";
 import { useRouter } from "expo-router";
-import { useTheme } from "@oxyhq/bloom/theme";
-import { toast } from "@oxyhq/bloom/toast";
+import { useTheme } from "@oxy.so/bloom/theme";
+import { toast } from "@oxy.so/bloom/toast";
 import { getDatabase } from "../../src/wallet/wallet-store";
 import { ScreenHeader } from "../../src/ui/components";
 import { SafeAreaView } from "../../src/ui/safe-area-view";

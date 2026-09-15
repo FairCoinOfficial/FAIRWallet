@@ -10,7 +10,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
-import { Switch } from "@oxyhq/bloom/switch";
+import { Switch } from "@oxy.so/bloom/switch";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as LocalAuthentication from "expo-local-authentication";
@@ -33,12 +33,12 @@ import {
 } from "../../src/storage/secure-store";
 import { PinDots, PinPad } from "../../src/ui/components";
 import type { NetworkType } from "@fairco.in/core";
-import { useBloomTheme } from "@oxyhq/bloom/theme";
-import type { ThemeMode } from "@oxyhq/bloom/theme";
-import { Dialog, useDialogControl } from "@oxyhq/bloom/dialog";
-import type { DialogControlProps } from "@oxyhq/bloom/dialog";
-import { SettingsListGroup, SettingsListItem } from "@oxyhq/bloom/settings-list";
-import { toast } from "@oxyhq/bloom/toast";
+import { useBloomTheme } from "@oxy.so/bloom/theme";
+import type { ThemeMode } from "@oxy.so/bloom/theme";
+import { Dialog, useDialogControl } from "@oxy.so/bloom/dialog";
+import type { DialogControlProps } from "@oxy.so/bloom/dialog";
+import { SettingsListGroup, SettingsListItem } from "@oxy.so/bloom/settings-list";
+import { toast } from "@oxy.so/bloom/toast";
 import { findLanguageOption, t } from "../../src/i18n";
 import { useLanguageStore } from "../../src/i18n/store";
 import Constants from "expo-constants";

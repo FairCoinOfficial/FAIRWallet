@@ -44,9 +44,9 @@ fun FairGlanceTheme(content: @GlanceComposable @Composable () -> Unit) {
  * in `app/_layout.tsx` — into the full Material 3 role set for light and dark:
  *
  *     const { generateRoleColors } =
- *       require('@oxyhq/bloom/lib/commonjs/theme/color-engine')
+ *       require('@oxy.so/bloom/lib/commonjs/theme/color-engine')
  *     const { APP_COLOR_PRESETS } =
- *       require('@oxyhq/bloom/lib/commonjs/theme/color-presets')
+ *       require('@oxy.so/bloom/lib/commonjs/theme/color-presets')
  *     const p = APP_COLOR_PRESETS.faircoin
  *     generateRoleColors({ seed: p.hex, variant: p.variant, isDark: false })
  *

@@ -36,12 +36,12 @@ import { TransactionDetailSheet } from "../../src/ui/sheets/TransactionDetailShe
 import { usePullToRefreshBand } from "../../src/hooks/usePullToRefreshBand";
 import { SendReceiveSheet } from "../../src/ui/sheets/SendReceiveSheet";
 import { SafeAreaView } from "../../src/ui/safe-area-view";
-import { Dialog, useDialogControl } from "@oxyhq/bloom/dialog";
+import { Dialog, useDialogControl } from "@oxy.so/bloom/dialog";
 import { fetchPrice } from "../../src/services/price";
 import { usePrice } from "../../src/hooks/usePrice";
 import { queryClient } from "../../src/services/query-client";
-import { useTheme } from "@oxyhq/bloom/theme";
-import { Tabs, TabsTrigger } from "@oxyhq/bloom/tabs";
+import { useTheme } from "@oxy.so/bloom/theme";
+import { Tabs, TabsTrigger } from "@oxy.so/bloom/tabs";
 import { BUY_BASE_URL } from "@fairco.in/core";
 import { t } from "../../src/i18n";
 

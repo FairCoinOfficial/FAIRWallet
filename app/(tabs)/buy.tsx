@@ -23,7 +23,7 @@ import { useCallback, useMemo, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "@oxyhq/bloom/theme";
+import { useTheme } from "@oxy.so/bloom/theme";
 import { parseFairToUnits } from "@fairco.in/core";
 import { Button, EmptyState, ScreenHeader } from "../../src/ui/components";
 import { SafeAreaView } from "../../src/ui/safe-area-view";
