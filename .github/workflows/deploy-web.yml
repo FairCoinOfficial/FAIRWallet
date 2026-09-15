@@ -75,12 +75,18 @@ jobs:
           done
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: bun
-          command: pages deploy dist --project-name=fairwallet --branch=main
+        # `bunx wrangler@4` directly, never `cloudflare/wrangler-action`. The
+        # action installs its own wrangler into the working tree mid-deploy,
+        # and that install fails intermittently with
+        # `Fail extracting tarball for "wrangler"` and publishes nothing — the
+        # reason it is banned across every Oxy and FairCoin deploy. Pinned to a
+        # major so a new wrangler major cannot change the deploy path with no
+        # diff to show for it. wrangler reads its credentials from the
+        # environment.
+        run: bunx wrangler@4 pages deploy dist --project-name=fairwallet --branch=main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Smoke test wallet.fairco.in
         # Two assertions, because they fail independently: the entry document
