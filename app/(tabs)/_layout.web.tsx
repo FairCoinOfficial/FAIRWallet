@@ -38,7 +38,7 @@ import {
 } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { t } from "../../src/i18n";
-import { useTheme } from "@oxyhq/bloom/theme";
+import { useTheme } from "@oxy.so/bloom/theme";
 
 const MEDIUM_BREAKPOINT = 600;
 const RAIL_WIDTH = 80;

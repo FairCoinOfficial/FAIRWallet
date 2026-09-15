@@ -9,7 +9,7 @@ import { View, Text, Pressable } from "react-native";
 import { SafeAreaView } from "../src/ui/safe-area-view";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { toast } from "@oxyhq/bloom/toast";
+import { toast } from "@oxy.so/bloom/toast";
 import { useWalletStore, getDatabase } from "../src/wallet/wallet-store";
 import {
   AmountText,
@@ -17,7 +17,7 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
-import { useTheme } from "@oxyhq/bloom/theme";
+import { useTheme } from "@oxy.so/bloom/theme";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 import { usePullToRefreshBand } from "../src/hooks/usePullToRefreshBand";

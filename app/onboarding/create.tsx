@@ -17,7 +17,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useWalletStore } from "../../src/wallet/wallet-store";
 import { Button } from "../../src/ui/components/Button";
 import { FairCoinSymbol } from "../../src/ui/components/FairCoinSymbol";
-import { useTheme } from "@oxyhq/bloom/theme";
+import { useTheme } from "@oxy.so/bloom/theme";
 import { hapticSuccess } from "../../src/utils/haptics";
 import { t } from "../../src/i18n";
 

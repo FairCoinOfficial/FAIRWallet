@@ -24,8 +24,8 @@ import {
   EmptyState,
   ScreenHeader,
 } from "../src/ui/components";
-import { useTheme } from "@oxyhq/bloom/theme";
-import { Dialog, useDialogControl } from "@oxyhq/bloom/dialog";
+import { useTheme } from "@oxy.so/bloom/theme";
+import { Dialog, useDialogControl } from "@oxy.so/bloom/dialog";
 import { usePullToRefreshBand } from "../src/hooks/usePullToRefreshBand";
 import { t } from "../src/i18n";
 

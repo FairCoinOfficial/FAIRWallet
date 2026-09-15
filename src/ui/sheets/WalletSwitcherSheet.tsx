@@ -19,7 +19,7 @@ import { useCallback, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "@oxyhq/bloom/theme";
+import { useTheme } from "@oxy.so/bloom/theme";
 import { useWalletStore } from "../../wallet/wallet-store";
 import { ListItem } from "../components";
 import { t } from "../../i18n";
