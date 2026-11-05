@@ -6,6 +6,7 @@
   "author": "FairCoin <dev@fairco.in>",
   "license": "MIT",
   "main": "expo-router/entry",
+  "packageManager": "bun@1.4.3",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -16,7 +17,7 @@
     "export:web": "expo export --platform web",
     "pack:pages": "bun scripts/pack-pages.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src",
+    "test": "bun test src modules",
     "lint": "biome check . && expo lint .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
