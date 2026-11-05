@@ -5,8 +5,8 @@ buildscript {
   dependencies {
     // Glance widgets are `@Composable`, so this module needs the Kotlin Compose
     // compiler plugin. `kotlinVersion` is the root-project extra that
-    // `expo-root-project` sets from the Expo version catalog (2.1.20 for this
-    // SDK), so the plugin is always the exact match for the Kotlin the rest of
+    // `expo-root-project` sets from the Expo version catalog (2.2.10 for SDK
+    // 58), so the plugin is always the exact match for the Kotlin the rest of
     // the build uses — the two must move in lockstep or the build fails on a
     // compiler-metadata mismatch rather than anything readable.
     classpath("org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin:${kotlinVersion}")
@@ -56,7 +56,8 @@ dependencies {
 
   // Glance depends on `androidx.compose.runtime` only at RUNTIME scope (and at
   // a 2022-era version), so the compile classpath needs it declared here.
-  // Pinned to a Compose release built for this project's Kotlin 2.1.20.
+  // Pinned to a Compose release that builds against the SDK's Kotlin (2.2.10
+  // for SDK 58).
   implementation "androidx.compose.runtime:runtime:1.9.0"
 
   // The snapshot store the app writes and the widgets read. Already present as
