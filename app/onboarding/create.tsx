@@ -3,25 +3,19 @@
  * Generates mnemonic, displays it in a clean grid, then verifies.
  */
 
-import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { SafeAreaView } from "../../src/ui/safe-area-view";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useWalletStore } from "../../src/wallet/wallet-store";
-import { Button } from "../../src/ui/components/Button";
-import { FairCoinSymbol } from "../../src/ui/components/FairCoinSymbol";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { hapticSuccess } from "../../src/utils/haptics";
-import { t } from "../../src/i18n";
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from '../../src/ui/safe-area-view';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useWalletStore } from '../../src/wallet/wallet-store';
+import { Button } from '../../src/ui/components/Button';
+import { FairCoinSymbol } from '../../src/ui/components/FairCoinSymbol';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { hapticSuccess } from '../../src/utils/haptics';
+import { t } from '../../src/i18n';
 
-type Step = "generating" | "display" | "verify" | "complete";
+type Step = 'generating' | 'display' | 'verify' | 'complete';
 
 const VERIFY_COUNT = 3;
 const TOTAL_STEPS = 3; // display → verify → pin-setup
@@ -65,9 +59,7 @@ function StepIndicator({ total, current }: { total: number; current: number }) {
       {Array.from({ length: total }, (_, i) => (
         <View
           key={`step-${i}`}
-          className={`h-1.5 rounded-full ${
-            i <= current ? "bg-primary w-6" : "bg-surface w-3"
-          }`}
+          className={`h-1.5 rounded-full ${i <= current ? 'bg-primary w-6' : 'bg-surface w-3'}`}
         />
       ))}
     </View>
@@ -79,7 +71,7 @@ export default function CreateWalletScreen() {
   const createWallet = useWalletStore((s) => s.createWallet);
   const theme = useTheme();
 
-  const [step, setStep] = useState<Step>("generating");
+  const [step, setStep] = useState<Step>('generating');
   const [words, setWords] = useState<string[]>([]);
   const [verifyIndices, setVerifyIndices] = useState<number[]>([]);
   const [currentVerifyIdx, setCurrentVerifyIdx] = useState(0);
@@ -89,17 +81,16 @@ export default function CreateWalletScreen() {
   const handleGenerate = useCallback(async () => {
     try {
       const mnemonic = await createWallet();
-      const wordList = mnemonic.split(" ");
+      const wordList = mnemonic.split(' ');
       setWords(wordList);
-      setStep("display");
+      setStep('display');
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : t("onboarding.create.error.generate");
+      const msg = e instanceof Error ? e.message : t('onboarding.create.error.generate');
       setError(msg);
     }
   }, [createWallet]);
 
-  const isGenerating = step === "generating";
+  const isGenerating = step === 'generating';
 
   const handleWrittenDown = useCallback(() => {
     const indices = pickRandomIndices(words.length, VERIFY_COUNT);
@@ -108,7 +99,7 @@ export default function CreateWalletScreen() {
 
     const correctWord = words[indices[0]];
     setShuffledOptions(buildShuffledOptions(words, correctWord));
-    setStep("verify");
+    setStep('verify');
   }, [words]);
 
   const handleVerifySelect = useCallback(
@@ -117,7 +108,7 @@ export default function CreateWalletScreen() {
       const expectedWord = words[expectedIdx];
 
       if (selectedWord !== expectedWord) {
-        setError(t("onboarding.create.verify.error"));
+        setError(t('onboarding.create.verify.error'));
         return;
       }
 
@@ -126,8 +117,8 @@ export default function CreateWalletScreen() {
 
       if (nextIdx >= VERIFY_COUNT) {
         hapticSuccess();
-        setStep("complete");
-        router.replace("/onboarding/pin-setup");
+        setStep('complete');
+        router.replace('/onboarding/pin-setup');
         return;
       }
 
@@ -145,8 +136,8 @@ export default function CreateWalletScreen() {
   }, [verifyIndices, currentVerifyIdx]);
 
   const currentStepIndex = useMemo(() => {
-    if (step === "display") return 0;
-    if (step === "verify") return 1;
+    if (step === 'display') return 0;
+    if (step === 'verify') return 1;
     return 2;
   }, [step]);
 
@@ -161,25 +152,19 @@ export default function CreateWalletScreen() {
 
           {error ? (
             <>
-              <Text className="text-destructive text-base mb-6 text-center">
-                {error}
-              </Text>
-              <Button
-                title={t("common.retry")}
-                onPress={handleGenerate}
-                variant="primary"
-              />
+              <Text className="text-destructive text-base mb-6 text-center">{error}</Text>
+              <Button title={t('common.retry')} onPress={handleGenerate} variant="primary" />
             </>
           ) : (
             <>
               <Text className="text-foreground text-xl font-semibold mb-3">
-                {t("onboarding.create.heading")}
+                {t('onboarding.create.heading')}
               </Text>
               <Text className="text-muted-foreground text-sm text-center mb-8">
-                {t("onboarding.create.description")}
+                {t('onboarding.create.description')}
               </Text>
               <Button
-                title={t("onboarding.create.generateCta")}
+                title={t('onboarding.create.generateCta')}
                 onPress={handleGenerate}
                 variant="primary"
                 size="lg"
@@ -192,7 +177,7 @@ export default function CreateWalletScreen() {
   }
 
   // -- Display mnemonic --
-  if (step === "display") {
+  if (step === 'display') {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <ScrollView
@@ -203,10 +188,10 @@ export default function CreateWalletScreen() {
           <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
 
           <Text className="text-foreground text-xl font-bold mb-2 text-center">
-            {t("onboarding.create.phrase.title")}
+            {t('onboarding.create.phrase.title')}
           </Text>
           <Text className="text-muted-foreground text-sm mb-8 text-center leading-5">
-            {t("onboarding.create.phrase.description")}
+            {t('onboarding.create.phrase.description')}
           </Text>
 
           {/* 3-column word grid — card-less: filled surface cells with a
@@ -227,18 +212,14 @@ export default function CreateWalletScreen() {
 
           {/* Warning — tinted destructive strip (matches the send sheet) */}
           <View className="flex-row items-start gap-3 bg-destructive/10 rounded-2xl p-4 mb-8">
-            <MaterialCommunityIcons
-              name="alert-outline"
-              size={20}
-              color={theme.colors.error}
-            />
+            <MaterialCommunityIcons name="alert-outline" size={20} color={theme.colors.error} />
             <Text className="text-destructive text-sm flex-1 leading-5">
-              {t("onboarding.create.phrase.warning")}
+              {t('onboarding.create.phrase.warning')}
             </Text>
           </View>
 
           <Button
-            title={t("onboarding.create.phrase.cta")}
+            title={t('onboarding.create.phrase.cta')}
             onPress={handleWrittenDown}
             variant="primary"
             size="lg"
@@ -249,17 +230,17 @@ export default function CreateWalletScreen() {
   }
 
   // -- Verification step --
-  if (step === "verify") {
+  if (step === 'verify') {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 px-6 pt-24">
           <StepIndicator total={TOTAL_STEPS} current={currentStepIndex} />
 
           <Text className="text-foreground text-xl font-bold mb-2 text-center">
-            {t("onboarding.create.verify.title")}
+            {t('onboarding.create.verify.title')}
           </Text>
           <Text className="text-muted-foreground text-sm mb-8 text-center">
-            {t("onboarding.create.verify.prompt", {
+            {t('onboarding.create.verify.prompt', {
               position: currentVerifyPosition,
             })}
           </Text>
@@ -271,10 +252,10 @@ export default function CreateWalletScreen() {
                 key={`verify-progress-${idx}`}
                 className={`w-2.5 h-2.5 rounded-full ${
                   idx < currentVerifyIdx
-                    ? "bg-primary"
+                    ? 'bg-primary'
                     : idx === currentVerifyIdx
-                      ? "bg-primary-dim"
-                      : "bg-surface"
+                      ? 'bg-primary-dim'
+                      : 'bg-surface'
                 }`}
               />
             ))}
@@ -282,9 +263,7 @@ export default function CreateWalletScreen() {
 
           {/* Error */}
           {error ? (
-            <Text className="text-destructive text-sm mb-4 text-center">
-              {error}
-            </Text>
+            <Text className="text-destructive text-sm mb-4 text-center">{error}</Text>
           ) : null}
 
           {/* Word options — 3 per row */}
@@ -295,9 +274,7 @@ export default function CreateWalletScreen() {
                 className="w-[31%] bg-surface border border-border rounded-2xl py-4 items-center active:border-primary active:bg-primary/10"
                 onPress={() => handleVerifySelect(option)}
               >
-                <Text className="text-foreground text-base font-medium">
-                  {option}
-                </Text>
+                <Text className="text-foreground text-base font-medium">{option}</Text>
               </Pressable>
             ))}
           </View>
@@ -310,9 +287,7 @@ export default function CreateWalletScreen() {
   return (
     <View className="flex-1 bg-background items-center justify-center">
       <ActivityIndicator size="large" color={theme.colors.primary} />
-      <Text className="text-foreground text-base mt-4">
-        {t("onboarding.create.settingUp")}
-      </Text>
+      <Text className="text-foreground text-base mt-4">{t('onboarding.create.settingUp')}</Text>
     </View>
   );
 }

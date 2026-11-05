@@ -7,18 +7,18 @@
  * so useTheme() is available.
  */
 
-import { useCallback, useState } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
-import { Redirect, useFocusEffect } from "expo-router";
-import { useWalletStore } from "../src/wallet/wallet-store";
-import { useLockStore } from "../src/wallet/lock-store";
-import { getMnemonic, hasPin } from "../src/storage/secure-store";
-import { t } from "../src/i18n";
+import { useCallback, useState } from 'react';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { Redirect, useFocusEffect } from 'expo-router';
+import { useWalletStore } from '../src/wallet/wallet-store';
+import { useLockStore } from '../src/wallet/lock-store';
+import { getMnemonic, hasPin } from '../src/storage/secure-store';
+import { t } from '../src/i18n';
 
-type AppState = "checking" | "onboarding" | "needsPin" | "ready" | "error";
+type AppState = 'checking' | 'onboarding' | 'needsPin' | 'ready' | 'error';
 
 export default function IndexScreen() {
-  const [appState, setAppState] = useState<AppState>("checking");
+  const [appState, setAppState] = useState<AppState>('checking');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const hasWallet = useWalletStore((s) => s.hasWallet);
   const initialize = useWalletStore((s) => s.initialize);
@@ -35,14 +35,14 @@ export default function IndexScreen() {
           if (!exists) {
             // No wallet yet: nothing to lock, go straight to onboarding.
             markNoPinUnlocked();
-            if (!cancelled) setAppState("onboarding");
+            if (!cancelled) setAppState('onboarding');
             return;
           }
 
           const mnemonic = await getMnemonic();
           if (!mnemonic) {
             markNoPinUnlocked();
-            if (!cancelled) setAppState("onboarding");
+            if (!cancelled) setAppState('onboarding');
             return;
           }
 
@@ -64,7 +64,7 @@ export default function IndexScreen() {
             // Treat this as "no protection yet" for the lock store — the
             // pin-setup screen will mark it unlocked after savePin().
             markNoPinUnlocked();
-            if (!cancelled) setAppState("needsPin");
+            if (!cancelled) setAppState('needsPin');
             return;
           }
 
@@ -72,13 +72,12 @@ export default function IndexScreen() {
           if (!willLock && !initialized) {
             await initialize(mnemonic);
           }
-          if (!cancelled) setAppState("ready");
+          if (!cancelled) setAppState('ready');
         } catch (err: unknown) {
-          const msg =
-            err instanceof Error ? err.message : t("index.error.load");
+          const msg = err instanceof Error ? err.message : t('index.error.load');
           if (!cancelled) {
             setErrorMsg(msg);
-            setAppState("error");
+            setAppState('error');
           }
         }
       };
@@ -86,37 +85,27 @@ export default function IndexScreen() {
       return () => {
         cancelled = true;
       };
-    }, [
-      hasWallet,
-      initialize,
-      initialized,
-      resolveInitialLock,
-      markNoPinUnlocked,
-    ]),
+    }, [hasWallet, initialize, initialized, resolveInitialLock, markNoPinUnlocked]),
   );
 
-  if (appState === "onboarding") {
+  if (appState === 'onboarding') {
     return <Redirect href="/onboarding/welcome" />;
   }
 
-  if (appState === "needsPin") {
+  if (appState === 'needsPin') {
     // N-7: complete pin-setup before any authenticated screen mounts.
     return <Redirect href="/onboarding/pin-setup" />;
   }
 
-  if (appState === "ready") {
+  if (appState === 'ready') {
     return <Redirect href="/(tabs)" />;
   }
 
-  if (appState === "error") {
+  if (appState === 'error') {
     return (
       <View className="flex-1 bg-background items-center justify-center px-6">
-        <Text className="text-destructive text-base text-center mb-4">
-          {errorMsg}
-        </Text>
-        <Text className="text-muted-foreground text-sm text-center">
-          {t("index.error.help")}
-        </Text>
+        <Text className="text-destructive text-base text-center mb-4">{errorMsg}</Text>
+        <Text className="text-muted-foreground text-sm text-center">{t('index.error.help')}</Text>
       </View>
     );
   }
@@ -124,9 +113,7 @@ export default function IndexScreen() {
   return (
     <View className="flex-1 bg-background items-center justify-center">
       <ActivityIndicator size="large" color="#9ffb50" />
-      <Text className="text-muted-foreground text-sm mt-4">
-        {t("index.loading")}
-      </Text>
+      <Text className="text-muted-foreground text-sm mt-4">{t('index.loading')}</Text>
     </View>
   );
 }

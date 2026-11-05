@@ -1,6 +1,6 @@
-const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
-const path = require("path");
+const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
+const path = require('path');
 
 const config = getDefaultConfig(__dirname);
 
@@ -9,14 +9,13 @@ const config = getDefaultConfig(__dirname);
 // is available when @noble/hashes captures it at import time.
 // ---------------------------------------------------------------------------
 
-const originalGetModules =
-  config.serializer?.getModulesRunBeforeMainModule ?? (() => []);
+const originalGetModules = config.serializer?.getModulesRunBeforeMainModule ?? (() => []);
 
 config.serializer = {
   ...config.serializer,
   getModulesRunBeforeMainModule() {
     const defaults = originalGetModules();
-    return [...defaults, path.resolve(__dirname, "src/crypto-polyfill.ts")];
+    return [...defaults, path.resolve(__dirname, 'src/crypto-polyfill.ts')];
   },
 };
 
@@ -24,10 +23,7 @@ config.serializer = {
 // Resolver configuration
 // ---------------------------------------------------------------------------
 
-const TCP_SHIM = path.resolve(
-  __dirname,
-  "src/shims/react-native-tcp-socket.ts",
-);
+const TCP_SHIM = path.resolve(__dirname, 'src/shims/react-native-tcp-socket.ts');
 
 const originalResolveRequest = config.resolver?.resolveRequest;
 
@@ -38,12 +34,12 @@ config.resolver = {
   // from JS (`fonts/font-urls.web`), and Metro carries neither extension in its
   // default `assetExts`, so without them the web bundle fails to resolve them
   // as modules — `fonts={false}` does not help, the import is module-level.
-  assetExts: [...(config.resolver?.assetExts ?? []), "wasm", "woff2", "woff"],
+  assetExts: [...(config.resolver?.assetExts ?? []), 'wasm', 'woff2', 'woff'],
   resolveRequest(context, moduleName, platform) {
     // On web, replace react-native-tcp-socket with an empty shim
     // (TCP sockets are not available in browsers; Electron uses IPC instead)
-    if (platform === "web" && moduleName === "react-native-tcp-socket") {
-      return { type: "sourceFile", filePath: TCP_SHIM };
+    if (platform === 'web' && moduleName === 'react-native-tcp-socket') {
+      return { type: 'sourceFile', filePath: TCP_SHIM };
     }
     if (originalResolveRequest) {
       return originalResolveRequest(context, moduleName, platform);
@@ -55,7 +51,7 @@ config.resolver = {
 // NativeWind 5 (built on react-native-css) compiles both the app's own Tailwind
 // classes and Bloom's — a single wrapper, no separate `withReactNativeCSS`.
 module.exports = withNativeWind(config, {
-  input: "./global.css",
+  input: './global.css',
   inlineRem: 16,
   inlineVariables: false,
 });

@@ -8,20 +8,20 @@
  * icon-circle so the palette stays consistent across tabs.
  */
 
-import { useCallback, useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
-import { Switch } from "@oxy.so/bloom/switch";
-import { useRouter, useFocusEffect } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTabScreenBottomInset } from "../../src/ui/navigation/tabs";
-import * as LocalAuthentication from "expo-local-authentication";
-import * as DocumentPicker from "expo-document-picker";
-import * as Sharing from "expo-sharing";
-import { File, Paths } from "expo-file-system";
-import * as Clipboard from "expo-clipboard";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useWalletStore } from "../../src/wallet/wallet-store";
-import { useLockStore } from "../../src/wallet/lock-store";
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Pressable } from 'react-native';
+import { Switch } from '@oxy.so/bloom/switch';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabScreenBottomInset } from '../../src/ui/navigation/tabs';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from 'expo-sharing';
+import { File, Paths } from 'expo-file-system';
+import * as Clipboard from 'expo-clipboard';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useWalletStore } from '../../src/wallet/wallet-store';
+import { useLockStore } from '../../src/wallet/lock-store';
 import {
   verifyPin,
   isBiometricsEnabled,
@@ -31,21 +31,21 @@ import {
   setAutoLockTimeout,
   getCurrency,
   setCurrency,
-} from "../../src/storage/secure-store";
-import { PinDots, PinPad } from "../../src/ui/components";
-import type { NetworkType } from "@fairco.in/core";
-import { useBloomTheme } from "@oxy.so/bloom/theme";
-import type { ThemeMode } from "@oxy.so/bloom/theme";
-import { Dialog, useDialogControl } from "@oxy.so/bloom/dialog";
-import type { DialogControlProps } from "@oxy.so/bloom/dialog";
-import { SettingsListGroup, SettingsListItem } from "@oxy.so/bloom/settings-list";
-import { toast } from "@oxy.so/bloom/toast";
-import { findLanguageOption, t } from "../../src/i18n";
-import { useLanguageStore } from "../../src/i18n/store";
-import Constants from "expo-constants";
+} from '../../src/storage/secure-store';
+import { PinDots, PinPad } from '../../src/ui/components';
+import type { NetworkType } from '@fairco.in/core';
+import { useBloomTheme } from '@oxy.so/bloom/theme';
+import type { ThemeMode } from '@oxy.so/bloom/theme';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import type { DialogControlProps } from '@oxy.so/bloom/dialog';
+import { SettingsListGroup, SettingsListItem } from '@oxy.so/bloom/settings-list';
+import { toast } from '@oxy.so/bloom/toast';
+import { findLanguageOption, t } from '../../src/i18n';
+import { useLanguageStore } from '../../src/i18n/store';
+import Constants from 'expo-constants';
 
 const APP_VERSION: string =
-  Constants.expoConfig?.version ?? Constants.manifest2?.extra?.expoClient?.version ?? "1.0.0";
+  Constants.expoConfig?.version ?? Constants.manifest2?.extra?.expoClient?.version ?? '1.0.0';
 const PIN_LENGTH = 6;
 
 /** Middle-truncate an address for the identity header (10 head / 8 tail). */
@@ -59,12 +59,10 @@ function truncateAddress(address: string): string {
 // of every settings row.
 // ---------------------------------------------------------------------------
 
-function RowIcon({
-  name,
-}: {
-  name: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-}) {
-  const { theme: { colors } } = useBloomTheme();
+function RowIcon({ name }: { name: React.ComponentProps<typeof MaterialCommunityIcons>['name'] }) {
+  const {
+    theme: { colors },
+  } = useBloomTheme();
 
   return (
     <View className="w-8 h-8 rounded-full bg-primary/10 items-center justify-center">
@@ -85,12 +83,12 @@ interface PinModalProps {
 }
 
 function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
-  const [pin, setPin] = useState("");
+  const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
 
   const handleCancel = useCallback(() => {
-    setPin("");
+    setPin('');
     setError(null);
     onCancel();
   }, [onCancel]);
@@ -109,18 +107,18 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
           verifyPin(next)
             .then((correct) => {
               if (correct) {
-                setPin("");
+                setPin('');
                 setError(null);
                 onSuccess();
               } else {
-                setError(t("settings.pin.wrong"));
-                setPin("");
+                setError(t('settings.pin.wrong'));
+                setPin('');
               }
               setVerifying(false);
             })
             .catch(() => {
-              setError(t("settings.pin.verificationFailed"));
-              setPin("");
+              setError(t('settings.pin.verificationFailed'));
+              setPin('');
               setVerifying(false);
             });
         }
@@ -143,18 +141,12 @@ function PinModal({ visible, title, onCancel, onSuccess }: PinModalProps) {
       onClose={handleCancel}
       placement="bottom"
       title={title}
-      description={t("settings.pin.enterDescription")}
+      description={t('settings.pin.enterDescription')}
     >
       <View className="items-center gap-4 pt-1">
         <PinDots length={PIN_LENGTH} filled={pin.length} error={error !== null} />
-        {error ? (
-          <Text className="text-red-400 text-xs text-center">{error}</Text>
-        ) : null}
-        <PinPad
-          onDigit={handleDigitPress}
-          onBackspace={handleBackspace}
-          disabled={verifying}
-        />
+        {error ? <Text className="text-red-400 text-xs text-center">{error}</Text> : null}
+        <PinPad onDigit={handleDigitPress} onBackspace={handleBackspace} disabled={verifying} />
       </View>
     </Dialog>
   );
@@ -171,23 +163,20 @@ interface RecoveryModalProps {
 }
 
 function RecoveryModal({ control, mnemonic, onDismiss }: RecoveryModalProps) {
-  const words = useMemo(() => mnemonic.split(" "), [mnemonic]);
+  const words = useMemo(() => mnemonic.split(' '), [mnemonic]);
 
   return (
     <Dialog
       control={control}
       onClose={onDismiss}
       placement="bottom"
-      title={t("settings.recovery.title")}
-      description={t("settings.recovery.description")}
-      actions={[{ label: t("common.done"), onPress: onDismiss }]}
+      title={t('settings.recovery.title')}
+      description={t('settings.recovery.description')}
+      actions={[{ label: t('common.done'), onPress: onDismiss }]}
     >
       <View className="flex-row flex-wrap justify-center gap-2 mt-2">
         {words.map((word, idx) => (
-          <View
-            key={`recovery-word-${idx}`}
-            className="bg-background rounded-lg px-3 py-1.5"
-          >
+          <View key={`recovery-word-${idx}`} className="bg-background rounded-lg px-3 py-1.5">
             <Text className="text-foreground text-sm">
               <Text className="text-muted-foreground">{idx + 1}. </Text>
               {word}
@@ -207,10 +196,14 @@ function RecoveryModal({ control, mnemonic, onDismiss }: RecoveryModalProps) {
 function AppearancePicker() {
   const { theme, mode, setMode } = useBloomTheme();
 
-  const modes: { value: ThemeMode; label: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"] }[] = [
-    { value: "light", label: t("settings.appearance.light"), icon: "white-balance-sunny" },
-    { value: "dark", label: t("settings.appearance.dark"), icon: "moon-waning-crescent" },
-    { value: "system", label: t("settings.appearance.system"), icon: "cellphone" },
+  const modes: {
+    value: ThemeMode;
+    label: string;
+    icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  }[] = [
+    { value: 'light', label: t('settings.appearance.light'), icon: 'white-balance-sunny' },
+    { value: 'dark', label: t('settings.appearance.dark'), icon: 'moon-waning-crescent' },
+    { value: 'system', label: t('settings.appearance.system'), icon: 'cellphone' },
   ];
 
   return (
@@ -223,8 +216,8 @@ function AppearancePicker() {
             onPress={() => setMode(m.value)}
             className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl ${
               isActive
-                ? "bg-primary/15 border border-primary/30"
-                : "bg-background border border-border"
+                ? 'bg-primary/15 border border-primary/30'
+                : 'bg-background border border-border'
             }`}
           >
             <MaterialCommunityIcons
@@ -234,7 +227,7 @@ function AppearancePicker() {
             />
             <Text
               className={`text-xs ml-1.5 font-medium ${
-                isActive ? "text-primary" : "text-muted-foreground"
+                isActive ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
               {m.label}
@@ -254,7 +247,9 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const bottomInset = useTabScreenBottomInset();
   const router = useRouter();
-  const { theme: { colors: themeColors } } = useBloomTheme();
+  const {
+    theme: { colors: themeColors },
+  } = useBloomTheme();
   const network = useWalletStore((s) => s.network);
   const connectedPeers = useWalletStore((s) => s.connectedPeers);
   const wipeWallet = useWalletStore((s) => s.wipeWallet);
@@ -269,10 +264,7 @@ export default function SettingsScreen() {
   const exportBackup = useWalletStore((s) => s.exportBackup);
   const importBackup = useWalletStore((s) => s.importBackup);
   const language = useLanguageStore((s) => s.language);
-  const currentLanguageOption = useMemo(
-    () => findLanguageOption(language),
-    [language],
-  );
+  const currentLanguageOption = useMemo(() => findLanguageOption(language), [language]);
 
   const wipeControl = useDialogControl();
   const switchNetworkControl = useDialogControl();
@@ -281,14 +273,12 @@ export default function SettingsScreen() {
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
-  const [pinAction, setPinAction] = useState<"recovery" | "change_pin" | null>(
-    null,
-  );
-  const [recoveryMnemonic, setRecoveryMnemonic] = useState("");
+  const [pinAction, setPinAction] = useState<'recovery' | 'change_pin' | null>(null);
+  const [recoveryMnemonic, setRecoveryMnemonic] = useState('');
   const [autoLockMinutes, setAutoLockMinutes] = useState(5);
-  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [displayCurrency, setDisplayCurrency] = useState('USD');
 
-  const isMainnet = network === "mainnet";
+  const isMainnet = network === 'mainnet';
 
   // Load biometrics state and preferences on focus
   useFocusEffect(
@@ -296,14 +286,13 @@ export default function SettingsScreen() {
       let cancelled = false;
       const loadSettings = async () => {
         try {
-          const [hardwareAvailable, enrolled, enabled, lockTimeout, currency] =
-            await Promise.all([
-              LocalAuthentication.hasHardwareAsync(),
-              LocalAuthentication.isEnrolledAsync(),
-              isBiometricsEnabled(),
-              getAutoLockTimeout(),
-              getCurrency(),
-            ]);
+          const [hardwareAvailable, enrolled, enabled, lockTimeout, currency] = await Promise.all([
+            LocalAuthentication.hasHardwareAsync(),
+            LocalAuthentication.isEnrolledAsync(),
+            isBiometricsEnabled(),
+            getAutoLockTimeout(),
+            getCurrency(),
+          ]);
 
           if (cancelled) return;
 
@@ -323,27 +312,26 @@ export default function SettingsScreen() {
   );
 
   const walletCountLabel = useMemo(() => {
-    if (wallets.length === 0) return t("settings.noWallets");
-    if (wallets.length === 1)
-      return activeWalletName || t("settings.walletsCountSingle");
-    return t("settings.walletsCountMultiple", {
-      name: activeWalletName || t("settings.walletsActive"),
+    if (wallets.length === 0) return t('settings.noWallets');
+    if (wallets.length === 1) return activeWalletName || t('settings.walletsCountSingle');
+    return t('settings.walletsCountMultiple', {
+      name: activeWalletName || t('settings.walletsActive'),
       count: wallets.length,
     });
   }, [wallets.length, activeWalletName]);
 
   const handleManageWallets = useCallback(() => {
-    router.push("/wallets");
+    router.push('/wallets');
   }, [router]);
 
   const handleContacts = useCallback(() => {
-    router.push("/contacts");
+    router.push('/contacts');
   }, [router]);
 
   const handleCopyAddress = useCallback(async () => {
     if (!receiveAddress) return;
     await Clipboard.setStringAsync(receiveAddress);
-    toast.success(t("receive.addressCopied.description"));
+    toast.success(t('receive.addressCopied.description'));
   }, [receiveAddress]);
 
   const handleToggleNetwork = useCallback(() => {
@@ -351,17 +339,17 @@ export default function SettingsScreen() {
   }, [switchNetworkControl]);
 
   const handleConfirmSwitchNetwork = useCallback(() => {
-    const targetNetwork: NetworkType = isMainnet ? "testnet" : "mainnet";
+    const targetNetwork: NetworkType = isMainnet ? 'testnet' : 'mainnet';
     switchNetwork(targetNetwork);
   }, [isMainnet, switchNetwork]);
 
   const handleShowRecovery = useCallback(() => {
-    setPinAction("recovery");
+    setPinAction('recovery');
     setShowPinModal(true);
   }, []);
 
   const handleChangePIN = useCallback(() => {
-    setPinAction("change_pin");
+    setPinAction('change_pin');
     setShowPinModal(true);
   }, []);
 
@@ -375,7 +363,7 @@ export default function SettingsScreen() {
     const action = pinAction;
     setPinAction(null);
 
-    if (action === "recovery") {
+    if (action === 'recovery') {
       try {
         const mnemonic = await getMnemonic();
         if (mnemonic) {
@@ -384,31 +372,31 @@ export default function SettingsScreen() {
           // Viewing the phrase clears the home "back up your wallet" reminder.
           void markBackedUp();
         } else {
-          toast.error(t("settings.recovery.error.retrieve"));
+          toast.error(t('settings.recovery.error.retrieve'));
         }
       } catch {
-        toast.error(t("settings.recovery.error.load"));
+        toast.error(t('settings.recovery.error.load'));
       }
-    } else if (action === "change_pin") {
-      router.push("/onboarding/pin-setup");
+    } else if (action === 'change_pin') {
+      router.push('/onboarding/pin-setup');
     }
   }, [pinAction, router, recoveryControl, markBackedUp]);
 
   const handleRecoveryDismiss = useCallback(() => {
-    setRecoveryMnemonic("");
+    setRecoveryMnemonic('');
   }, []);
 
   const handleToggleBiometrics = useCallback(
     async (enabled: boolean) => {
       if (enabled && !biometricsAvailable) {
-        toast.error(t("settings.biometrics.unavailable.title"));
+        toast.error(t('settings.biometrics.unavailable.title'));
         return;
       }
 
       try {
         if (enabled) {
           const result = await LocalAuthentication.authenticateAsync({
-            promptMessage: t("settings.biometrics.verifyPrompt"),
+            promptMessage: t('settings.biometrics.verifyPrompt'),
             disableDeviceFallback: false,
           });
 
@@ -420,34 +408,34 @@ export default function SettingsScreen() {
         await storeBiometricsEnabled(enabled);
         setBiometricsEnabled(enabled);
       } catch {
-        toast.error(t("settings.biometrics.updateError"));
+        toast.error(t('settings.biometrics.updateError'));
       }
     },
     [biometricsAvailable],
   );
 
   const handleMasternode = useCallback(() => {
-    router.push("/masternode");
+    router.push('/masternode');
   }, [router]);
 
   const handleExportKey = useCallback(() => {
-    router.push("/export-key");
+    router.push('/export-key');
   }, [router]);
 
   const handleNotifications = useCallback(() => {
-    router.push("/notifications-settings");
+    router.push('/notifications-settings');
   }, [router]);
 
   const handleCoinControl = useCallback(() => {
-    router.push("/coin-control");
+    router.push('/coin-control');
   }, [router]);
 
   const handleLanguage = useCallback(() => {
-    router.push("/language");
+    router.push('/language');
   }, [router]);
 
   const handleCycleCurrency = useCallback(async () => {
-    const currencies = ["USD", "EUR", "BTC"];
+    const currencies = ['USD', 'EUR', 'BTC'];
     const currentIdx = currencies.indexOf(displayCurrency);
     const nextIdx = (currentIdx + 1) % currencies.length;
     const nextCurrency = currencies[nextIdx];
@@ -468,10 +456,7 @@ export default function SettingsScreen() {
     try {
       const json = await exportBackup();
 
-      const timestamp = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace(/[:T]/g, "-");
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
       const filename = `fairwallet-backup-${timestamp}.json`;
 
       const file = new File(Paths.cache, filename);
@@ -481,18 +466,17 @@ export default function SettingsScreen() {
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(file.uri, {
-          mimeType: "application/json",
-          dialogTitle: t("settings.backup.exportDialogTitle"),
-          UTI: "public.json",
+          mimeType: 'application/json',
+          dialogTitle: t('settings.backup.exportDialogTitle'),
+          UTI: 'public.json',
         });
       } else {
         // No native share sheet (web / desktop): the description also explains
         // why no sheet appeared, so it — not the bare title — is the toast.
-        toast.success(t("settings.backup.saved.description", { path: file.uri }));
+        toast.success(t('settings.backup.saved.description', { path: file.uri }));
       }
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : t("settings.backup.exportFailed");
+      const message = err instanceof Error ? err.message : t('settings.backup.exportFailed');
       toast.error(message);
     }
   }, [exportBackup]);
@@ -500,7 +484,7 @@ export default function SettingsScreen() {
   const handleImportBackup = useCallback(async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ["application/json", "text/plain", "*/*"],
+        type: ['application/json', 'text/plain', '*/*'],
         copyToCacheDirectory: true,
         multiple: false,
       });
@@ -513,15 +497,14 @@ export default function SettingsScreen() {
       const json = await new File(asset.uri).text();
 
       if (!json.trim()) {
-        toast.error(t("settings.backup.importEmpty"));
+        toast.error(t('settings.backup.importEmpty'));
         return;
       }
 
       await importBackup(json);
-      toast.success(t("settings.backup.imported.description"));
+      toast.success(t('settings.backup.imported.description'));
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : t("settings.backup.importFailed");
+      const message = err instanceof Error ? err.message : t('settings.backup.importFailed');
       toast.error(message);
     }
   }, [importBackup]);
@@ -540,8 +523,7 @@ export default function SettingsScreen() {
       await rescanWallet();
       refreshBalance();
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : t("settings.resync.failed");
+      const message = err instanceof Error ? err.message : t('settings.resync.failed');
       toast.error(message);
     }
   }, [rescanWallet, refreshBalance]);
@@ -551,7 +533,7 @@ export default function SettingsScreen() {
     // A wiped device has no PIN; clear any lock state so onboarding isn't
     // shown behind the lock overlay.
     markNoPinUnlocked();
-    router.replace("/onboarding/welcome");
+    router.replace('/onboarding/welcome');
   }, [wipeWallet, markNoPinUnlocked, router]);
 
   return (
@@ -562,46 +544,32 @@ export default function SettingsScreen() {
         onPress={handleManageWallets}
         className="flex-row items-center gap-3 px-4 pt-2 pb-3 active:opacity-70"
         accessibilityRole="button"
-        accessibilityLabel={t("settings.wallets")}
+        accessibilityLabel={t('settings.wallets')}
       >
-          <View className="w-12 h-12 rounded-2xl bg-primary items-center justify-center">
-            <MaterialCommunityIcons
-              name="wallet"
-              size={24}
-              color={themeColors.background}
-            />
-          </View>
-          <View className="flex-1">
-            <Text
-              className="text-foreground text-lg font-semibold"
-              numberOfLines={1}
-            >
-              {activeWalletName || t("wallet.defaultName")}
-            </Text>
-            {receiveAddress ? (
-              <Text
-                className="text-muted-foreground text-xs mt-0.5"
-                numberOfLines={1}
-              >
-                {truncateAddress(receiveAddress)}
-              </Text>
-            ) : null}
-          </View>
+        <View className="w-12 h-12 rounded-2xl bg-primary items-center justify-center">
+          <MaterialCommunityIcons name="wallet" size={24} color={themeColors.background} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-foreground text-lg font-semibold" numberOfLines={1}>
+            {activeWalletName || t('wallet.defaultName')}
+          </Text>
           {receiveAddress ? (
-            <Pressable
-              onPress={handleCopyAddress}
-              hitSlop={10}
-              className="w-9 h-9 rounded-full bg-primary/10 items-center justify-center active:opacity-70"
-              accessibilityRole="button"
-              accessibilityLabel={t("receive.copy")}
-            >
-              <MaterialCommunityIcons
-                name="content-copy"
-                size={16}
-                color={themeColors.primary}
-              />
-            </Pressable>
+            <Text className="text-muted-foreground text-xs mt-0.5" numberOfLines={1}>
+              {truncateAddress(receiveAddress)}
+            </Text>
           ) : null}
+        </View>
+        {receiveAddress ? (
+          <Pressable
+            onPress={handleCopyAddress}
+            hitSlop={10}
+            className="w-9 h-9 rounded-full bg-primary/10 items-center justify-center active:opacity-70"
+            accessibilityRole="button"
+            accessibilityLabel={t('receive.copy')}
+          >
+            <MaterialCommunityIcons name="content-copy" size={16} color={themeColors.primary} />
+          </Pressable>
+        ) : null}
       </Pressable>
       <View className="h-px bg-border" />
       <ScrollView
@@ -611,51 +579,48 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Wallets */}
-        <SettingsListGroup title={t("settings.walletsGroup")}>
+        <SettingsListGroup title={t('settings.walletsGroup')}>
           <SettingsListItem
-            title={t("settings.wallets")}
+            title={t('settings.wallets')}
             value={walletCountLabel}
             icon={<RowIcon name="wallet" />}
             onPress={handleManageWallets}
           />
           <SettingsListItem
-            title={t("settings.contacts")}
+            title={t('settings.contacts')}
             icon={<RowIcon name="account-group" />}
             onPress={handleContacts}
           />
         </SettingsListGroup>
 
         {/* Security */}
-        <SettingsListGroup title={t("settings.security")}>
+        <SettingsListGroup title={t('settings.security')}>
           <SettingsListItem
-            title={t("settings.change_pin")}
+            title={t('settings.change_pin')}
             icon={<RowIcon name="lock" />}
             onPress={handleChangePIN}
           />
           <SettingsListItem
-            title={t("settings.biometrics")}
+            title={t('settings.biometrics')}
             icon={<RowIcon name="fingerprint" />}
             showChevron={false}
             rightElement={
-              <Switch
-                value={biometricsEnabled}
-                onValueChange={handleToggleBiometrics}
-              />
+              <Switch value={biometricsEnabled} onValueChange={handleToggleBiometrics} />
             }
           />
           <SettingsListItem
-            title={t("settings.auto_lock")}
-            value={t("settings.autoLockValue", { minutes: autoLockMinutes })}
+            title={t('settings.auto_lock')}
+            value={t('settings.autoLockValue', { minutes: autoLockMinutes })}
             icon={<RowIcon name="clock-outline" />}
             onPress={handleCycleAutoLock}
           />
           <SettingsListItem
-            title={t("settings.exportKey")}
+            title={t('settings.exportKey')}
             icon={<RowIcon name="shield-key" />}
             onPress={handleExportKey}
           />
           <SettingsListItem
-            title={t("settings.notifications")}
+            title={t('settings.notifications')}
             icon={<RowIcon name="bell-ring" />}
             onPress={handleNotifications}
           />
@@ -663,19 +628,15 @@ export default function SettingsScreen() {
 
         {/* Appearance — the theme segmented control sits as the group's last
             row, below the language and currency rows. */}
-        <SettingsListGroup title={t("settings.appearance")}>
+        <SettingsListGroup title={t('settings.appearance')}>
           <SettingsListItem
-            title={t("settings.language.title")}
-            value={
-              currentLanguageOption
-                ? currentLanguageOption.nativeName
-                : language
-            }
+            title={t('settings.language.title')}
+            value={currentLanguageOption ? currentLanguageOption.nativeName : language}
             icon={<RowIcon name="translate" />}
             onPress={handleLanguage}
           />
           <SettingsListItem
-            title={t("settings.currency")}
+            title={t('settings.currency')}
             value={displayCurrency}
             icon={<RowIcon name="currency-usd" />}
             onPress={handleCycleCurrency}
@@ -684,78 +645,78 @@ export default function SettingsScreen() {
         </SettingsListGroup>
 
         {/* Network */}
-        <SettingsListGroup title={t("settings.network")}>
+        <SettingsListGroup title={t('settings.network')}>
           <SettingsListItem
-            title={t("settings.network")}
-            value={isMainnet ? t("settings.mainnet") : t("settings.testnet")}
+            title={t('settings.network')}
+            value={isMainnet ? t('settings.mainnet') : t('settings.testnet')}
             icon={<RowIcon name="earth" />}
             onPress={handleToggleNetwork}
           />
           <SettingsListItem
-            title={t("settings.networkStatus")}
+            title={t('settings.networkStatus')}
             icon={<RowIcon name="pulse" />}
-            onPress={() => router.push("/chain")}
+            onPress={() => router.push('/chain')}
           />
           <SettingsListItem
-            title={t("settings.connectedPeers")}
+            title={t('settings.connectedPeers')}
             value={String(connectedPeers)}
             icon={<RowIcon name="server-network" />}
-            onPress={() => router.push("/peers")}
+            onPress={() => router.push('/peers')}
           />
           <SettingsListItem
-            title={t("settings.resync")}
+            title={t('settings.resync')}
             icon={<RowIcon name="sync" />}
             onPress={handleResync}
           />
         </SettingsListGroup>
 
         {/* Backup */}
-        <SettingsListGroup title={t("settings.backup")}>
+        <SettingsListGroup title={t('settings.backup')}>
           <SettingsListItem
-            title={t("settings.show_phrase")}
+            title={t('settings.show_phrase')}
             icon={<RowIcon name="eye" />}
             onPress={handleShowRecovery}
           />
           <SettingsListItem
-            title={t("settings.exportBackup")}
+            title={t('settings.exportBackup')}
             icon={<RowIcon name="download" />}
             onPress={handleExportBackup}
           />
           <SettingsListItem
-            title={t("settings.importBackup")}
+            title={t('settings.importBackup')}
             icon={<RowIcon name="upload" />}
             onPress={handleImportBackup}
           />
         </SettingsListGroup>
 
         {/* Advanced */}
-        <SettingsListGroup title={t("settings.advanced")}>
+        <SettingsListGroup title={t('settings.advanced')}>
           <SettingsListItem
-            title={t("settings.coinControl")}
+            title={t('settings.coinControl')}
             icon={<RowIcon name="tune" />}
             onPress={handleCoinControl}
           />
           <SettingsListItem
-            title={t("settings.masternode")}
+            title={t('settings.masternode')}
             icon={<RowIcon name="server" />}
             onPress={handleMasternode}
           />
         </SettingsListGroup>
 
         {/* About */}
-        <SettingsListGroup title={t("settings.about")}>
+        <SettingsListGroup title={t('settings.about')}>
           <SettingsListItem
-            title={t("settings.aboutApp")}
-            value={t("settings.version", { version: APP_VERSION })}
+            title={t('settings.aboutApp')}
+            value={t('settings.version', { version: APP_VERSION })}
             icon={<RowIcon name="information" />}
             showChevron={false}
           />
         </SettingsListGroup>
 
         {/* Danger Zone */}
-        <SettingsListGroup title={t("settings.dangerZone")}>
+        <SettingsListGroup title={t('settings.dangerZone')}>
           <SettingsListItem
-            title={t("settings.wipe")}
+            title={t('settings.wipe')}
             icon={<RowIcon name="delete" />}
             destructive
             onPress={() => wipeControl.open()}
@@ -766,11 +727,7 @@ export default function SettingsScreen() {
       {/* PIN verification modal */}
       <PinModal
         visible={showPinModal}
-        title={
-          pinAction === "recovery"
-            ? t("settings.pin.verify")
-            : t("settings.pin.enterCurrent")
-        }
+        title={pinAction === 'recovery' ? t('settings.pin.verify') : t('settings.pin.enterCurrent')}
         onCancel={handlePinCancel}
         onSuccess={handlePinSuccess}
       />
@@ -779,15 +736,15 @@ export default function SettingsScreen() {
       <Dialog
         control={wipeControl}
         placement="bottom"
-        title={t("settings.wipe.title")}
-        description={t("settings.wipe.description")}
+        title={t('settings.wipe.title')}
+        description={t('settings.wipe.description')}
         actions={[
           {
-            label: t("settings.wipe.cta"),
+            label: t('settings.wipe.cta'),
             onPress: handleConfirmWipe,
-            color: "destructive",
+            color: 'destructive',
           },
-          { label: t("common.cancel"), color: "cancel" },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
 
@@ -795,13 +752,13 @@ export default function SettingsScreen() {
       <Dialog
         control={switchNetworkControl}
         placement="bottom"
-        title={t("settings.switchNetwork.title")}
-        description={t("settings.switchNetwork.description", {
-          target: isMainnet ? t("settings.testnet") : t("settings.mainnet"),
+        title={t('settings.switchNetwork.title')}
+        description={t('settings.switchNetwork.description', {
+          target: isMainnet ? t('settings.testnet') : t('settings.mainnet'),
         })}
         actions={[
-          { label: t("settings.switchNetwork.cta"), onPress: handleConfirmSwitchNetwork },
-          { label: t("common.cancel"), color: "cancel" },
+          { label: t('settings.switchNetwork.cta'), onPress: handleConfirmSwitchNetwork },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
 
@@ -809,11 +766,11 @@ export default function SettingsScreen() {
       <Dialog
         control={resyncControl}
         placement="bottom"
-        title={t("settings.resync.title")}
-        description={t("settings.resync.description")}
+        title={t('settings.resync.title')}
+        description={t('settings.resync.description')}
         actions={[
-          { label: t("settings.resync.cta"), onPress: handleConfirmResync },
-          { label: t("common.cancel"), color: "cancel" },
+          { label: t('settings.resync.cta'), onPress: handleConfirmResync },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
 

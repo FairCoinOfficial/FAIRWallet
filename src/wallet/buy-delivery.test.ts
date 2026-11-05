@@ -11,30 +11,30 @@
  * address is (correctly) NOT owned by the wallet's key manager.
  */
 
-import { describe, test, expect } from "bun:test";
+import { describe, test, expect } from 'bun:test';
 import {
   getNetwork,
   decodeAddress,
   createP2PKHScript,
   publicKeyToAddress,
   UNITS_PER_COIN,
-} from "@fairco.in/core";
-import { HDKey } from "@scure/bip32";
-import { mnemonicToSeedSync } from "@scure/bip39";
-import { KeyManager } from "./key-manager";
-import { UTXOSet } from "./utxo-set";
-import { applyTransactionToWallet, type ConfirmationInfo } from "./apply-transaction";
-import type { ParsedTransaction } from "../p2p/messages";
+} from '@fairco.in/core';
+import { HDKey } from '@scure/bip32';
+import { mnemonicToSeedSync } from '@scure/bip39';
+import { KeyManager } from './key-manager';
+import { UTXOSet } from './utxo-set';
+import { applyTransactionToWallet, type ConfirmationInfo } from './apply-transaction';
+import type { ParsedTransaction } from '../p2p/messages';
 
-const MAINNET = getNetwork("mainnet");
+const MAINNET = getNetwork('mainnet');
 const MNEMONIC =
-  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+  'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
 
 const FIVE_FAIR = 5n * UNITS_PER_COIN;
 
 const CONFIRMED: ConfirmationInfo = {
   blockHeight: 200,
-  blockHash: "11".repeat(32),
+  blockHash: '11'.repeat(32),
   confirmations: 3,
 };
 
@@ -59,11 +59,11 @@ function legacyBuyChainAddress(index: number): string {
     private: MAINNET.bip32.private,
   });
   const child = root.derive(`m/44'/${MAINNET.bip44CoinType}'/0'/2/${index}`);
-  if (!child.publicKey) throw new Error("derivation failed");
+  if (!child.publicKey) throw new Error('derivation failed');
   return publicKeyToAddress(child.publicKey, MAINNET);
 }
 
-describe("C5: buy delivery to a chain-0 address is credited", () => {
+describe('C5: buy delivery to a chain-0 address is credited', () => {
   test("a tx paying the wallet's receive address adds the UTXO", () => {
     const km = KeyManager.fromMnemonic(MNEMONIC, MAINNET);
     // The fix delivers buy proceeds to a normal chain-0 receive address.
@@ -75,7 +75,7 @@ describe("C5: buy delivery to a chain-0 address is credited", () => {
     const result = applyTransactionToWallet(
       utxoSet,
       tx,
-      "buy-delivery-txid",
+      'buy-delivery-txid',
       (addr) => km.ownsAddress(addr),
       MAINNET,
       CONFIRMED,
@@ -89,7 +89,7 @@ describe("C5: buy delivery to a chain-0 address is credited", () => {
     expect(utxoSet.getBalance()).toBe(FIVE_FAIR);
   });
 
-  test("the old chain-2 buy address is NOT owned (would have been rejected)", () => {
+  test('the old chain-2 buy address is NOT owned (would have been rejected)', () => {
     const km = KeyManager.fromMnemonic(MNEMONIC, MAINNET);
     const buyChainAddr = legacyBuyChainAddress(0);
 
@@ -102,7 +102,7 @@ describe("C5: buy delivery to a chain-0 address is credited", () => {
     const result = applyTransactionToWallet(
       utxoSet,
       tx,
-      "legacy-buy-txid",
+      'legacy-buy-txid',
       (addr) => km.ownsAddress(addr),
       MAINNET,
       CONFIRMED,

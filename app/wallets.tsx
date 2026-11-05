@@ -4,45 +4,31 @@
  * Presented as a modal from the settings screen.
  */
 
-import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Modal,
-  TextInput,
-  ActivityIndicator,
-} from "react-native";
-import { SafeAreaView } from "../src/ui/safe-area-view";
-import { useRouter, useFocusEffect } from "expo-router";
-import { useWalletStore } from "../src/wallet/wallet-store";
-import {
-  ListItem,
-  Button,
-  Badge,
-  EmptyState,
-  ScreenHeader,
-} from "../src/ui/components";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { Dialog, useDialogControl } from "@oxy.so/bloom/dialog";
-import type { DialogControlProps } from "@oxy.so/bloom/dialog";
-import { toast } from "@oxy.so/bloom/toast";
-import { t } from "../src/i18n";
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from '../src/ui/safe-area-view';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useWalletStore } from '../src/wallet/wallet-store';
+import { ListItem, Button, Badge, EmptyState, ScreenHeader } from '../src/ui/components';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import type { DialogControlProps } from '@oxy.so/bloom/dialog';
+import { toast } from '@oxy.so/bloom/toast';
+import { t } from '../src/i18n';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /** Uppercase field label — matches the home / send screens' section headers. */
-const SECTION_LABEL =
-  "text-muted-foreground text-xs font-semibold uppercase tracking-wider";
+const SECTION_LABEL = 'text-muted-foreground text-xs font-semibold uppercase tracking-wider';
 
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp);
   return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 }
 
@@ -58,13 +44,13 @@ interface ImportModalProps {
 
 function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
   const theme = useTheme();
-  const [name, setName] = useState("");
-  const [mnemonic, setMnemonic] = useState("");
+  const [name, setName] = useState('');
+  const [mnemonic, setMnemonic] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleCancel = useCallback(() => {
-    setName("");
-    setMnemonic("");
+    setName('');
+    setMnemonic('');
     setError(null);
     onCancel();
   }, [onCancel]);
@@ -74,48 +60,41 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
     const trimmedMnemonic = mnemonic.trim();
 
     if (!trimmedName) {
-      setError(t("wallets.import.error.nameRequired"));
+      setError(t('wallets.import.error.nameRequired'));
       return;
     }
 
     if (!trimmedMnemonic) {
-      setError(t("wallets.import.error.phraseRequired"));
+      setError(t('wallets.import.error.phraseRequired'));
       return;
     }
 
     const words = trimmedMnemonic.split(/\s+/);
     if (words.length !== 12 && words.length !== 24) {
-      setError(t("wallets.import.error.wordCount"));
+      setError(t('wallets.import.error.wordCount'));
       return;
     }
 
     setError(null);
-    setName("");
-    setMnemonic("");
+    setName('');
+    setMnemonic('');
     onImport(trimmedName, trimmedMnemonic);
   }, [name, mnemonic, onImport]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleCancel}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleCancel}>
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <View className="bg-background border border-border rounded-2xl p-6 w-full max-w-sm">
           <Text className="text-foreground text-lg font-bold mb-5 text-center">
-            {t("wallets.import.title")}
+            {t('wallets.import.title')}
           </Text>
 
           <View className="gap-4">
             <View>
-              <Text className={SECTION_LABEL}>
-                {t("wallets.import.nameLabel")}
-              </Text>
+              <Text className={SECTION_LABEL}>{t('wallets.import.nameLabel')}</Text>
               <TextInput
                 className="bg-surface rounded-2xl px-4 py-3.5 text-foreground text-base mt-2"
-                placeholder={t("wallets.import.namePlaceholder")}
+                placeholder={t('wallets.import.namePlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={name}
                 onChangeText={setName}
@@ -125,12 +104,10 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
             </View>
 
             <View>
-              <Text className={SECTION_LABEL}>
-                {t("wallets.import.phraseLabel")}
-              </Text>
+              <Text className={SECTION_LABEL}>{t('wallets.import.phraseLabel')}</Text>
               <TextInput
                 className="bg-surface rounded-2xl px-4 py-3.5 text-foreground text-base mt-2 min-h-[88px]"
-                placeholder={t("wallets.import.phrasePlaceholder")}
+                placeholder={t('wallets.import.phrasePlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={mnemonic}
                 onChangeText={setMnemonic}
@@ -144,23 +121,13 @@ function ImportModal({ visible, onCancel, onImport }: ImportModalProps) {
 
             {error ? (
               <View className="bg-destructive/10 rounded-2xl p-3">
-                <Text className="text-destructive text-sm text-center">
-                  {error}
-                </Text>
+                <Text className="text-destructive text-sm text-center">{error}</Text>
               </View>
             ) : null}
 
             <View className="gap-3">
-              <Button
-                title={t("wallets.import.cta")}
-                onPress={handleImport}
-                variant="primary"
-              />
-              <Button
-                title={t("common.cancel")}
-                onPress={handleCancel}
-                variant="secondary"
-              />
+              <Button title={t('wallets.import.cta')} onPress={handleImport} variant="primary" />
+              <Button title={t('common.cancel')} onPress={handleCancel} variant="secondary" />
             </View>
           </View>
         </View>
@@ -181,13 +148,13 @@ interface WatchOnlyModalProps {
 
 function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
   const theme = useTheme();
-  const [name, setName] = useState("");
-  const [xpub, setXpub] = useState("");
+  const [name, setName] = useState('');
+  const [xpub, setXpub] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleCancel = useCallback(() => {
-    setName("");
-    setXpub("");
+    setName('');
+    setXpub('');
     setError(null);
     onCancel();
   }, [onCancel]);
@@ -197,12 +164,12 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
     const trimmedXpub = xpub.trim();
 
     if (!trimmedName) {
-      setError(t("wallets.watchOnly.error.nameRequired"));
+      setError(t('wallets.watchOnly.error.nameRequired'));
       return;
     }
 
     if (!trimmedXpub) {
-      setError(t("wallets.watchOnly.error.xpubRequired"));
+      setError(t('wallets.watchOnly.error.xpubRequired'));
       return;
     }
 
@@ -211,37 +178,30 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
     // length sanity check here. The store validates the key authoritatively via
     // KeyManager.fromXpub and surfaces a precise error if it is malformed.
     if (trimmedXpub.length < 100) {
-      setError(t("wallets.watchOnly.error.xpubFormat"));
+      setError(t('wallets.watchOnly.error.xpubFormat'));
       return;
     }
 
     setError(null);
-    setName("");
-    setXpub("");
+    setName('');
+    setXpub('');
     onImport(trimmedName, trimmedXpub);
   }, [name, xpub, onImport]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleCancel}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleCancel}>
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <View className="bg-background border border-border rounded-2xl p-6 w-full max-w-sm">
           <Text className="text-foreground text-lg font-bold mb-5 text-center">
-            {t("wallets.watchOnly.title")}
+            {t('wallets.watchOnly.title')}
           </Text>
 
           <View className="gap-4">
             <View>
-              <Text className={SECTION_LABEL}>
-                {t("wallets.watchOnly.nameLabel")}
-              </Text>
+              <Text className={SECTION_LABEL}>{t('wallets.watchOnly.nameLabel')}</Text>
               <TextInput
                 className="bg-surface rounded-2xl px-4 py-3.5 text-foreground text-base mt-2"
-                placeholder={t("wallets.watchOnly.namePlaceholder")}
+                placeholder={t('wallets.watchOnly.namePlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={name}
                 onChangeText={setName}
@@ -251,12 +211,10 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
             </View>
 
             <View>
-              <Text className={SECTION_LABEL}>
-                {t("wallets.watchOnly.xpubLabel")}
-              </Text>
+              <Text className={SECTION_LABEL}>{t('wallets.watchOnly.xpubLabel')}</Text>
               <TextInput
                 className="bg-surface rounded-2xl px-4 py-3.5 text-foreground text-base mt-2 min-h-[88px]"
-                placeholder={t("wallets.watchOnly.xpubPlaceholder")}
+                placeholder={t('wallets.watchOnly.xpubPlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={xpub}
                 onChangeText={setXpub}
@@ -270,23 +228,13 @@ function WatchOnlyModal({ visible, onCancel, onImport }: WatchOnlyModalProps) {
 
             {error ? (
               <View className="bg-destructive/10 rounded-2xl p-3">
-                <Text className="text-destructive text-sm text-center">
-                  {error}
-                </Text>
+                <Text className="text-destructive text-sm text-center">{error}</Text>
               </View>
             ) : null}
 
             <View className="gap-3">
-              <Button
-                title={t("wallets.watchOnly.cta")}
-                onPress={handleImport}
-                variant="primary"
-              />
-              <Button
-                title={t("common.cancel")}
-                onPress={handleCancel}
-                variant="secondary"
-              />
+              <Button title={t('wallets.watchOnly.cta')} onPress={handleImport} variant="primary" />
+              <Button title={t('common.cancel')} onPress={handleCancel} variant="secondary" />
             </View>
           </View>
         </View>
@@ -307,11 +255,11 @@ interface CreateModalProps {
 
 function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
   const theme = useTheme();
-  const [name, setName] = useState("");
+  const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleCancel = useCallback(() => {
-    setName("");
+    setName('');
     setError(null);
     onCancel();
   }, [onCancel]);
@@ -319,36 +267,29 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
   const handleCreate = useCallback(() => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError(t("wallets.create.error.nameRequired"));
+      setError(t('wallets.create.error.nameRequired'));
       return;
     }
 
     setError(null);
-    setName("");
+    setName('');
     onCreate(trimmedName);
   }, [name, onCreate]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleCancel}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleCancel}>
       <View className="flex-1 bg-black/70 items-center justify-center px-8">
         <View className="bg-background border border-border rounded-2xl p-6 w-full max-w-sm">
           <Text className="text-foreground text-lg font-bold mb-5 text-center">
-            {t("wallets.create.title")}
+            {t('wallets.create.title')}
           </Text>
 
           <View className="gap-4">
             <View>
-              <Text className={SECTION_LABEL}>
-                {t("wallets.create.nameLabel")}
-              </Text>
+              <Text className={SECTION_LABEL}>{t('wallets.create.nameLabel')}</Text>
               <TextInput
                 className="bg-surface rounded-2xl px-4 py-3.5 text-foreground text-base mt-2"
-                placeholder={t("wallets.create.namePlaceholder")}
+                placeholder={t('wallets.create.namePlaceholder')}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={name}
                 onChangeText={setName}
@@ -359,23 +300,13 @@ function CreateModal({ visible, onCancel, onCreate }: CreateModalProps) {
 
             {error ? (
               <View className="bg-destructive/10 rounded-2xl p-3">
-                <Text className="text-destructive text-sm text-center">
-                  {error}
-                </Text>
+                <Text className="text-destructive text-sm text-center">{error}</Text>
               </View>
             ) : null}
 
             <View className="gap-3">
-              <Button
-                title={t("wallets.create.cta")}
-                onPress={handleCreate}
-                variant="primary"
-              />
-              <Button
-                title={t("common.cancel")}
-                onPress={handleCancel}
-                variant="secondary"
-              />
+              <Button title={t('wallets.create.cta')} onPress={handleCreate} variant="primary" />
+              <Button title={t('common.cancel')} onPress={handleCancel} variant="secondary" />
             </View>
           </View>
         </View>
@@ -395,23 +326,20 @@ interface MnemonicModalProps {
 }
 
 function MnemonicModal({ control, mnemonic, onDismiss }: MnemonicModalProps) {
-  const words = useMemo(() => mnemonic.split(" "), [mnemonic]);
+  const words = useMemo(() => mnemonic.split(' '), [mnemonic]);
 
   return (
     <Dialog
       control={control}
       onClose={onDismiss}
       placement="bottom"
-      title={t("wallets.mnemonic.title")}
-      description={t("wallets.mnemonic.description")}
-      actions={[{ label: t("wallets.mnemonic.cta"), onPress: onDismiss }]}
+      title={t('wallets.mnemonic.title')}
+      description={t('wallets.mnemonic.description')}
+      actions={[{ label: t('wallets.mnemonic.cta'), onPress: onDismiss }]}
     >
       <View className="flex-row flex-wrap justify-center gap-2 mt-2">
         {words.map((word, idx) => (
-          <View
-            key={`word-${idx}`}
-            className="bg-background rounded-lg px-3 py-1.5"
-          >
+          <View key={`word-${idx}`} className="bg-background rounded-lg px-3 py-1.5">
             <Text className="text-foreground text-sm">
               <Text className="text-muted-foreground">{idx + 1}. </Text>
               {word}
@@ -443,7 +371,7 @@ export default function WalletsScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showWatchOnlyModal, setShowWatchOnlyModal] = useState(false);
-  const [newMnemonic, setNewMnemonic] = useState("");
+  const [newMnemonic, setNewMnemonic] = useState('');
   const [switching, setSwitching] = useState(false);
   const [pendingDeleteWallet, setPendingDeleteWallet] = useState<{
     id: string;
@@ -473,7 +401,7 @@ export default function WalletsScreen() {
   const handleDelete = useCallback(
     (walletId: string, walletName: string) => {
       if (wallets.length <= 1) {
-        toast.error(t("wallets.cannotDelete.description"));
+        toast.error(t('wallets.cannotDelete.description'));
         return;
       }
       setPendingDeleteWallet({ id: walletId, name: walletName });
@@ -490,7 +418,7 @@ export default function WalletsScreen() {
         setNewMnemonic(mnemonic);
         mnemonicControl.open();
       } catch {
-        toast.error(t("wallets.create.error.failed"));
+        toast.error(t('wallets.create.error.failed'));
       }
     },
     [createNewWallet, mnemonicControl],
@@ -503,7 +431,7 @@ export default function WalletsScreen() {
         await importWallet(name, mnemonic);
         router.back();
       } catch {
-        toast.error(t("wallets.import.failed.description"));
+        toast.error(t('wallets.import.failed.description'));
       }
     },
     [importWallet, router],
@@ -511,7 +439,7 @@ export default function WalletsScreen() {
 
   const handleMnemonicDismiss = useCallback(() => {
     mnemonicControl.close();
-    setNewMnemonic("");
+    setNewMnemonic('');
   }, [mnemonicControl]);
 
   const handleOpenCreate = useCallback(() => {
@@ -543,13 +471,12 @@ export default function WalletsScreen() {
       setShowWatchOnlyModal(false);
       try {
         await importWatchOnly(name, xpub);
-        toast.success(t("wallets.watchOnly.imported.description"));
+        toast.success(t('wallets.watchOnly.imported.description'));
       } catch (err: unknown) {
         // Surface the store's precise reason (e.g. invalid extended public key)
         // rather than a generic message, so the user can correct the input.
-        const detail =
-          err instanceof Error ? err.message : null;
-        toast.error(detail ?? t("wallets.watchOnly.failed.description"));
+        const detail = err instanceof Error ? err.message : null;
+        toast.error(detail ?? t('wallets.watchOnly.failed.description'));
       }
     },
     [importWatchOnly],
@@ -559,27 +486,24 @@ export default function WalletsScreen() {
     return (
       <SafeAreaView
         className="flex-1 bg-background items-center justify-center"
-        edges={["top", "bottom", "left", "right"]}
+        edges={['top', 'bottom', 'left', 'right']}
       >
         <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text className="text-muted-foreground text-sm mt-4">
-          {switching ? t("wallets.switching") : t("wallets.loading")}
+          {switching ? t('wallets.switching') : t('wallets.loading')}
         </Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-background"
-      edges={["top", "bottom", "left", "right"]}
-    >
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom', 'left', 'right']}>
       <ScreenHeader
-        title={t("wallets.title")}
+        title={t('wallets.title')}
         subtitle={
           wallets.length === 1
-            ? t("wallets.subtitle.one", { count: wallets.length })
-            : t("wallets.subtitle.other", { count: wallets.length })
+            ? t('wallets.subtitle.one', { count: wallets.length })
+            : t('wallets.subtitle.other', { count: wallets.length })
         }
         onBack={() => router.back()}
       />
@@ -594,8 +518,8 @@ export default function WalletsScreen() {
           <View className="mb-6">
             <EmptyState
               icon="wallet"
-              title={t("wallets.empty.title")}
-              subtitle={t("wallets.empty.subtitle")}
+              title={t('wallets.empty.title')}
+              subtitle={t('wallets.empty.subtitle')}
             />
           </View>
         ) : (
@@ -606,10 +530,10 @@ export default function WalletsScreen() {
                 <ListItem
                   key={wallet.id}
                   icon="wallet"
-                  iconBg={isActive ? "bg-green-500/15" : "bg-primary/10"}
+                  iconBg={isActive ? 'bg-green-500/15' : 'bg-primary/10'}
                   iconColor={isActive ? theme.colors.success : theme.colors.tint}
                   title={wallet.name}
-                  subtitle={t("wallets.createdOn", {
+                  subtitle={t('wallets.createdOn', {
                     date: formatDate(wallet.createdAt),
                   })}
                   isLast={idx === wallets.length - 1}
@@ -618,9 +542,7 @@ export default function WalletsScreen() {
                   }}
                   onLongPress={() => handleDelete(wallet.id, wallet.name)}
                   trailing={
-                    isActive ? (
-                      <Badge text={t("wallets.active")} variant="success" />
-                    ) : undefined
+                    isActive ? <Badge text={t('wallets.active')} variant="success" /> : undefined
                   }
                 />
               );
@@ -630,18 +552,10 @@ export default function WalletsScreen() {
 
         {/* Action buttons */}
         <View className="gap-3">
+          <Button title={t('wallets.createCta')} onPress={handleOpenCreate} variant="primary" />
+          <Button title={t('wallets.importCta')} onPress={handleOpenImport} variant="outline" />
           <Button
-            title={t("wallets.createCta")}
-            onPress={handleOpenCreate}
-            variant="primary"
-          />
-          <Button
-            title={t("wallets.importCta")}
-            onPress={handleOpenImport}
-            variant="outline"
-          />
-          <Button
-            title={t("wallets.watchOnlyCta")}
+            title={t('wallets.watchOnlyCta')}
             onPress={handleOpenWatchOnly}
             variant="outline"
           />
@@ -673,18 +587,18 @@ export default function WalletsScreen() {
       <Dialog
         control={deleteWalletControl}
         placement="bottom"
-        title={t("wallets.delete.title")}
+        title={t('wallets.delete.title')}
         description={
           pendingDeleteWallet
-            ? t("wallets.delete.description", {
+            ? t('wallets.delete.description', {
                 name: pendingDeleteWallet.name,
               })
-            : ""
+            : ''
         }
         actions={[
           {
-            label: t("common.delete"),
-            color: "destructive",
+            label: t('common.delete'),
+            color: 'destructive',
             onPress: async () => {
               if (pendingDeleteWallet) {
                 await deleteWallet(pendingDeleteWallet.id);
@@ -692,7 +606,7 @@ export default function WalletsScreen() {
               }
             },
           },
-          { label: t("common.cancel"), color: "cancel" },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
     </SafeAreaView>

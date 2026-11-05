@@ -17,8 +17,8 @@
  * establishes the cache state it needs rather than relying on the file's order.
  */
 
-import { describe, test, expect, mock, afterEach } from "bun:test";
-import { fetchPrice, getCachedPrice, type PriceData } from "./price";
+import { describe, test, expect, mock, afterEach } from 'bun:test';
+import { fetchPrice, getCachedPrice, type PriceData } from './price';
 
 const originalFetch = globalThis.fetch;
 
@@ -31,7 +31,7 @@ function mockFetchOnce(status: number, body: unknown): void {
     async () =>
       new Response(JSON.stringify(body), {
         status,
-        headers: { "content-type": "application/json" },
+        headers: { 'content-type': 'application/json' },
       }),
   ) as unknown as typeof fetch;
 }
@@ -49,20 +49,20 @@ const LIVE_PAYLOAD = {
   volume24h: null,
   liquidityUsd: 2454.137501565,
   marketCapUsd: null,
-  source: "wfair-base",
-  updatedAt: "2026-07-30T16:15:06.186Z",
+  source: 'wfair-base',
+  updatedAt: '2026-07-30T16:15:06.186Z',
 } as const;
 
 /** Put a known quote in the module cache and return it. */
 async function primeCache(usd: number): Promise<PriceData> {
   mockFetchOnce(200, { ...LIVE_PAYLOAD, price: usd });
   const primed = await fetchPrice();
-  if (primed === null) throw new Error("could not prime the price cache");
+  if (primed === null) throw new Error('could not prime the price cache');
   return primed;
 }
 
-describe("fetchPrice", () => {
-  test("parses the real explorer payload", async () => {
+describe('fetchPrice', () => {
+  test('parses the real explorer payload', async () => {
     mockFetchOnce(200, LIVE_PAYLOAD);
 
     const price = await fetchPrice();
@@ -71,10 +71,10 @@ describe("fetchPrice", () => {
     // The assertion the old parser failed: a usable number, not `undefined`.
     expect(price?.usd).toBe(0.4908275003129989);
     expect(Number.isFinite(price?.usd)).toBe(true);
-    expect(price?.timestamp).toBe(Date.parse("2026-07-30T16:15:06.186Z"));
+    expect(price?.timestamp).toBe(Date.parse('2026-07-30T16:15:06.186Z'));
   });
 
-  test("a fiat conversion off the parsed price is a number, not NaN", async () => {
+  test('a fiat conversion off the parsed price is a number, not NaN', async () => {
     mockFetchOnce(200, LIVE_PAYLOAD);
 
     const price = await fetchPrice();
@@ -87,7 +87,7 @@ describe("fetchPrice", () => {
     expect(fiat).toBeCloseTo(0.9816550006259978, 12);
   });
 
-  test("keeps a zero change24h rather than turning it into null", async () => {
+  test('keeps a zero change24h rather than turning it into null', async () => {
     mockFetchOnce(200, LIVE_PAYLOAD);
 
     const price = await fetchPrice();
@@ -97,7 +97,7 @@ describe("fetchPrice", () => {
     expect(price?.change24h).toBe(0);
   });
 
-  test("carries a real change24h through", async () => {
+  test('carries a real change24h through', async () => {
     mockFetchOnce(200, { ...LIVE_PAYLOAD, price: 1.5, change24h: -3.25 });
 
     const price = await fetchPrice();
@@ -105,17 +105,17 @@ describe("fetchPrice", () => {
     expect(price?.change24h).toBe(-3.25);
   });
 
-  test("ignores unknown fields the server may add", async () => {
-    mockFetchOnce(200, { ...LIVE_PAYLOAD, price: 2.5, someNewField: "ignored" });
+  test('ignores unknown fields the server may add', async () => {
+    mockFetchOnce(200, { ...LIVE_PAYLOAD, price: 2.5, someNewField: 'ignored' });
 
     const price = await fetchPrice();
 
     expect(price?.usd).toBe(2.5);
   });
 
-  test("falls back to now when updatedAt is absent or unparseable", async () => {
+  test('falls back to now when updatedAt is absent or unparseable', async () => {
     const before = Date.now();
-    mockFetchOnce(200, { price: 3.5, change24h: null, updatedAt: "not-a-date" });
+    mockFetchOnce(200, { price: 3.5, change24h: null, updatedAt: 'not-a-date' });
 
     const price = await fetchPrice();
 
@@ -123,7 +123,7 @@ describe("fetchPrice", () => {
     expect(price?.timestamp).toBeGreaterThanOrEqual(before);
   });
 
-  test("keeps the last good quote when every source is down (price: null)", async () => {
+  test('keeps the last good quote when every source is down (price: null)', async () => {
     const primed = await primeCache(4.5);
     mockFetchOnce(200, { ...LIVE_PAYLOAD, price: null });
 
@@ -135,14 +135,14 @@ describe("fetchPrice", () => {
     expect(getCachedPrice()).toEqual(primed);
   });
 
-  test("keeps the last good quote on a non-OK response", async () => {
+  test('keeps the last good quote on a non-OK response', async () => {
     const primed = await primeCache(5.5);
     mockFetchOnce(500, {});
 
     expect(await fetchPrice()).toEqual(primed);
   });
 
-  test("keeps the last good quote on a body it cannot read", async () => {
+  test('keeps the last good quote on a body it cannot read', async () => {
     const primed = await primeCache(6.5);
     // The OLD wire shape. If this were ever restored server-side the app should
     // hold its last quote rather than publish `undefined`.
@@ -151,22 +151,22 @@ describe("fetchPrice", () => {
     expect(await fetchPrice()).toEqual(primed);
   });
 
-  test("keeps the last good quote when the network throws", async () => {
+  test('keeps the last good quote when the network throws', async () => {
     const primed = await primeCache(8.5);
     globalThis.fetch = mock(async () => {
-      throw new Error("offline");
+      throw new Error('offline');
     }) as unknown as typeof fetch;
 
     expect(await fetchPrice()).toEqual(primed);
   });
 
-  test("returns the same object identity when the quote has not moved", async () => {
+  test('returns the same object identity when the quote has not moved', async () => {
     const primed = await primeCache(9.5);
     mockFetchOnce(200, {
       ...LIVE_PAYLOAD,
       price: 9.5,
       // A later observation of an unchanged quote.
-      updatedAt: "2026-07-30T18:00:00.000Z",
+      updatedAt: '2026-07-30T18:00:00.000Z',
     });
 
     const price = await fetchPrice();

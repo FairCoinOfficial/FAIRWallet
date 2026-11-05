@@ -6,24 +6,18 @@
  * the welcome screen and the settings screen.
  */
 
-import { useCallback, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  StyleSheet,
-} from "react-native";
-import { SafeAreaView } from "../src/ui/safe-area-view";
-import { useRouter } from "expo-router";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { FlashList, type ListRenderItem } from "@shopify/flash-list";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { EmptyState, ScreenHeader } from "../src/ui/components";
-import { SUPPORTED_LANGUAGES, t, type LanguageOption } from "../src/i18n";
-import { useLanguageStore } from "../src/i18n/store";
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { SafeAreaView } from '../src/ui/safe-area-view';
+import { useRouter } from 'expo-router';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { FlashList, type ListRenderItem } from '@shopify/flash-list';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { EmptyState, ScreenHeader } from '../src/ui/components';
+import { SUPPORTED_LANGUAGES, t, type LanguageOption } from '../src/i18n';
+import { useLanguageStore } from '../src/i18n/store';
 
-const CONTENT_MAX_WIDTH_CLASS = "w-full max-w-[600px] mx-auto";
+const CONTENT_MAX_WIDTH_CLASS = 'w-full max-w-[600px] mx-auto';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -71,13 +65,13 @@ function LanguageRow({ option, selected, isLast, onPress }: LanguageRowProps) {
       }
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={t("language.selectAccessibility", {
+      accessibilityLabel={t('language.selectAccessibility', {
         name: option.englishName,
       })}
     >
       <View
         className={`w-9 h-9 rounded-full items-center justify-center ${
-          selected ? "bg-primary/10" : "bg-background"
+          selected ? 'bg-primary/10' : 'bg-background'
         }`}
       >
         <Text className="text-lg" accessibilityElementsHidden>
@@ -86,9 +80,7 @@ function LanguageRow({ option, selected, isLast, onPress }: LanguageRowProps) {
       </View>
       <View className="flex-1 ml-3">
         <Text
-          className={`text-base font-medium ${
-            selected ? "text-primary" : "text-foreground"
-          }`}
+          className={`text-base font-medium ${selected ? 'text-primary' : 'text-foreground'}`}
           numberOfLines={1}
         >
           {option.nativeName}
@@ -98,11 +90,7 @@ function LanguageRow({ option, selected, isLast, onPress }: LanguageRowProps) {
         </Text>
       </View>
       {selected ? (
-        <MaterialCommunityIcons
-          name="check"
-          size={20}
-          color={theme.colors.primary}
-        />
+        <MaterialCommunityIcons name="check" size={20} color={theme.colors.primary} />
       ) : null}
     </Pressable>
   );
@@ -117,11 +105,10 @@ export default function LanguageScreen() {
   const theme = useTheme();
   const language = useLanguageStore((s) => s.language);
   const setLanguage = useLanguageStore((s) => s.setLanguage);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
 
   const filtered = useMemo(
-    () =>
-      SUPPORTED_LANGUAGES.filter((option) => matchesQuery(option, query)),
+    () => SUPPORTED_LANGUAGES.filter((option) => matchesQuery(option, query)),
     [query],
   );
 
@@ -140,7 +127,7 @@ export default function LanguageScreen() {
   );
 
   const handleClearQuery = useCallback(() => {
-    setQuery("");
+    setQuery('');
   }, []);
 
   const renderItem = useCallback<ListRenderItem<LanguageOption>>(
@@ -155,30 +142,20 @@ export default function LanguageScreen() {
     [language, filtered.length, handleSelect],
   );
 
-  const keyExtractor = useCallback(
-    (item: LanguageOption) => item.code,
-    [],
-  );
+  const keyExtractor = useCallback((item: LanguageOption) => item.code, []);
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-background"
-      edges={["top", "bottom", "left", "right"]}
-    >
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom', 'left', 'right']}>
       <View className={`flex-1 ${CONTENT_MAX_WIDTH_CLASS}`}>
-        <ScreenHeader title={t("language.title")} onBack={handleBack} />
+        <ScreenHeader title={t('language.title')} onBack={handleBack} />
 
         {/* Search pill */}
         <View className="px-4 pt-1 pb-3">
           <View className="flex-row items-center bg-surface px-4 rounded-full min-h-[48px]">
-            <MaterialCommunityIcons
-              name="magnify"
-              size={22}
-              color={theme.colors.textSecondary}
-            />
+            <MaterialCommunityIcons name="magnify" size={22} color={theme.colors.textSecondary} />
             <TextInput
               className="flex-1 text-foreground text-base ml-3 py-2"
-              placeholder={t("language.searchPlaceholder")}
+              placeholder={t('language.searchPlaceholder')}
               placeholderTextColor={theme.colors.textSecondary}
               value={query}
               onChangeText={setQuery}
@@ -190,7 +167,7 @@ export default function LanguageScreen() {
               <Pressable
                 onPress={handleClearQuery}
                 className="w-8 h-8 items-center justify-center rounded-full active:bg-background"
-                accessibilityLabel={t("language.clearSearchAccessibility")}
+                accessibilityLabel={t('language.clearSearchAccessibility')}
               >
                 <MaterialCommunityIcons
                   name="close-circle"
@@ -204,7 +181,7 @@ export default function LanguageScreen() {
 
         {filtered.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
-            <EmptyState icon="magnify" title={t("language.noResults")} />
+            <EmptyState icon="magnify" title={t('language.noResults')} />
           </View>
         ) : (
           <View className="flex-1 mb-4">

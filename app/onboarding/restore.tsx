@@ -2,16 +2,16 @@
  * Restore wallet screen — clean mnemonic input with word count feedback.
  */
 
-import { useCallback, useMemo, useState } from "react";
-import { View, Text, TextInput, ScrollView, Pressable } from "react-native";
-import { useRouter } from "expo-router";
-import { SafeAreaView } from "../../src/ui/safe-area-view";
-import * as Clipboard from "expo-clipboard";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useWalletStore } from "../../src/wallet/wallet-store";
-import { Button } from "../../src/ui/components/Button";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { t } from "../../src/i18n";
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, TextInput, ScrollView, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from '../../src/ui/safe-area-view';
+import * as Clipboard from 'expo-clipboard';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useWalletStore } from '../../src/wallet/wallet-store';
+import { Button } from '../../src/ui/components/Button';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { t } from '../../src/i18n';
 
 export default function RestoreWalletScreen() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function RestoreWalletScreen() {
   const loading = useWalletStore((s) => s.loading);
   const theme = useTheme();
 
-  const [mnemonicInput, setMnemonicInput] = useState("");
+  const [mnemonicInput, setMnemonicInput] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const wordCount = useMemo(() => {
@@ -41,7 +41,7 @@ export default function RestoreWalletScreen() {
         setError(null);
       }
     } catch {
-      setError(t("onboarding.restore.error.clipboard"));
+      setError(t('onboarding.restore.error.clipboard'));
     }
   }, []);
 
@@ -49,18 +49,17 @@ export default function RestoreWalletScreen() {
     setError(null);
     try {
       await restoreWallet(mnemonicInput);
-      router.replace("/onboarding/pin-setup");
+      router.replace('/onboarding/pin-setup');
     } catch (e: unknown) {
-      const msg =
-        e instanceof Error ? e.message : t("onboarding.restore.error.failed");
+      const msg = e instanceof Error ? e.message : t('onboarding.restore.error.failed');
       setError(msg);
     }
   }, [mnemonicInput, restoreWallet, router]);
 
   const wordCountColor = useMemo(() => {
-    if (wordCount === 0) return "text-muted-foreground";
-    if (isValidCount) return "text-primary";
-    return "text-muted-foreground";
+    if (wordCount === 0) return 'text-muted-foreground';
+    if (isValidCount) return 'text-primary';
+    return 'text-muted-foreground';
   }, [wordCount, isValidCount]);
 
   return (
@@ -73,17 +72,17 @@ export default function RestoreWalletScreen() {
       >
         {/* Header */}
         <Text className="text-foreground text-xl font-bold mb-2 text-center">
-          {t("onboarding.restore.title")}
+          {t('onboarding.restore.title')}
         </Text>
         <Text className="text-muted-foreground text-sm mb-8 text-center leading-5">
-          {t("onboarding.restore.description")}
+          {t('onboarding.restore.description')}
         </Text>
 
         {/* Mnemonic input area */}
         <View className="bg-surface border border-border rounded-2xl p-5 mb-4">
           <TextInput
             className="text-foreground text-base leading-6 min-h-[140px] font-mono"
-            placeholder={t("onboarding.restore.phrasePlaceholder")}
+            placeholder={t('onboarding.restore.phrasePlaceholder')}
             placeholderTextColor={theme.colors.textSecondary}
             value={mnemonicInput}
             onChangeText={setMnemonicInput}
@@ -99,20 +98,16 @@ export default function RestoreWalletScreen() {
         <View className="flex-row items-center justify-between mb-6">
           <Text className={`text-sm font-medium ${wordCountColor}`}>
             {wordCount === 1
-              ? t("onboarding.restore.wordCount.one", { count: wordCount })
-              : t("onboarding.restore.wordCount.other", { count: wordCount })}
+              ? t('onboarding.restore.wordCount.one', { count: wordCount })
+              : t('onboarding.restore.wordCount.other', { count: wordCount })}
           </Text>
           <Pressable
             className="flex-row items-center gap-2 bg-surface border border-border rounded-full px-4 py-2 active:bg-primary/10"
             onPress={handlePaste}
           >
-            <MaterialCommunityIcons
-              name="content-paste"
-              size={16}
-              color={theme.colors.primary}
-            />
+            <MaterialCommunityIcons name="content-paste" size={16} color={theme.colors.primary} />
             <Text className="text-primary text-sm font-medium">
-              {t("onboarding.restore.pasteCta")}
+              {t('onboarding.restore.pasteCta')}
             </Text>
           </Pressable>
         </View>
@@ -125,15 +120,13 @@ export default function RestoreWalletScreen() {
               size={20}
               color={theme.colors.error}
             />
-            <Text className="text-red-400 text-sm flex-1 leading-5">
-              {error}
-            </Text>
+            <Text className="text-red-400 text-sm flex-1 leading-5">{error}</Text>
           </View>
         ) : null}
 
         {/* Restore button */}
         <Button
-          title={t("onboarding.restoreCta")}
+          title={t('onboarding.restoreCta')}
           onPress={handleRestore}
           variant="primary"
           size="lg"

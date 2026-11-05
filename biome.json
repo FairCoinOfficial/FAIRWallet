@@ -72,12 +72,7 @@
   },
   "overrides": [
     {
-      "includes": [
-        "**/*.js",
-        "**/*.jsx",
-        "**/*.cjs",
-        "**/*.mjs"
-      ],
+      "includes": ["**/*.js", "**/*.jsx", "**/*.cjs", "**/*.mjs"],
       "linter": {
         "rules": {
           "correctness": {
