@@ -2,7 +2,7 @@
 
 Lightweight SPV wallet for [FairCoin](https://fairco.in) — cross-platform (Android, iOS, Desktop).
 
-Built with Expo SDK 55, React Native 0.83, and pure TypeScript cryptography.
+Built with Expo SDK 58, React Native 0.88, and pure TypeScript cryptography.
 
 ## Features
 
@@ -31,15 +31,15 @@ Built with Expo SDK 55, React Native 0.83, and pure TypeScript cryptography.
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Expo SDK 55, React Native 0.83 |
+| Framework | Expo SDK 58, React Native 0.88 (New Architecture) |
 | Navigation | expo-router with native tabs (NativeTabs on Android/iOS, headless on web) |
-| Styling | NativeWind 4.x (Tailwind CSS) |
+| Styling | NativeWind 5 (Tailwind CSS 4) |
 | State | Zustand 5 |
 | Crypto | `@noble/secp256k1` 2.x, `@noble/hashes` 1.8, `@scure/bip32` 1.7, `@scure/bip39` 1.6 |
 | Storage | expo-secure-store (native keychain), expo-sqlite (chain data) |
 | P2P | Custom SPV client over TCP (react-native-tcp-socket on mobile, Node.js net on Electron) |
-| Map | `@maplibre/maplibre-react-native` v10 with Carto vector tiles (no API key) |
-| UI kit | `@oxy.so/bloom` (theme, prompt dialogs) |
+| Map | `@maplibre/maplibre-react-native` v11 with Carto vector tiles (no API key) |
+| UI kit | `@oxy.so/bloom` 17 (theme, buttons, dialogs, toasts, tab bar and rail) |
 | Lists | `@shopify/flash-list` v2 with `@gorhom/bottom-sheet` v5 integration |
 | Animation | `react-native-reanimated` 4.x |
 | Desktop | Electron with custom `app://` protocol for proper SPA routing |
@@ -185,8 +185,8 @@ FAIRWallet/
 ├── electron/               # Desktop wrapper
 │   ├── main.js             # Custom app:// protocol + TCP P2P + safeStorage
 │   └── preload.js          # contextBridge API
-├── plugins/
-│   └── withGradle813.js    # Expo config plugin: Gradle 9→8.13 downgrade
+├── modules/
+│   └── fairwallet-widgets/ # Android home-screen widgets (Expo module, Jetpack Glance)
 ├── .github/workflows/
 │   ├── build-android.yml   # APK build on release
 │   └── build-desktop.yml   # Electron builds on release
