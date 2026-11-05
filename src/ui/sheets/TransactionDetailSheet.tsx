@@ -304,10 +304,11 @@ export function TransactionDetailSheet({ txid }: { txid: string }): React.JSX.El
         </View>
         <View className="mt-2.5">
           <BloomButton
-            variant="secondary"
             size="sm"
             onPress={handleSaveNote}
             style={{ width: '100%' }}
+            tone="neutral"
+            appearance="outline"
           >
             {t('transaction.saveNote')}
           </BloomButton>
@@ -318,21 +319,23 @@ export function TransactionDetailSheet({ txid }: { txid: string }): React.JSX.El
           row above, so no separate copy button here. */}
       <View className="gap-3">
         <BloomButton
-          variant="secondary"
           onPress={handleViewExplorer}
           style={{ width: '100%' }}
           icon={<MaterialCommunityIcons name="open-in-new" size={18} color={theme.colors.text} />}
+          tone="neutral"
+          appearance="outline"
         >
           {t('transaction.viewExplorer')}
         </BloomButton>
         {!contact && contactChecked ? (
           <BloomButton
-            variant="outline"
             onPress={handleAddToContacts}
             style={{ width: '100%' }}
             icon={
               <MaterialCommunityIcons name="account-plus" size={18} color={theme.colors.primary} />
             }
+            tone="neutral"
+            appearance="outline"
           >
             {t('transaction.addToContacts')}
           </BloomButton>

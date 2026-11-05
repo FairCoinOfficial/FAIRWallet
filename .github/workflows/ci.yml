@@ -38,6 +38,12 @@ jobs:
       - name: Lint (Expo env vars)
         run: bunx expo lint .
 
+      # One copy of every package one version can serve and of every package
+      # that must be single (@oxy.so/*, react, react-native, expo, zod, ...),
+      # and Oxy releases inside their upgrade window.
+      - name: Oxy dependency health (oxy-doctor)
+        run: bun run doctor:oxy
+
       - name: Typecheck
         run: bun run typecheck
 

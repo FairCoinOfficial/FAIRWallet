@@ -11,18 +11,26 @@
 import { useCallback } from 'react';
 import type { ViewStyle } from 'react-native';
 import { Button as BloomButton } from '@oxy.so/bloom/button';
-import type { ButtonVariant as BloomButtonVariant } from '@oxy.so/bloom/button';
+import type { ButtonProps as BloomButtonProps } from '@oxy.so/bloom/button';
 import { hapticImpact } from '../../utils/haptics';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-const VARIANT_MAP: Record<ButtonVariant, BloomButtonVariant> = {
-  primary: 'primary',
-  secondary: 'secondary',
-  danger: 'destructive',
-  outline: 'outline',
-  ghost: 'ghost',
+/**
+ * Each app variant as Bloom's `appearance` + `tone` pair. These are the pairs
+ * Bloom's own migration (`unify-bloom-api`) maps its old variant names to:
+ * primary, secondary, destructive, outline and ghost respectively.
+ */
+const VARIANT_MAP: Record<
+  ButtonVariant,
+  Required<Pick<BloomButtonProps, 'appearance' | 'tone'>>
+> = {
+  primary: { appearance: 'solid', tone: 'accent' },
+  secondary: { appearance: 'outline', tone: 'neutral' },
+  danger: { appearance: 'solid', tone: 'danger' },
+  outline: { appearance: 'outline', tone: 'neutral' },
+  ghost: { appearance: 'subtle', tone: 'accent' },
 };
 
 interface ButtonProps {
@@ -57,7 +65,8 @@ export function Button({
 
   return (
     <BloomButton
-      variant={VARIANT_MAP[variant]}
+      appearance={VARIANT_MAP[variant].appearance}
+      tone={VARIANT_MAP[variant].tone}
       size={size}
       onPress={handlePress}
       disabled={disabled}
