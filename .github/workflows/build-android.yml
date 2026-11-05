@@ -87,6 +87,9 @@ jobs:
           RELEASE_TAG: ${{ github.event.inputs.release_tag }}
         run: |
           VERSION="${GITHUB_REF_NAME:-${RELEASE_TAG:-dev}}"
+          # A branch run names the APK after the branch, and a `/` in it would
+          # be a directory.
+          VERSION="${VERSION//\//-}"
           mkdir -p apk-output
           for apk in $(find android/app/build/outputs/apk/release -name "*.apk"); do
             filename=$(basename "$apk")
