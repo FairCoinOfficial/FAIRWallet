@@ -12,7 +12,7 @@ import { StyleSheet, View } from "react-native";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { TabBar, TabBarButton } from "@oxy.so/bloom/tab-bar";
 import { useTheme } from "@oxy.so/bloom/theme";
-import { WalletTabIcon, walletTabLabel, type WalletTabName } from "./tabs";
+import { selectWalletTab, WalletTabIcon, walletTabLabel, type WalletTabName } from "./tabs";
 
 /**
  * Ceiling on the pill's width. Bloom sizes the bar from the window, so on a
@@ -26,7 +26,8 @@ const ICON_SIZE = 21;
 
 export function WalletTabBar({
   state,
-  navigation,
+  emitter,
+  navigateToTab,
   tabs,
 }: BottomTabBarProps & { tabs: readonly WalletTabName[] }) {
   const theme = useTheme();
@@ -40,9 +41,9 @@ export function WalletTabBar({
   const handleIndexChange = useCallback(
     (index: number) => {
       const name = tabs[index];
-      if (name !== undefined) navigation.navigate(name);
+      if (name !== undefined) selectWalletTab({ state, emitter, navigateToTab }, name);
     },
-    [navigation, tabs],
+    [state, emitter, navigateToTab, tabs],
   );
 
   return (

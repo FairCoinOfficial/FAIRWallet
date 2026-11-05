@@ -12,13 +12,14 @@ import { useCallback } from "react";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { Rail } from "@oxy.so/bloom/rail";
 import { useTheme } from "@oxy.so/bloom/theme";
-import { WalletTabIcon, walletTabLabel, type WalletTabName } from "./tabs";
+import { selectWalletTab, WalletTabIcon, walletTabLabel, type WalletTabName } from "./tabs";
 
 const ICON_SIZE = 24;
 
 export function WalletRail({
   state,
-  navigation,
+  emitter,
+  navigateToTab,
   tabs,
 }: BottomTabBarProps & { tabs: readonly WalletTabName[] }) {
   const theme = useTheme();
@@ -26,9 +27,9 @@ export function WalletRail({
 
   const handleSelect = useCallback(
     (id: string) => {
-      navigation.navigate(id);
+      selectWalletTab({ state, emitter, navigateToTab }, id);
     },
-    [navigation],
+    [state, emitter, navigateToTab],
   );
 
   return (

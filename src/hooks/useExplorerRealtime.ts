@@ -6,7 +6,7 @@
  */
 
 import { useEffect } from "react";
-import { AppState, type AppStateStatus } from "react-native";
+import { AppState } from "react-native";
 import { useWalletStore } from "../wallet/wallet-store";
 import { explorerSocket } from "../services/explorer-socket";
 
@@ -16,7 +16,9 @@ export function useExplorerRealtime(): void {
   // Foreground/background lifecycle. Runs once; the current network is read
   // imperatively from the store so this never captures a stale value.
   useEffect(() => {
-    const applyState = (status: AppStateStatus) => {
+    // `AppState.currentState` is typed `string | null | undefined` (React
+    // Native 0.88): anything but "active" counts as backgrounded.
+    const applyState = (status: string | null | undefined) => {
       if (status === "active") {
         explorerSocket.start(useWalletStore.getState().network);
       } else {

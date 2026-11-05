@@ -9,6 +9,7 @@
  */
 
 import { Platform, useWindowDimensions } from "react-native";
+import type { BottomTabBarProps } from "expo-router/tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useTabBarFootprint } from "@oxy.so/bloom/tab-bar";
@@ -107,4 +108,21 @@ export function useTabScreenBottomInset(): number {
   const footprint = useTabBarFootprint();
   const insets = useSafeAreaInsets();
   return layout === "bar" ? footprint : insets.bottom;
+}
+
+/**
+ * Select a tab by its route name the way the navigator's own bar does: emit a
+ * cancelable `tabPress`, then switch unless the tab is already focused or a
+ * listener prevented it. Expo Router 58 hands a custom `tabBar` the navigator's
+ * `emitter` and `navigateToTab(routeKey)` rather than a `navigation` object.
+ */
+export function selectWalletTab(
+  { state, emitter, navigateToTab }: Pick<BottomTabBarProps, "state" | "emitter" | "navigateToTab">,
+  name: string,
+): void {
+  const index = state.routes.findIndex((route) => route.name === name);
+  const route = state.routes[index];
+  if (route === undefined) return;
+  const event = emitter.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+  if (index !== state.index && !event.defaultPrevented) navigateToTab(route.key);
 }
