@@ -605,7 +605,7 @@ export default function SettingsScreen() {
             icon={<RowIcon name="fingerprint" />}
             showChevron={false}
             rightElement={
-              <Switch value={biometricsEnabled} onValueChange={handleToggleBiometrics} />
+              <Switch checked={biometricsEnabled} onCheckedChange={handleToggleBiometrics} />
             }
           />
           <SettingsListItem

@@ -201,7 +201,7 @@ export default function NotificationsSettingsScreen() {
               iconColor={colors.primary}
               iconBg="bg-primary/10"
               showChevron={false}
-              trailing={<Switch value={enabled} onValueChange={handleToggleEnabled} />}
+              trailing={<Switch checked={enabled} onCheckedChange={handleToggleEnabled} />}
               isLast
             />
           </View>
@@ -271,8 +271,8 @@ export default function NotificationsSettingsScreen() {
                     showChevron={false}
                     trailing={
                       <Switch
-                        value={events.includes(row.event)}
-                        onValueChange={(on) => handleToggleEvent(row.event, on)}
+                        checked={events.includes(row.event)}
+                        onCheckedChange={(on) => handleToggleEvent(row.event, on)}
                       />
                     }
                     isLast={idx === EVENT_ROWS.length - 1}
