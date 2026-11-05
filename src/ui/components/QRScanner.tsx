@@ -9,17 +9,11 @@
  * scan line, a circular close button and a torch toggle.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  Modal,
-  useWindowDimensions,
-} from "react-native";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, Modal, useWindowDimensions } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -27,10 +21,10 @@ import Animated, {
   withTiming,
   Easing,
   cancelAnimation,
-} from "react-native-reanimated";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { Button } from "./Button";
-import { t } from "../../i18n";
+} from 'react-native-reanimated';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Button } from './Button';
+import { t } from '../../i18n';
 
 interface QRScannerProps {
   visible: boolean;
@@ -58,10 +52,10 @@ function parseScannedData(data: string): string | null {
   const trimmed = data.trim();
 
   // faircoin: URI scheme
-  if (trimmed.toLowerCase().startsWith("faircoin:")) {
-    const withoutScheme = trimmed.slice("faircoin:".length);
+  if (trimmed.toLowerCase().startsWith('faircoin:')) {
+    const withoutScheme = trimmed.slice('faircoin:'.length);
     // Strip query params if present
-    const address = withoutScheme.split("?")[0];
+    const address = withoutScheme.split('?')[0];
     if (address && address.length >= 25) {
       return address;
     }
@@ -70,7 +64,7 @@ function parseScannedData(data: string): string | null {
 
   // Raw address starting with F (mainnet) or T (testnet)
   if (
-    (trimmed.startsWith("F") || trimmed.startsWith("T")) &&
+    (trimmed.startsWith('F') || trimmed.startsWith('T')) &&
     trimmed.length >= 25 &&
     trimmed.length <= 36
   ) {
@@ -81,20 +75,20 @@ function parseScannedData(data: string): string | null {
 }
 
 interface CornerIndicatorProps {
-  position: "tl" | "tr" | "bl" | "br";
+  position: 'tl' | 'tr' | 'bl' | 'br';
 }
 
 function CornerIndicator({ position }: CornerIndicatorProps) {
   // Each corner is an L-shape built from a horizontal and a vertical bar.
   // The bars share a rounded "knee" by using matching border radii.
-  const isTop = position === "tl" || position === "tr";
-  const isLeft = position === "tl" || position === "bl";
+  const isTop = position === 'tl' || position === 'tr';
+  const isLeft = position === 'tl' || position === 'bl';
 
   const horizontalStyle = {
-    position: "absolute" as const,
+    position: 'absolute' as const,
     width: CORNER_LENGTH,
     height: CORNER_THICKNESS,
-    backgroundColor: "#ffffff",
+    backgroundColor: '#ffffff',
     top: isTop ? 0 : undefined,
     bottom: isTop ? undefined : 0,
     left: isLeft ? 0 : undefined,
@@ -106,10 +100,10 @@ function CornerIndicator({ position }: CornerIndicatorProps) {
   };
 
   const verticalStyle = {
-    position: "absolute" as const,
+    position: 'absolute' as const,
     width: CORNER_THICKNESS,
     height: CORNER_LENGTH,
-    backgroundColor: "#ffffff",
+    backgroundColor: '#ffffff',
     top: isTop ? 0 : undefined,
     bottom: isTop ? undefined : 0,
     left: isLeft ? 0 : undefined,
@@ -121,7 +115,7 @@ function CornerIndicator({ position }: CornerIndicatorProps) {
   };
 
   const containerStyle = {
-    position: "absolute" as const,
+    position: 'absolute' as const,
     width: CORNER_LENGTH,
     height: CORNER_LENGTH,
     top: isTop ? -CORNER_THICKNESS : undefined,
@@ -180,7 +174,7 @@ function ScanLine({ color, active }: ScanLineProps) {
       pointerEvents="none"
       style={[
         {
-          position: "absolute",
+          position: 'absolute',
           left: SCAN_LINE_INSET,
           right: SCAN_LINE_INSET,
           top: SCAN_LINE_INSET,
@@ -260,25 +254,19 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
       <View className="flex-1 bg-black">
         {permission === null ? (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-white text-base">
-              {t("qrScanner.checking")}
-            </Text>
+            <Text className="text-white text-base">{t('qrScanner.checking')}</Text>
           </View>
         ) : !permission.granted ? (
           <View className="flex-1 items-center justify-center px-8">
             <View className="w-full max-w-sm rounded-3xl bg-white/5 p-6 items-center">
               <View className="w-14 h-14 rounded-full bg-white/10 items-center justify-center mb-4">
-                <MaterialCommunityIcons
-                  name="camera-off-outline"
-                  size={28}
-                  color="#ffffff"
-                />
+                <MaterialCommunityIcons name="camera-off-outline" size={28} color="#ffffff" />
               </View>
               <Text className="text-white text-base text-center mb-6">
-                {t("qrScanner.permissionPrompt")}
+                {t('qrScanner.permissionPrompt')}
               </Text>
               <Button
-                title={t("qrScanner.grantCta")}
+                title={t('qrScanner.grantCta')}
                 onPress={requestPermission}
                 variant="primary"
               />
@@ -290,7 +278,7 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
             facing="back"
             enableTorch={torchOn}
             barcodeScannerSettings={{
-              barcodeTypes: ["qr"],
+              barcodeTypes: ['qr'],
             }}
             onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
           />
@@ -355,11 +343,9 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
               className="absolute left-0 right-0 items-center px-6"
               style={{ top: topInset + 12 }}
             >
-              <Text className="text-white text-lg font-medium">
-                {t("qrScanner.title")}
-              </Text>
+              <Text className="text-white text-lg font-medium">{t('qrScanner.title')}</Text>
               <Text className="text-white/70 text-sm mt-1 text-center">
-                {t("qrScanner.subtitle")}
+                {t('qrScanner.subtitle')}
               </Text>
             </View>
 
@@ -368,15 +354,11 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
               onPress={handleClose}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel={t("qrScanner.closeAccessibility")}
+              accessibilityLabel={t('qrScanner.closeAccessibility')}
               className="absolute w-11 h-11 rounded-full bg-white/10 items-center justify-center"
               style={{ top: topInset + 4, right: 16 }}
             >
-              <MaterialCommunityIcons
-                name="close"
-                size={24}
-                color="#ffffff"
-              />
+              <MaterialCommunityIcons name="close" size={24} color="#ffffff" />
             </Pressable>
 
             {/* Bottom torch toggle */}
@@ -391,17 +373,17 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
                 accessibilityRole="button"
                 accessibilityLabel={
                   torchOn
-                    ? t("qrScanner.torchOffAccessibility")
-                    : t("qrScanner.torchOnAccessibility")
+                    ? t('qrScanner.torchOffAccessibility')
+                    : t('qrScanner.torchOnAccessibility')
                 }
                 className={`w-12 h-12 rounded-full items-center justify-center ${
-                  torchOn ? "bg-white" : "bg-white/10"
+                  torchOn ? 'bg-white' : 'bg-white/10'
                 }`}
               >
                 <MaterialCommunityIcons
-                  name={torchOn ? "flashlight-off" : "flashlight"}
+                  name={torchOn ? 'flashlight-off' : 'flashlight'}
                   size={24}
-                  color={torchOn ? "#000000" : "#ffffff"}
+                  color={torchOn ? '#000000' : '#ffffff'}
                 />
               </Pressable>
             </View>
@@ -412,7 +394,7 @@ export function QRScanner({ visible, onScan, onClose }: QRScannerProps) {
             onPress={handleClose}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel={t("qrScanner.closeAccessibility")}
+            accessibilityLabel={t('qrScanner.closeAccessibility')}
             className="absolute w-11 h-11 rounded-full bg-white/10 items-center justify-center"
             style={{ top: topInset + 4, right: 16 }}
           >

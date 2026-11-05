@@ -20,12 +20,12 @@
  * signal and the bar that reads it.
  */
 
-import { Tabs } from "expo-router/tabs";
-import { TabBarMinimizeProvider } from "@oxy.so/bloom/tab-bar";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { WalletRail } from "../../src/ui/navigation/WalletRail";
-import { WalletTabBar } from "../../src/ui/navigation/WalletTabBar";
-import { WALLET_TABS, useWalletNavLayout } from "../../src/ui/navigation/tabs";
+import { Tabs } from 'expo-router/tabs';
+import { TabBarMinimizeProvider } from '@oxy.so/bloom/tab-bar';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { WalletRail } from '../../src/ui/navigation/WalletRail';
+import { WalletTabBar } from '../../src/ui/navigation/WalletTabBar';
+import { WALLET_TABS, useWalletNavLayout } from '../../src/ui/navigation/tabs';
 
 export default function TabLayout() {
   const theme = useTheme();
@@ -36,11 +36,15 @@ export default function TabLayout() {
     <TabBarMinimizeProvider>
       <Tabs
         tabBar={(props) =>
-          layout === "rail" ? <WalletRail {...props} tabs={tabs} /> : <WalletTabBar {...props} tabs={tabs} />
+          layout === 'rail' ? (
+            <WalletRail {...props} tabs={tabs} />
+          ) : (
+            <WalletTabBar {...props} tabs={tabs} />
+          )
         }
         screenOptions={{
           headerShown: false,
-          tabBarPosition: layout === "rail" ? "left" : "bottom",
+          tabBarPosition: layout === 'rail' ? 'left' : 'bottom',
           sceneStyle: { backgroundColor: theme.colors.background },
         }}
       >

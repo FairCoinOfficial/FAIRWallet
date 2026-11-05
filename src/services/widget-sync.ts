@@ -16,13 +16,13 @@
  * installed.
  */
 
-import { useWalletStore } from "../wallet/wallet-store";
+import { useWalletStore } from '../wallet/wallet-store';
 import {
   forgetWalletWidgets,
   syncWalletWidgets,
   areWalletWidgetsSupported,
-} from "../../modules/fairwallet-widgets";
-import { getCachedPrice, subscribeToPrice } from "./price";
+} from '../../modules/fairwallet-widgets';
+import { getCachedPrice, subscribeToPrice } from './price';
 
 /**
  * The Pocket's display name for the account currently selected.
@@ -34,7 +34,7 @@ import { getCachedPrice, subscribeToPrice } from "./price";
  */
 function activePocketName(state: ReturnType<typeof useWalletStore.getState>): string {
   const pocket = state.pockets.find((entry) => entry.account === state.activeAccount);
-  return pocket?.name ?? state.activeWalletName ?? "";
+  return pocket?.name ?? state.activeWalletName ?? '';
 }
 
 /**

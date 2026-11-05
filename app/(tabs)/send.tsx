@@ -8,11 +8,11 @@
  * into the sheet content so they prefill the form.
  */
 
-import { View, ScrollView } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTabScreenBottomInset } from "../../src/ui/navigation/tabs";
-import { useLocalSearchParams } from "expo-router";
-import { SendSheet } from "../../src/ui/sheets/SendSheet";
+import { View, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabScreenBottomInset } from '../../src/ui/navigation/tabs';
+import { useLocalSearchParams } from 'expo-router';
+import { SendSheet } from '../../src/ui/sheets/SendSheet';
 
 export default function SendScreen() {
   const insets = useSafeAreaInsets();

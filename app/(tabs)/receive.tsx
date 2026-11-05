@@ -7,10 +7,10 @@
  * own scroll — while the standalone route still owns that chrome.
  */
 
-import { View, ScrollView } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTabScreenBottomInset } from "../../src/ui/navigation/tabs";
-import { ReceiveSheet } from "../../src/ui/sheets/ReceiveSheet";
+import { View, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabScreenBottomInset } from '../../src/ui/navigation/tabs';
+import { ReceiveSheet } from '../../src/ui/sheets/ReceiveSheet';
 
 export default function ReceiveScreen() {
   const insets = useSafeAreaInsets();

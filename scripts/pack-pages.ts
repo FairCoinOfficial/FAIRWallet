@@ -24,16 +24,16 @@
  * rewrite engine in front of it, so it must keep the paths Metro emitted.
  */
 
-import { existsSync, readFileSync, renameSync, statSync } from "node:fs";
-import { readdir } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { existsSync, readFileSync, renameSync, statSync } from 'node:fs';
+import { readdir } from 'node:fs/promises';
+import { join, resolve, sep } from 'node:path';
 
 const REFERENCE_PATTERN = /assets\/node_modules\/([A-Za-z0-9@._/-]+)/g;
-const SCANNED_EXTENSIONS = [".js", ".css", ".html", ".json"];
+const SCANNED_EXTENSIONS = ['.js', '.css', '.html', '.json'];
 
-const distDir = resolve(process.argv[2] ?? "dist");
-const vendored = join(distDir, "assets", "vendor");
-const emitted = join(distDir, "assets", "node_modules");
+const distDir = resolve(process.argv[2] ?? 'dist');
+const vendored = join(distDir, 'assets', 'vendor');
+const emitted = join(distDir, 'assets', 'node_modules');
 
 async function filesUnder(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -54,7 +54,7 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-if (!existsSync(join(distDir, "index.html"))) {
+if (!existsSync(join(distDir, 'index.html'))) {
   fail(`${distDir} holds no index.html — run \`expo export --platform web\` first.`);
 }
 
@@ -62,13 +62,13 @@ if (existsSync(emitted)) {
   if (existsSync(vendored)) {
     fail(
       `both ${emitted} and ${vendored} exist — a previous run was interrupted, ` +
-        "so delete the export and rebuild rather than merging two trees.",
+        'so delete the export and rebuild rather than merging two trees.',
     );
   }
   renameSync(emitted, vendored);
 } else if (!existsSync(vendored)) {
   fail(
-    "the export carries no dependency assets at all, under either name — the " +
+    'the export carries no dependency assets at all, under either name — the ' +
       "asset layout changed, and this script's assumption with it.",
   );
 }
@@ -76,7 +76,7 @@ if (existsSync(emitted)) {
 const files = await filesUnder(distDir);
 
 const stragglers = files.filter((file) =>
-  file.slice(distDir.length).split(sep).includes("node_modules"),
+  file.slice(distDir.length).split(sep).includes('node_modules'),
 );
 if (stragglers.length > 0) {
   fail(
@@ -88,7 +88,7 @@ if (stragglers.length > 0) {
 const referenced = new Set<string>();
 for (const file of files) {
   if (!SCANNED_EXTENSIONS.some((extension) => file.endsWith(extension))) continue;
-  const contents = readFileSync(file, "utf8");
+  const contents = readFileSync(file, 'utf8');
   for (const match of contents.matchAll(REFERENCE_PATTERN)) {
     referenced.add(match[1]);
   }
@@ -96,9 +96,9 @@ for (const file of files) {
 
 if (referenced.size === 0) {
   fail(
-    "no bundle references an `assets/node_modules/` path — either the export " +
-      "stopped emitting them (making this step and the rewrite rule dead) or the " +
-      "reference format changed, which would make this check vacuous.",
+    'no bundle references an `assets/node_modules/` path — either the export ' +
+      'stopped emitting them (making this step and the rewrite rule dead) or the ' +
+      'reference format changed, which would make this check vacuous.',
   );
 }
 
@@ -113,27 +113,25 @@ if (unresolved.length > 0) {
   );
 }
 
-const redirects = join(distDir, "_redirects");
+const redirects = join(distDir, '_redirects');
 if (!existsSync(redirects)) {
-  fail("_redirects is missing from the export — the rewrite cannot be in force.");
+  fail('_redirects is missing from the export — the rewrite cannot be in force.');
 }
-const rules = readFileSync(redirects, "utf8")
-  .split("\n")
+const rules = readFileSync(redirects, 'utf8')
+  .split('\n')
   .map((line) => line.trim())
-  .filter((line) => line.length > 0 && !line.startsWith("#"));
+  .filter((line) => line.length > 0 && !line.startsWith('#'));
 const rewriteIndex = rules.findIndex((rule) =>
   /^\/assets\/node_modules\/\*\s+\/assets\/vendor\/:splat\s+200$/.test(rule),
 );
-const catchAllIndex = rules.findIndex((rule) =>
-  /^\/\*\s+\/index\.html\s+200$/.test(rule),
-);
+const catchAllIndex = rules.findIndex((rule) => /^\/\*\s+\/index\.html\s+200$/.test(rule));
 if (rewriteIndex === -1) {
-  fail("_redirects carries no /assets/node_modules/* -> /assets/vendor/:splat rewrite.");
+  fail('_redirects carries no /assets/node_modules/* -> /assets/vendor/:splat rewrite.');
 }
 if (catchAllIndex !== -1 && catchAllIndex < rewriteIndex) {
   fail(
-    "the SPA catch-all precedes the asset rewrite in _redirects, so it wins and " +
-      "every dependency asset answers with index.html.",
+    'the SPA catch-all precedes the asset rewrite in _redirects, so it wins and ' +
+      'every dependency asset answers with index.html.',
   );
 }
 

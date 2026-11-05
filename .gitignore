@@ -40,3 +40,6 @@ expo-env.d.ts
 
 # Multisig testnet probe state (TESTNET private keys — never commit)
 .multisig-probe.testnet.json
+
+# Agent and local worktrees
+.worktrees/

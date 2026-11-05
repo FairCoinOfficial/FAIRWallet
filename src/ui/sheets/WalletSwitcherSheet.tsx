@@ -14,31 +14,27 @@
  * the full `app/wallets.tsx` management screen.
  */
 
-import type React from "react";
-import { useCallback, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
-import { useRouter } from "expo-router";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { useWalletStore } from "../../wallet/wallet-store";
-import { ListItem } from "../components";
-import { t } from "../../i18n";
+import type React from 'react';
+import { useCallback, useState } from 'react';
+import { View, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { useWalletStore } from '../../wallet/wallet-store';
+import { ListItem } from '../components';
+import { t } from '../../i18n';
 
 const CONTENT_MAX_WIDTH = 500;
 
 function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 }
 
-export function WalletSwitcherSheet({
-  onDone,
-}: {
-  onDone: () => void;
-}): React.JSX.Element {
+export function WalletSwitcherSheet({ onDone }: { onDone: () => void }): React.JSX.Element {
   const wallets = useWalletStore((s) => s.wallets);
   const activeWalletId = useWalletStore((s) => s.activeWalletId);
   const switchWallet = useWalletStore((s) => s.switchWallet);
@@ -69,14 +65,11 @@ export function WalletSwitcherSheet({
 
   const handleManage = useCallback(() => {
     onDone();
-    router.push("/wallets");
+    router.push('/wallets');
   }, [onDone, router]);
 
   return (
-    <View
-      className="w-full self-center gap-4"
-      style={{ maxWidth: CONTENT_MAX_WIDTH }}
-    >
+    <View className="w-full self-center gap-4" style={{ maxWidth: CONTENT_MAX_WIDTH }}>
       {/* Wallet list — card-less surface container */}
       <View className="bg-surface rounded-2xl overflow-hidden">
         {wallets.map((wallet, idx) => {
@@ -86,10 +79,10 @@ export function WalletSwitcherSheet({
             <ListItem
               key={wallet.id}
               icon="wallet"
-              iconBg={isActive ? "bg-green-500/15" : "bg-primary/10"}
+              iconBg={isActive ? 'bg-green-500/15' : 'bg-primary/10'}
               iconColor={isActive ? theme.colors.success : theme.colors.tint}
               title={wallet.name}
-              subtitle={t("wallets.createdOn", {
+              subtitle={t('wallets.createdOn', {
                 date: formatDate(wallet.createdAt),
               })}
               onPress={() => handleSelect(wallet.id)}
@@ -97,10 +90,7 @@ export function WalletSwitcherSheet({
               isLast={idx === wallets.length - 1}
               trailing={
                 isSwitching ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={theme.colors.primary}
-                  />
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
                 ) : isActive ? (
                   <MaterialCommunityIcons
                     name="check-circle"
@@ -116,12 +106,7 @@ export function WalletSwitcherSheet({
 
       {/* Manage / add wallets — jumps to the full management screen */}
       <View className="bg-surface rounded-2xl overflow-hidden">
-        <ListItem
-          icon="cog-outline"
-          title={t("settings.wallets")}
-          onPress={handleManage}
-          isLast
-        />
+        <ListItem icon="cog-outline" title={t('settings.wallets')} onPress={handleManage} isLast />
       </View>
     </View>
   );

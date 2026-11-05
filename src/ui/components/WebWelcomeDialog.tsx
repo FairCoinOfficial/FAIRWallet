@@ -14,17 +14,17 @@
  * test.
  */
 
-import { useCallback, useEffect, useState } from "react";
-import { Linking, Platform, Text, View } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Dialog } from "@oxy.so/bloom/dialog";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { t } from "../../i18n";
-import { getItemAsync, setItemAsync } from "../../storage/kv-store";
+import { useCallback, useEffect, useState } from 'react';
+import { Linking, Platform, Text, View } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Dialog } from '@oxy.so/bloom/dialog';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { t } from '../../i18n';
+import { getItemAsync, setItemAsync } from '../../storage/kv-store';
 
-const SEEN_KEY = "fairwallet_web_welcome_seen";
+const SEEN_KEY = 'fairwallet_web_welcome_seen';
 
-const DOWNLOAD_URL = "https://fairco.in/wallet";
+const DOWNLOAD_URL = 'https://fairco.in/wallet';
 
 /**
  * True only in a plain browser tab. Electron's renderer is also
@@ -32,20 +32,16 @@ const DOWNLOAD_URL = "https://fairco.in/wallet";
  * desktop app this dialog would otherwise be recommending.
  */
 const isBrowser =
-  Platform.OS === "web" &&
-  typeof window !== "undefined" &&
-  !("electronAPI" in window);
+  Platform.OS === 'web' && typeof window !== 'undefined' && !('electronAPI' in window);
 
 // Kick the storage round-trip off at module scope, like the root layout does
 // for the theme, so the flag is already in flight before the first render.
-const seenPromise = isBrowser
-  ? getItemAsync(SEEN_KEY).catch(() => null)
-  : Promise.resolve("1");
+const seenPromise = isBrowser ? getItemAsync(SEEN_KEY).catch(() => null) : Promise.resolve('1');
 
 const CAVEATS = [
-  "webWelcome.caveat.storage",
-  "webWelcome.caveat.lock",
-  "webWelcome.caveat.siteData",
+  'webWelcome.caveat.storage',
+  'webWelcome.caveat.lock',
+  'webWelcome.caveat.siteData',
 ] as const;
 
 export function WebWelcomeDialog() {
@@ -65,7 +61,7 @@ export function WebWelcomeDialog() {
 
   const dismiss = useCallback(() => {
     setOpen(false);
-    void setItemAsync(SEEN_KEY, "1");
+    void setItemAsync(SEEN_KEY, '1');
   }, []);
 
   const openDownloads = useCallback(() => {
@@ -78,12 +74,12 @@ export function WebWelcomeDialog() {
     <Dialog
       open={open}
       onClose={dismiss}
-      placement={{ base: "bottom", md: "center" }}
-      title={t("webWelcome.title")}
-      description={t("webWelcome.description")}
+      placement={{ base: 'bottom', md: 'center' }}
+      title={t('webWelcome.title')}
+      description={t('webWelcome.description')}
       actions={[
-        { label: t("webWelcome.getApp"), onPress: openDownloads },
-        { label: t("webWelcome.continue"), color: "cancel" },
+        { label: t('webWelcome.getApp'), onPress: openDownloads },
+        { label: t('webWelcome.continue'), color: 'cancel' },
       ]}
     >
       <View className="gap-3 mt-2">
@@ -94,9 +90,7 @@ export function WebWelcomeDialog() {
               size={18}
               color={theme.colors.textSecondary}
             />
-            <Text className="text-muted-foreground text-sm flex-1">
-              {t(key)}
-            </Text>
+            <Text className="text-muted-foreground text-sm flex-1">{t(key)}</Text>
           </View>
         ))}
       </View>

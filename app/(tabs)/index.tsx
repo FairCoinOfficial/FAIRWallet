@@ -8,54 +8,44 @@
  * Overview shows the FairCoin holding, Activity shows the day-grouped feed.
  */
 
-import { useCallback, useMemo, useState } from "react";
-import { View, Text, Pressable } from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
-import Animated from "react-native-reanimated";
-import { useFocusEffect, useRouter } from "expo-router";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import * as WebBrowser from "expo-web-browser";
-import * as Localization from "expo-localization";
-import { useWalletStore } from "../../src/wallet/wallet-store";
-import { useTabScreenBottomInset } from "../../src/ui/navigation/tabs";
-import {
-  BalanceDisplay,
-  ActionButton,
-  EmptyState,
-  Badge,
-} from "../../src/ui/components";
-import { TransactionItem } from "../../src/ui/components/TransactionItem";
-import {
-  SuggestionStack,
-  type Suggestion,
-} from "../../src/ui/components/SuggestionStack";
-import { HomeOverview } from "../../src/ui/components/HomeOverview";
-import { ArrowCircleDownIcon } from "../../src/ui/components/ArrowCircleDownIcon";
-import { SendIcon } from "../../src/ui/components/SendIcon";
-import { WalletSwitcherSheet } from "../../src/ui/sheets/WalletSwitcherSheet";
-import { TransactionDetailSheet } from "../../src/ui/sheets/TransactionDetailSheet";
-import { usePullToRefreshBand } from "../../src/hooks/usePullToRefreshBand";
-import { SendReceiveSheet } from "../../src/ui/sheets/SendReceiveSheet";
-import { SafeAreaView } from "../../src/ui/safe-area-view";
-import { Dialog, useDialogControl } from "@oxy.so/bloom/dialog";
-import { fetchPrice } from "../../src/services/price";
-import { usePrice } from "../../src/hooks/usePrice";
-import { queryClient } from "../../src/services/query-client";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { Tabs, TabsTrigger } from "@oxy.so/bloom/tabs";
-import { BUY_BASE_URL } from "@fairco.in/core";
-import { t } from "../../src/i18n";
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, Pressable } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
+import { useFocusEffect, useRouter } from 'expo-router';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import * as WebBrowser from 'expo-web-browser';
+import * as Localization from 'expo-localization';
+import { useWalletStore } from '../../src/wallet/wallet-store';
+import { useTabScreenBottomInset } from '../../src/ui/navigation/tabs';
+import { BalanceDisplay, ActionButton, EmptyState, Badge } from '../../src/ui/components';
+import { TransactionItem } from '../../src/ui/components/TransactionItem';
+import { SuggestionStack, type Suggestion } from '../../src/ui/components/SuggestionStack';
+import { HomeOverview } from '../../src/ui/components/HomeOverview';
+import { ArrowCircleDownIcon } from '../../src/ui/components/ArrowCircleDownIcon';
+import { SendIcon } from '../../src/ui/components/SendIcon';
+import { WalletSwitcherSheet } from '../../src/ui/sheets/WalletSwitcherSheet';
+import { TransactionDetailSheet } from '../../src/ui/sheets/TransactionDetailSheet';
+import { usePullToRefreshBand } from '../../src/hooks/usePullToRefreshBand';
+import { SendReceiveSheet } from '../../src/ui/sheets/SendReceiveSheet';
+import { SafeAreaView } from '../../src/ui/safe-area-view';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { fetchPrice } from '../../src/services/price';
+import { usePrice } from '../../src/hooks/usePrice';
+import { queryClient } from '../../src/services/query-client';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Tabs, TabsTrigger } from '@oxy.so/bloom/tabs';
+import { BUY_BASE_URL } from '@fairco.in/core';
+import { t } from '../../src/i18n';
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-type HomeTab = "overview" | "activity";
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type HomeTab = 'overview' | 'activity';
 
 // ---------------------------------------------------------------------------
 // Activity date grouping
 // ---------------------------------------------------------------------------
 
-type StoreTransaction = ReturnType<
-  typeof useWalletStore.getState
->["transactions"][number];
+type StoreTransaction = ReturnType<typeof useWalletStore.getState>['transactions'][number];
 
 interface ActivityGroup {
   key: string;
@@ -64,29 +54,21 @@ interface ActivityGroup {
 }
 
 const DAY_MS = 86_400_000;
-const SYNCING_COLOR = "#fbbf24";
+const SYNCING_COLOR = '#fbbf24';
 
 /** Human day label for a unix-seconds timestamp: Today / Yesterday / a date. */
 function dayLabel(timestampSec: number): string {
   const date = new Date(timestampSec * 1000);
   const now = new Date();
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  ).getTime();
-  const startOfDate = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  ).getTime();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   const diffDays = Math.round((startOfToday - startOfDate) / DAY_MS);
-  if (diffDays <= 0) return t("wallet.date.today");
-  if (diffDays === 1) return t("wallet.date.yesterday");
+  if (diffDays <= 0) return t('wallet.date.today');
+  if (diffDays === 1) return t('wallet.date.yesterday');
   return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 }
 
@@ -135,12 +117,12 @@ export default function HomeScreen() {
   const loadPockets = useWalletStore((s) => s.loadPockets);
 
   const price = usePrice();
-  const [tab, setTab] = useState<HomeTab>("activity");
+  const [tab, setTab] = useState<HomeTab>('activity');
 
   // Send / Receive share ONE bottom-sheet with a Send|Receive toggle; the pills
   // just open it on the right side.
   const sheetControl = useDialogControl();
-  const [sheetMode, setSheetMode] = useState<"send" | "receive">("send");
+  const [sheetMode, setSheetMode] = useState<'send' | 'receive'>('send');
   // Tapping the wallet name opens a quick wallet-switcher sheet.
   const walletSwitcherControl = useDialogControl();
   // Tapping an activity row opens the transaction detail in a bottom sheet.
@@ -163,9 +145,7 @@ export default function HomeScreen() {
   // Home suggestion deck (swipe a card to dismiss it and reveal the next).
   // Dismissals are per-session; unsatisfied reminders (e.g. backup) return on
   // the next launch until resolved.
-  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(() => new Set());
   const dismissSuggestion = useCallback((id: string) => {
     setDismissedSuggestions((prev) => {
       const next = new Set(prev);
@@ -177,31 +157,31 @@ export default function HomeScreen() {
     const list: Suggestion[] = [];
     if (!hasBackedUp) {
       list.push({
-        id: "backup",
-        icon: "shield-key-outline",
-        title: t("backup.banner.title"),
-        badge: t("backup.banner.required"),
-        subtitle: t("backup.banner.subtitle"),
-        onPress: () => router.push("/settings"),
+        id: 'backup',
+        icon: 'shield-key-outline',
+        title: t('backup.banner.title'),
+        badge: t('backup.banner.required'),
+        subtitle: t('backup.banner.subtitle'),
+        onPress: () => router.push('/settings'),
       });
     }
     list.push({
-      id: "notifications",
-      icon: "bell-ring-outline",
-      title: t("suggest.notifications.title"),
-      subtitle: t("suggest.notifications.subtitle"),
-      onPress: () => router.push("/notifications-settings"),
+      id: 'notifications',
+      icon: 'bell-ring-outline',
+      title: t('suggest.notifications.title'),
+      subtitle: t('suggest.notifications.subtitle'),
+      onPress: () => router.push('/notifications-settings'),
     });
     return list.filter((s) => !dismissedSuggestions.has(s.id));
   }, [hasBackedUp, dismissedSuggestions, router]);
 
   const handleBuy = useCallback(async () => {
     const locale = Localization.getLocales()[0];
-    const language = locale?.languageCode ?? "en";
-    const country = locale?.regionCode ?? "";
+    const language = locale?.languageCode ?? 'en';
+    const country = locale?.regionCode ?? '';
     const params = new URLSearchParams({
-      in_app: "true",
-      address: receiveAddress ?? "",
+      in_app: 'true',
+      address: receiveAddress ?? '',
       language,
       country,
     });
@@ -221,81 +201,70 @@ export default function HomeScreen() {
     void queryClient.invalidateQueries();
   }, [refreshBalance]);
 
-  const {
-    gesture: composedGesture,
-    scrollHandler,
-    band,
-  } = usePullToRefreshBand(startRefresh);
+  const { gesture: composedGesture, scrollHandler, band } = usePullToRefreshBand(startRefresh);
 
-  const activityGroups = useMemo(
-    () => groupByDay(transactions.slice(0, 10)),
-    [transactions],
-  );
+  const activityGroups = useMemo(() => groupByDay(transactions.slice(0, 10)), [transactions]);
 
   const sync = useMemo((): { icon: IconName; color: string; label: string } => {
     if (connectedPeers === 0) {
       return {
-        icon: "cloud-off-outline",
+        icon: 'cloud-off-outline',
         color: theme.colors.error,
-        label: t("wallet.sync.offline"),
+        label: t('wallet.sync.offline'),
       };
     }
     if (isSyncing) {
       return {
-        icon: "cloud-sync-outline",
+        icon: 'cloud-sync-outline',
         color: SYNCING_COLOR,
-        label: t("wallet.sync.syncing", { progress: Math.round(syncProgress) }),
+        label: t('wallet.sync.syncing', { progress: Math.round(syncProgress) }),
       };
     }
     return {
-      icon: "cloud-check-outline",
+      icon: 'cloud-check-outline',
       color: theme.colors.primary,
-      label: t("wallet.sync.synced"),
+      label: t('wallet.sync.synced'),
     };
   }, [connectedPeers, isSyncing, syncProgress, theme.colors.error, theme.colors.primary]);
 
   return (
     <View className="flex-1 bg-background">
       {/* ---- Header: wallet switcher + sync-status icon ---- */}
-      <SafeAreaView edges={["top"]}>
+      <SafeAreaView edges={['top']}>
         <View className="px-4 pt-3 pb-2 flex-row items-center justify-between">
-        <Pressable
-          className="flex-row items-center active:opacity-60"
-          onPress={() => walletSwitcherControl.open()}
-          accessibilityRole="button"
-          accessibilityLabel={t("wallet.switchAccessibility")}
-        >
-          <View className="w-9 h-9 rounded-xl bg-primary items-center justify-center mr-2.5">
-            <MaterialCommunityIcons
-              name="wallet"
-              size={18}
-              color={theme.colors.background}
-            />
-          </View>
-          <Text className="text-foreground text-xl font-semibold">
-            {activeWalletName || t("wallet.defaultName")}
-          </Text>
-          <MaterialCommunityIcons
-            name="chevron-down"
-            size={20}
-            color={theme.colors.textSecondary}
-          />
-        </Pressable>
-
-        <View className="flex-row items-center gap-3">
-          {network === "testnet" ? (
-            <Badge text={t("wallet.badge.testnet")} variant="warning" size="sm" />
-          ) : null}
           <Pressable
-            onPress={() => router.push("/peers")}
+            className="flex-row items-center active:opacity-60"
+            onPress={() => walletSwitcherControl.open()}
             accessibilityRole="button"
-            accessibilityLabel={t("wallet.syncAccessibility", { label: sync.label })}
-            className="active:opacity-60"
-            hitSlop={8}
+            accessibilityLabel={t('wallet.switchAccessibility')}
           >
-            <MaterialCommunityIcons name={sync.icon} size={24} color={sync.color} />
+            <View className="w-9 h-9 rounded-xl bg-primary items-center justify-center mr-2.5">
+              <MaterialCommunityIcons name="wallet" size={18} color={theme.colors.background} />
+            </View>
+            <Text className="text-foreground text-xl font-semibold">
+              {activeWalletName || t('wallet.defaultName')}
+            </Text>
+            <MaterialCommunityIcons
+              name="chevron-down"
+              size={20}
+              color={theme.colors.textSecondary}
+            />
           </Pressable>
-        </View>
+
+          <View className="flex-row items-center gap-3">
+            {network === 'testnet' ? (
+              <Badge text={t('wallet.badge.testnet')} variant="warning" size="sm" />
+            ) : null}
+            <Pressable
+              onPress={() => router.push('/peers')}
+              accessibilityRole="button"
+              accessibilityLabel={t('wallet.syncAccessibility', { label: sync.label })}
+              className="active:opacity-60"
+              hitSlop={8}
+            >
+              <MaterialCommunityIcons name={sync.icon} size={24} color={sync.color} />
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
 
@@ -308,114 +277,106 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* ---- Balance ---- */}
-        <View className="px-4 pt-4 pb-5">
-          <BalanceDisplay
-            value={balance}
-            priceUsd={price?.usd}
-            change24h={price?.change24h}
-            size="lg"
-            align="start"
-          />
-        </View>
-
-        {/* ---- Quick actions ---- */}
-        <View className="flex-row gap-2.5 px-4 pb-4">
-          <ActionButton
-            icon="arrow-up"
-            label={t("wallet.send")}
-            onPress={() => {
-              setSheetMode("send");
-              sheetControl.open();
-            }}
-            renderIcon={({ color, size }) => (
-              <SendIcon color={color} size={size} />
-            )}
-          />
-          <ActionButton
-            icon="arrow-down"
-            label={t("wallet.receive")}
-            onPress={() => {
-              setSheetMode("receive");
-              sheetControl.open();
-            }}
-            renderIcon={({ color, size }) => (
-              <ArrowCircleDownIcon color={color} size={size} />
-            )}
-          />
-          <ActionButton
-            icon="credit-card-plus"
-            label={t("wallet.buy")}
-            onPress={handleBuy}
-          />
-          <ActionButton
-            icon="wallet-bifold-outline"
-            label={t("pockets.title")}
-            onPress={() => router.push("/pockets")}
-          />
-        </View>
-
-        {/* ---- Suggestion deck: swipable reminder cards (back up your wallet,
-            enable alerts…). Hidden when there's nothing to suggest. ---- */}
-        {suggestions.length > 0 ? (
-          <View className="px-4 pb-4">
-            <SuggestionStack items={suggestions} onDismiss={dismissSuggestion} />
-          </View>
-        ) : null}
-
-        {/* ---- Tabs (Bloom): compact tabs, but the bottom border spans the full
-            width (Bloom draws its underline border only under the tabs, so we
-            move it to a full-width wrapper and zero out Bloom's). ---- */}
-        <View className="border-b border-border px-4">
-          <Tabs
-            value={tab}
-            onValueChange={(next) => {
-              if (next === "overview" || next === "activity") setTab(next);
-            }}
-            variant="underline"
-            style={{ borderBottomWidth: 0 }}
-          >
-            <TabsTrigger value="overview" label={t("wallet.overview")} />
-            <TabsTrigger value="activity" label={t("wallet.activity")} />
-          </Tabs>
-        </View>
-
-        {/* ---- Pull-to-refresh rainbow band: below the tabs, grows as you drag ---- */}
-        {band}
-
-        {/* ---- Tab content ---- */}
-        {tab === "overview" ? (
-          <HomeOverview />
-        ) : activityGroups.length === 0 ? (
-          <View className="px-4 pt-6">
-            <EmptyState
-              icon="swap-vertical"
-              title={t("wallet.activity.empty.title")}
-              subtitle={t("wallet.activity.empty.subtitle")}
+          <View className="px-4 pt-4 pb-5">
+            <BalanceDisplay
+              value={balance}
+              priceUsd={price?.usd}
+              change24h={price?.change24h}
+              size="lg"
+              align="start"
             />
           </View>
-        ) : (
-          <View className="pt-3">
-            {activityGroups.map((group) => (
-              <View key={group.key} className="mb-2">
-                <Text className="text-muted-foreground text-xs font-semibold uppercase px-4 mb-1">
-                  {group.label}
-                </Text>
-                {group.items.map((tx) => (
-                  <TransactionItem
-                    key={tx.txid}
-                    txid={tx.txid}
-                    type={tx.type}
-                    value={tx.amount}
-                    address={tx.address}
-                    timestamp={tx.timestamp}
-                    confirmations={tx.confirmations}
-                    onPress={openTxDetail}
-                  />
-                ))}
-              </View>
-            ))}
+
+          {/* ---- Quick actions ---- */}
+          <View className="flex-row gap-2.5 px-4 pb-4">
+            <ActionButton
+              icon="arrow-up"
+              label={t('wallet.send')}
+              onPress={() => {
+                setSheetMode('send');
+                sheetControl.open();
+              }}
+              renderIcon={({ color, size }) => <SendIcon color={color} size={size} />}
+            />
+            <ActionButton
+              icon="arrow-down"
+              label={t('wallet.receive')}
+              onPress={() => {
+                setSheetMode('receive');
+                sheetControl.open();
+              }}
+              renderIcon={({ color, size }) => <ArrowCircleDownIcon color={color} size={size} />}
+            />
+            <ActionButton icon="credit-card-plus" label={t('wallet.buy')} onPress={handleBuy} />
+            <ActionButton
+              icon="wallet-bifold-outline"
+              label={t('pockets.title')}
+              onPress={() => router.push('/pockets')}
+            />
           </View>
-        )}
+
+          {/* ---- Suggestion deck: swipable reminder cards (back up your wallet,
+            enable alerts…). Hidden when there's nothing to suggest. ---- */}
+          {suggestions.length > 0 ? (
+            <View className="px-4 pb-4">
+              <SuggestionStack items={suggestions} onDismiss={dismissSuggestion} />
+            </View>
+          ) : null}
+
+          {/* ---- Tabs (Bloom): compact tabs, but the bottom border spans the full
+            width (Bloom draws its underline border only under the tabs, so we
+            move it to a full-width wrapper and zero out Bloom's). ---- */}
+          <View className="border-b border-border px-4">
+            <Tabs
+              value={tab}
+              onValueChange={(next) => {
+                if (next === 'overview' || next === 'activity') setTab(next);
+              }}
+              variant="underline"
+              style={{ borderBottomWidth: 0 }}
+            >
+              <TabsTrigger value="overview" label={t('wallet.overview')} />
+              <TabsTrigger value="activity" label={t('wallet.activity')} />
+            </Tabs>
+          </View>
+
+          {/* ---- Pull-to-refresh rainbow band: below the tabs, grows as you drag ---- */}
+          {band}
+
+          {/* ---- Tab content ---- */}
+          {tab === 'overview' ? (
+            <HomeOverview />
+          ) : activityGroups.length === 0 ? (
+            <View className="px-4 pt-6">
+              <EmptyState
+                icon="swap-vertical"
+                title={t('wallet.activity.empty.title')}
+                subtitle={t('wallet.activity.empty.subtitle')}
+              />
+            </View>
+          ) : (
+            <View className="pt-3">
+              {activityGroups.map((group) => (
+                <View key={group.key} className="mb-2">
+                  <Text className="text-muted-foreground text-xs font-semibold uppercase px-4 mb-1">
+                    {group.label}
+                  </Text>
+                  {group.items.map((tx) => (
+                    <TransactionItem
+                      key={tx.txid}
+                      txid={tx.txid}
+                      type={tx.type}
+                      value={tx.amount}
+                      address={tx.address}
+                      timestamp={tx.timestamp}
+                      confirmations={tx.confirmations}
+                      onPress={openTxDetail}
+                    />
+                  ))}
+                </View>
+              ))}
+            </View>
+          )}
         </Animated.ScrollView>
       </GestureDetector>
 
@@ -425,26 +386,13 @@ export default function HomeScreen() {
       {/* contentPadding={0}: the send/receive pager is full-bleed so pages
           slide edge-to-edge; the sheet's own toggle + each page own their
           horizontal insets. */}
-      <Dialog
-        control={sheetControl}
-        placement="bottom"
-        title=""
-        contentPadding={0}
-      >
+      <Dialog control={sheetControl} placement="bottom" title="" contentPadding={0}>
         <SendReceiveSheet mode={sheetMode} onModeChange={setSheetMode} />
       </Dialog>
-      <Dialog
-        control={walletSwitcherControl}
-        placement="bottom"
-        title={t("wallets.title")}
-      >
+      <Dialog control={walletSwitcherControl} placement="bottom" title={t('wallets.title')}>
         <WalletSwitcherSheet onDone={() => walletSwitcherControl.close()} />
       </Dialog>
-      <Dialog
-        control={txDetailControl}
-        placement="bottom"
-        title={t("transaction.title")}
-      >
+      <Dialog control={txDetailControl} placement="bottom" title={t('transaction.title')}>
         {detailTxid ? <TransactionDetailSheet txid={detailTxid} /> : null}
       </Dialog>
     </View>

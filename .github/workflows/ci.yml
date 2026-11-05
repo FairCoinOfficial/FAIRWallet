@@ -5,11 +5,14 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     name: Typecheck, lint and test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -18,16 +21,32 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # The version `packageManager` names, so CI, the deploy and a
+          # developer resolve the lockfile with the same Bun.
+          bun-version-file: package.json
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # The installed binary by path: a bare `bunx biome` that misses the local
+      # install fetches npm's unrelated `biome` package, which lints nothing.
+      - name: Format and lint (Biome)
+        run: ./node_modules/.bin/biome ci .
+
+      # The Expo rules Biome has no equivalent for (EXPO_PUBLIC_* reads Metro
+      # can inline). `expo lint .`, not bare `expo lint`, which skips the root.
+      - name: Lint (Expo env vars)
+        run: bunx expo lint .
+
       - name: Typecheck
         run: bun run typecheck
 
-      - name: Lint
-        run: bun run lint
-
       - name: Test
-        run: bun test src
+        run: bun test src modules
+
+      # tsc passing says the types line up; it says nothing about whether Metro
+      # resolves the graph or the Tailwind pipeline emits the stylesheet. The
+      # web export is the cheapest check that the app still bundles, and it is
+      # the bundle the deploy ships.
+      - name: Web export
+        run: bun run export:web

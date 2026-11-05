@@ -12,33 +12,28 @@
  * here; a sheet is dismissed by its backdrop.
  */
 
-import type React from "react";
-import { useCallback, useMemo, useState } from "react";
-import { View, Text, TextInput, Pressable } from "react-native";
-import * as Clipboard from "expo-clipboard";
-import * as Linking from "expo-linking";
-import { useRouter } from "expo-router";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useTheme } from "@oxy.so/bloom/theme";
-import { toast } from "@oxy.so/bloom/toast";
-import { formatUnits, COIN_TICKER, explorerTxUrl } from "@fairco.in/core";
-import {
-  useWalletStore,
-  getDatabase,
-  type WalletTransaction,
-} from "../../wallet/wallet-store";
-import { AmountText, EmptyState } from "../components";
-import { Button as BloomButton } from "@oxy.so/bloom/button";
-import { FairCoinSymbol } from "../components/FairCoinSymbol";
-import type { ContactRow } from "../../storage/database";
-import { FONT_PHUDU_BLACK } from "../../utils/fonts";
-import { t } from "../../i18n";
+import type React from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, TextInput, Pressable } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
+import { useRouter } from 'expo-router';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { toast } from '@oxy.so/bloom/toast';
+import { formatUnits, COIN_TICKER, explorerTxUrl } from '@fairco.in/core';
+import { useWalletStore, getDatabase, type WalletTransaction } from '../../wallet/wallet-store';
+import { AmountText, EmptyState } from '../components';
+import { Button as BloomButton } from '@oxy.so/bloom/button';
+import { FairCoinSymbol } from '../components/FairCoinSymbol';
+import type { ContactRow } from '../../storage/database';
+import { FONT_PHUDU_BLACK } from '../../utils/fonts';
+import { t } from '../../i18n';
 
 const CONTENT_MAX_WIDTH = 500;
 
 /** Uppercase section label — matches the home screen's section headers. */
-const SECTION_LABEL =
-  "text-muted-foreground text-xs font-semibold uppercase tracking-wider";
+const SECTION_LABEL = 'text-muted-foreground text-xs font-semibold uppercase tracking-wider';
 
 /**
  * A single card-less detail row: muted label on the left, value on the right,
@@ -48,7 +43,7 @@ const SECTION_LABEL =
 function DetailRow({
   label,
   value,
-  valueClassName = "text-foreground",
+  valueClassName = 'text-foreground',
   onPress,
   copyable = false,
   isLast = false,
@@ -64,7 +59,7 @@ function DetailRow({
   const row = (
     <View
       className={`flex-row items-center justify-between py-3.5 ${
-        isLast ? "" : "border-b border-border/40"
+        isLast ? '' : 'border-b border-border/40'
       }`}
     >
       <Text className="text-muted-foreground text-[15px]">{label}</Text>
@@ -103,12 +98,12 @@ function DetailRow({
 
 function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp * 1000);
-  return date.toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
     hour12: true,
   });
 }
@@ -122,16 +117,12 @@ function truncateAddress(address: string): string {
 // Sheet content
 // ---------------------------------------------------------------------------
 
-export function TransactionDetailSheet({
-  txid,
-}: {
-  txid: string;
-}): React.JSX.Element {
+export function TransactionDetailSheet({ txid }: { txid: string }): React.JSX.Element {
   const router = useRouter();
   const transactions = useWalletStore((s) => s.transactions);
   const theme = useTheme();
 
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState('');
   const [noteLoaded, setNoteLoaded] = useState(false);
   const [contact, setContact] = useState<ContactRow | null>(null);
   const [contactChecked, setContactChecked] = useState(false);
@@ -168,7 +159,7 @@ export function TransactionDetailSheet({
     const db = getDatabase();
     if (db) {
       db.setTxNote(txid, note.trim());
-      toast.success(t("transaction.savedNote.description"));
+      toast.success(t('transaction.savedNote.description'));
     }
   }, [txid, note]);
 
@@ -180,17 +171,17 @@ export function TransactionDetailSheet({
   const handleCopyTxid = useCallback(() => {
     if (!txid) return;
     Clipboard.setStringAsync(txid);
-    toast.success(t("transaction.txidCopied.description"));
+    toast.success(t('transaction.txidCopied.description'));
   }, [txid]);
 
   const handleCopyAddress = useCallback(() => {
     if (!transaction) return;
     Clipboard.setStringAsync(transaction.address);
-    toast.success(t("transaction.addressCopied.description"));
+    toast.success(t('transaction.addressCopied.description'));
   }, [transaction]);
 
   const handleAddToContacts = useCallback(() => {
-    router.push("/contacts");
+    router.push('/contacts');
   }, [router]);
 
   if (!transaction) {
@@ -198,19 +189,18 @@ export function TransactionDetailSheet({
       <View className="items-center justify-center py-12">
         <EmptyState
           icon="file-find"
-          title={t("transaction.notFound.title")}
-          subtitle={t("transaction.notFound.subtitle")}
+          title={t('transaction.notFound.title')}
+          subtitle={t('transaction.notFound.subtitle')}
         />
       </View>
     );
   }
 
   const isPositive = transaction.amount >= 0n;
-  const amountSign = isPositive ? "+" : "-";
-  const absAmount =
-    transaction.amount < 0n ? -transaction.amount : transaction.amount;
+  const amountSign = isPositive ? '+' : '-';
+  const absAmount = transaction.amount < 0n ? -transaction.amount : transaction.amount;
   const amountExact = formatUnits(absAmount);
-  const amountColor = isPositive ? "text-primary" : "text-red-400";
+  const amountColor = isPositive ? 'text-primary' : 'text-red-400';
   const isConfirmed = transaction.confirmations >= 6;
 
   return (
@@ -237,7 +227,7 @@ export function TransactionDetailSheet({
           <View className="mr-1.5" style={{ marginBottom: 40 * 0.16 }}>
             <FairCoinSymbol
               size={Math.round(40 * 0.6)}
-              color={isPositive ? undefined : "#f87171"}
+              color={isPositive ? undefined : '#f87171'}
             />
           </View>
           <AmountText
@@ -258,40 +248,34 @@ export function TransactionDetailSheet({
 
       {/* Details — card-less label/value rows with hairline dividers */}
       <View className="mb-7">
-        <Text className={SECTION_LABEL}>{t("transaction.details")}</Text>
+        <Text className={SECTION_LABEL}>{t('transaction.details')}</Text>
         <View className="mt-1">
           <DetailRow
-            label={t("transaction.status")}
-            value={t("transaction.statusValue", {
+            label={t('transaction.status')}
+            value={t('transaction.statusValue', {
               status: isConfirmed
-                ? t("transaction.status.confirmed")
-                : t("transaction.status.pending"),
+                ? t('transaction.status.confirmed')
+                : t('transaction.status.pending'),
               count: transaction.confirmations,
             })}
-            valueClassName={isConfirmed ? "text-primary" : "text-yellow-400"}
+            valueClassName={isConfirmed ? 'text-primary' : 'text-yellow-400'}
           />
           <DetailRow
-            label={t("transaction.amount")}
+            label={t('transaction.amount')}
             value={`${amountSign}${amountExact} ${COIN_TICKER}`}
           />
           <DetailRow
-            label={t("transaction.txid")}
+            label={t('transaction.txid')}
             value={truncateAddress(txid)}
             onPress={handleCopyTxid}
             copyable
           />
-          <DetailRow
-            label={t("transaction.date")}
-            value={formatTimestamp(transaction.timestamp)}
-          />
-          {transaction.type === "send" ? (
-            <DetailRow
-              label={t("transaction.fee")}
-              value={t("transaction.feeIncluded")}
-            />
+          <DetailRow label={t('transaction.date')} value={formatTimestamp(transaction.timestamp)} />
+          {transaction.type === 'send' ? (
+            <DetailRow label={t('transaction.fee')} value={t('transaction.feeIncluded')} />
           ) : null}
           <DetailRow
-            label={t("transaction.address")}
+            label={t('transaction.address')}
             value={
               contact
                 ? `${contact.name} (${truncateAddress(transaction.address)})`
@@ -306,11 +290,11 @@ export function TransactionDetailSheet({
 
       {/* Transaction note — card-less surface field. Bloom's Button directly. */}
       <View className="mb-6">
-        <Text className={SECTION_LABEL}>{t("transaction.note")}</Text>
+        <Text className={SECTION_LABEL}>{t('transaction.note')}</Text>
         <View className="bg-surface rounded-2xl px-4 py-3 mt-2">
           <TextInput
             className="text-foreground text-sm"
-            placeholder={t("transaction.notePlaceholder")}
+            placeholder={t('transaction.notePlaceholder')}
             placeholderTextColor={theme.colors.textSecondary}
             value={note}
             onChangeText={setNote}
@@ -323,9 +307,9 @@ export function TransactionDetailSheet({
             variant="secondary"
             size="sm"
             onPress={handleSaveNote}
-            style={{ width: "100%" }}
+            style={{ width: '100%' }}
           >
-            {t("transaction.saveNote")}
+            {t('transaction.saveNote')}
           </BloomButton>
         </View>
       </View>
@@ -336,31 +320,21 @@ export function TransactionDetailSheet({
         <BloomButton
           variant="secondary"
           onPress={handleViewExplorer}
-          style={{ width: "100%" }}
-          icon={
-            <MaterialCommunityIcons
-              name="open-in-new"
-              size={18}
-              color={theme.colors.text}
-            />
-          }
+          style={{ width: '100%' }}
+          icon={<MaterialCommunityIcons name="open-in-new" size={18} color={theme.colors.text} />}
         >
-          {t("transaction.viewExplorer")}
+          {t('transaction.viewExplorer')}
         </BloomButton>
         {!contact && contactChecked ? (
           <BloomButton
             variant="outline"
             onPress={handleAddToContacts}
-            style={{ width: "100%" }}
+            style={{ width: '100%' }}
             icon={
-              <MaterialCommunityIcons
-                name="account-plus"
-                size={18}
-                color={theme.colors.primary}
-              />
+              <MaterialCommunityIcons name="account-plus" size={18} color={theme.colors.primary} />
             }
           >
-            {t("transaction.addToContacts")}
+            {t('transaction.addToContacts')}
           </BloomButton>
         ) : null}
       </View>

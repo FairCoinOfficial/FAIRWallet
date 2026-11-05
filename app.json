@@ -5,10 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": [
-      "fairwallet",
-      "faircoin"
-    ],
+    "scheme": ["fairwallet", "faircoin"],
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -36,10 +33,7 @@
               "scheme": "faircoin"
             }
           ],
-          "category": [
-            "DEFAULT",
-            "BROWSABLE"
-          ]
+          "category": ["DEFAULT", "BROWSABLE"]
         }
       ]
     },

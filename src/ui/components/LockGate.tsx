@@ -9,12 +9,12 @@
  * unlock, so keys and the SPV client are never brought up behind the lock.
  */
 
-import { useCallback } from "react";
-import { View } from "react-native";
-import { useLockStore } from "../../wallet/lock-store";
-import { useWalletStore } from "../../wallet/wallet-store";
-import { getMnemonic, getActiveWalletId } from "../../storage/secure-store";
-import { LockScreenContent } from "./LockScreenContent";
+import { useCallback } from 'react';
+import { View } from 'react-native';
+import { useLockStore } from '../../wallet/lock-store';
+import { useWalletStore } from '../../wallet/wallet-store';
+import { getMnemonic, getActiveWalletId } from '../../storage/secure-store';
+import { LockScreenContent } from './LockScreenContent';
 
 export function LockGate() {
   const locked = useLockStore((s) => s.locked);
@@ -42,9 +42,7 @@ export function LockGate() {
       // — otherwise a re-init after locking a switched (non-default) wallet
       // would open the default `fairwallet.db` instead.
       const activeId =
-        useWalletStore.getState().activeWalletId ??
-        (await getActiveWalletId()) ??
-        undefined;
+        useWalletStore.getState().activeWalletId ?? (await getActiveWalletId()) ?? undefined;
       // Lift the lock the instant persisted state is hydrated (onReady), so the
       // wallet is usable immediately after PIN entry; the SPV/P2P sync then
       // continues in the background. If init fails during hydration onReady
@@ -70,7 +68,7 @@ export function LockGate() {
 
   return (
     <View
-      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       // Sit above all routed content; capture all touches so nothing behind it
       // is interactable while locked.
       pointerEvents="auto"

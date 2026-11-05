@@ -1,9 +1,6 @@
-import { requireOptionalNativeModule } from "expo-modules-core";
+import { requireOptionalNativeModule } from 'expo-modules-core';
 
-import {
-  shouldWriteWalletWidgetSnapshot,
-  type WalletWidgetSnapshot,
-} from "./walletWidgetSync";
+import { shouldWriteWalletWidgetSnapshot, type WalletWidgetSnapshot } from './walletWidgetSync';
 
 /**
  * JS side of FAIRWallet's Android home-screen widgets.
@@ -46,7 +43,7 @@ interface FairWalletWidgetsNativeModule {
 }
 
 const nativeModule =
-  requireOptionalNativeModule<FairWalletWidgetsNativeModule>("FairWalletWidgets");
+  requireOptionalNativeModule<FairWalletWidgetsNativeModule>('FairWalletWidgets');
 
 /** Whether home-screen widgets exist on this platform at all. */
 export const areWalletWidgetsSupported = nativeModule !== null;
@@ -90,13 +87,7 @@ export async function setWalletWidgetSnapshot(
   observedAtMs: number,
 ): Promise<void> {
   if (nativeModule === null) return;
-  await nativeModule.setSnapshot(
-    balanceSats,
-    pendingSats,
-    pocketName,
-    priceUsd,
-    observedAtMs,
-  );
+  await nativeModule.setSnapshot(balanceSats, pendingSats, pocketName, priceUsd, observedAtMs);
 }
 
 /**
@@ -182,4 +173,4 @@ export {
   MIN_TRIMMING_WRITE_INTERVAL_MS,
   shouldWriteWalletWidgetSnapshot,
   type WalletWidgetSnapshot,
-} from "./walletWidgetSync";
+} from './walletWidgetSync';
