@@ -37,16 +37,37 @@ jobs:
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version-file: package.json
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Typecheck
         run: bunx tsc --noEmit
 
       - name: Test
-        run: bun test src
+        run: bun test src modules
+
+      # `app.json` points Android's `googleServicesFile` at a gitignored
+      # `google-services.json` (FCM push), so a clean checkout cannot prebuild.
+      # A release needs the real file, from the `GOOGLE_SERVICES_JSON` secret,
+      # and fails here without it rather than shipping an APK that never
+      # receives a push. A manual run with no release tag is a build check: it
+      # falls back to the committed template, and its APK has no working push.
+      - name: Provide google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          IS_RELEASE: ${{ github.event_name == 'release' || github.event.inputs.release_tag != '' }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+          elif [ "$IS_RELEASE" = "true" ]; then
+            echo "::error::A release build needs the GOOGLE_SERVICES_JSON secret (docs/notifications-infra.md)."
+            exit 1
+          else
+            echo "::warning::No GOOGLE_SERVICES_JSON secret: building with the template; push notifications will not work in this APK."
+            cp google-services.json.example google-services.json
+          fi
 
       - name: Prebuild Android project
         run: bunx expo prebuild --platform android --clean
