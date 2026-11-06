@@ -274,8 +274,10 @@ jobs:
             test -f "$apk" || { echo "::error::No $abi APK."; exit 1; }
             # Belt and braces next to fairwalletVerifyReleaseSigning: the signer
             # of the file itself.
-            signer="$("$apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
-            if [ "$signer" != "$expected" ]; then
+            # Every signer line ("Signer #1 …" or "V2 Signer: …", by build-tools
+            # version) must name the one certificate.
+            signer="$("$apksigner" verify --print-certs "$apk" | sed -n 's/^.*[Ss]igner.* certificate SHA-256 digest: //p' | sort -u | tr '\n' ' ')"
+            if [ "$signer" != "$expected " ]; then
               echo "::error::$apk is signed by $signer, not FAIRWallet's $expected."
               exit 1
             fi
