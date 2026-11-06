@@ -23,7 +23,7 @@ Built with Expo SDK 58, React Native 0.88, and pure TypeScript cryptography.
 
 | Platform | Status | Build |
 |----------|--------|-------|
-| Android | Production | APK via GitHub Actions |
+| Android | Production | Signed APKs (GitHub release) + AAB (Google Play), via GitHub Actions |
 | iOS | Production | Expo prebuild + Xcode |
 | Desktop | Production | Electron (Windows, macOS, Linux) |
 
@@ -104,12 +104,27 @@ bun run electron
 bun run electron -- --dev
 ```
 
-### Build APK Locally
+### Build Android Locally
+
+A debug build needs no key:
 
 ```bash
-npx expo prebuild --platform android
-cd android && ./gradlew assembleRelease
+bunx expo prebuild --platform android --clean
+cd android && ./gradlew :app:assembleDebug
 ```
+
+A release build is always signed with FAIRWallet's release key and fails
+without it (see [Android releases](#android-releases)). With the key on your
+machine, give Gradle its location in `~/.gradle/gradle.properties` (never in
+the repository):
+
+```properties
+FAIRWALLET_UPLOAD_STORE_FILE=<path to the keystore>
+FAIRWALLET_UPLOAD_STORE_PASSWORD_FILE=<file holding its password>
+FAIRWALLET_UPLOAD_KEY_ALIAS=fairwallet
+```
+
+then `bun run build:android` builds the AAB and the per-ABI APKs.
 
 ### Type Check
 
@@ -119,15 +134,74 @@ bun run typecheck
 
 ## CI/CD
 
-GitHub Actions automatically build and attach release artifacts when you create a GitHub release:
+GitHub Actions build and attach release artifacts when you publish a GitHub release:
 
-- **Android**: APK built with Gradle, attached to release
+- **Android**: one signed APK per ABI, attached to the release; the AAB for Google Play as a workflow artifact
 - **Desktop**: Windows (.exe), macOS (.dmg), Linux (.deb, .AppImage) via electron-builder
 
-```bash
-# Create a release (triggers builds)
-gh release create v1.0.1 --title "v1.0.1" --notes "Release notes..."
-```
+Pull requests and pushes to `main` that touch the native project run an Android
+build check (a debug build, and a check that a release build without the key is
+refused). It needs no secret and publishes nothing.
+
+### Cutting a release
+
+1. Bump `version` (`MAJOR.MINOR.PATCH`) in **both** `app.json` and `package.json`
+   on `main`. Never set `android.versionCode` or `ios.buildNumber`: they are
+   derived from `version`.
+2. Publish the release from `main`, tagged `v<version>`:
+
+   ```bash
+   gh release create v1.1.0 --target main --title "v1.1.0" --notes "Release notes..."
+   ```
+
+   The Android build refuses a tag that is not `v` + the app's `version`.
+
+### Android releases
+
+- **Signing.** Every release is signed with FAIRWallet's own release key
+  (alias `fairwallet`), never with Expo's debug keystore. Its certificate is
+
+  ```
+  SHA-256 B4:C8:0F:F0:BE:97:2A:EF:A2:19:F4:E4:35:CE:26:7E:AE:36:50:E1:9F:F5:DF:20:93:74:D3:77:5D:9E:20:7F
+  ```
+
+  `plugins/withFairWalletReleaseSigning.js` gives the release build type a
+  signing config from the Gradle properties `FAIRWALLET_UPLOAD_STORE_FILE`,
+  `FAIRWALLET_UPLOAD_STORE_PASSWORD` (or `FAIRWALLET_UPLOAD_STORE_PASSWORD_FILE`)
+  and `FAIRWALLET_UPLOAD_KEY_ALIAS`, and adds `fairwalletVerifyReleaseSigning`,
+  which runs before every release variant and fails the build unless the
+  effective signing certificate is the one above. There is no fallback: no key,
+  no release. Debug builds keep Expo's debug key. In CI the keystore and its
+  password are the `FAIRWALLET_UPLOAD_KEYSTORE_B64` and
+  `FAIRWALLET_UPLOAD_KEYSTORE_PASSWORD` secrets of the `release` environment,
+  which only `main` and `v*` tags can use; the job writes them to the runner's
+  temporary directory and passes them as `ORG_GRADLE_PROJECT_*`. Keep an
+  offline backup of the keystore: Android installs an update only when it is
+  signed by the same certificate as the installed app, so without the key no
+  APK can update an existing install. On Google Play the key is the upload
+  key; unless Play App Signing is set up with this same key as the app signing
+  key, Play's builds carry Google's certificate and a GitHub APK cannot update
+  a Play install (or the other way round).
+- **versionCode** is `major * 1_000_000 + minor * 1_000 + patch`
+  (`1.1.0` → `1001000`, `plugins/withFairWalletReleaseVersion.js`); a
+  hand-kept `android.versionCode` that differs fails the build.
+- **APKs**: `FAIRWallet-<version>-arm64-v8a.apk` (almost every phone from about
+  2017 on: start with this one) and `FAIRWallet-<version>-armeabi-v7a.apk`
+  (older phones, Android TVs), each with a `.sha256`. There is no universal APK
+  (`plugins/withFairWalletAbiSplits.js`). Check a download with
+  `sha256sum -c FAIRWallet-<version>-arm64-v8a.apk.sha256` and, with the
+  Android build tools, `apksigner verify --print-certs <apk>`.
+- **AAB**: `in.fairco.walletapp-<version>.aab`, the workflow run's artifact,
+  is what Google Play gets; it is not a release asset. The AAB and the APKs are
+  built by two Gradle invocations (`:app:bundleRelease`, then
+  `:app:assembleRelease`): the ABI splits are off in one that builds a bundle
+  (AGP issue [402800800](https://issuetracker.google.com/402800800)).
+- **Push**: a release needs the `GOOGLE_SERVICES_JSON` secret (the Firebase
+  `google-services.json` of `in.fairco.walletapp`) and fails without it
+  ([docs/notifications-infra.md](docs/notifications-infra.md)).
+- A failed release build can be rerun, or started by hand with
+  **Actions → Build Android → Run workflow** and the release tag; it always
+  builds the tag's commit.
 
 ## Project Structure
 
@@ -182,13 +256,14 @@ FAIRWallet/
 │       ├── TransactionItem.tsx
 │       ├── SyncStatus.tsx
 │       └── QRScanner.tsx
+├── plugins/                # Expo config plugins: Android release signing, versionCode, ABI splits
 ├── electron/               # Desktop wrapper
 │   ├── main.js             # Custom app:// protocol + TCP P2P + safeStorage
 │   └── preload.js          # contextBridge API
 ├── modules/
 │   └── fairwallet-widgets/ # Android home-screen widgets (Expo module, Jetpack Glance)
 ├── .github/workflows/
-│   ├── build-android.yml   # APK build on release
+│   ├── build-android.yml   # Signed APKs + AAB on release; build check on PRs
 │   └── build-desktop.yml   # Electron builds on release
 └── app.json                # Expo config
 ```
