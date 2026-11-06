@@ -1,27 +1,159 @@
-name: Build Android APK
+name: Build Android
+
+# Two jobs, never both in one run:
+#
+# - `release`: a published GitHub release `v<version>` (or a manual run naming
+#   one). It builds from that tag, signed with FAIRWallet's release key, and
+#   attaches one APK per ABI (arm64-v8a and armeabi-v7a, each with its
+#   `.sha256`) to the release. The AAB is a workflow artifact, kept for the
+#   Google Play upload, never a release asset. The key comes from the `release`
+#   environment, which only `main` and `v*` tags can use.
+# - `check`: a pull request, a push to main or a manual run without a tag. It
+#   proves the native project still prebuilds and compiles, as a debug build
+#   (Expo's debug key), and that a release build without the key is refused. It
+#   needs no secret and publishes nothing.
+#
+# Signing, versionCode and the ABI split live in `plugins/` (README, "Android
+# releases"); `fairwalletVerifyReleaseSigning` fails any release build whose
+# certificate is not FAIRWallet's.
 
 on:
   release:
     types: [published]
+  pull_request:
+    paths: &native-paths
+      - .github/workflows/build-android.yml
+      - app.json
+      - package.json
+      - bun.lock
+      - plugins/**
+      - modules/**
+      - assets/**
+      - google-services.json.example
+  push:
+    branches: [main]
+    paths: *native-paths
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Release tag to attach APK to (optional)"
+        description: "Existing release tag (v<version>) to rebuild and attach the APKs to; empty for a build check"
         required: false
         type: string
 
 permissions:
-  contents: write
+  contents: read
+
+env:
+  # React Native and its native modules build from source: Expo's default
+  # 2 GB heap and 512 MB Metaspace run out. Leaves room on GitHub's 16 GB
+  # runners for the Kotlin daemon and the native compilers next to Gradle.
+  GRADLE_JVMARGS: -Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g
 
 jobs:
-  build-android:
-    name: Build Android APK
+  check:
+    name: Android build check (debug, unsigned by the release key)
+    if: github.event_name != 'release' && (github.event_name != 'workflow_dispatch' || inputs.release_tag == '')
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    concurrency:
+      group: android-check-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Test
+        run: bun run test
+
+      # `app.json` points Android's `googleServicesFile` at a gitignored
+      # `google-services.json` (FCM push), so a clean checkout cannot prebuild.
+      # A build check uses the committed template; its build has no working push.
+      - name: Provide google-services.json (template)
+        run: cp google-services.json.example google-services.json
+
+      - name: Prebuild Android project
+        run: bunx expo prebuild --platform android --clean --no-install
+
+      # Fail closed: with no FAIRWALLET_UPLOAD_* properties a release build must
+      # stop before compiling anything.
+      - name: A release build without the key is refused
+        working-directory: android
+        run: |
+          if ./gradlew :app:fairwalletVerifyReleaseSigning --console=plain "$GRADLE_JVMARGS" > verify.log 2>&1; then
+            cat verify.log
+            echo "::error::fairwalletVerifyReleaseSigning passed without the release key."
+            exit 1
+          fi
+          grep -F 'FAIRWallet release signing: the release build has no keystore' verify.log
+
+      # One ABI is enough to prove the native project compiles.
+      - name: Build debug APK (arm64-v8a)
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --console=plain -PreactNativeArchitectures=arm64-v8a "$GRADLE_JVMARGS"
+
+      - name: The debug build split by ABI
+        run: |
+          set -euo pipefail
+          ls -l android/app/build/outputs/apk/debug/
+          test -f android/app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+
+  release:
+    name: Signed release (APKs and AAB)
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: release
+    permissions:
+      contents: write
+    concurrency:
+      group: android-release-${{ github.event.release.tag_name || inputs.release_tag }}
+      cancel-in-progress: false
+    env:
+      # `release_tag` is attacker-controllable workflow_dispatch input: it only
+      # ever reaches scripts through the environment, never interpolated.
+      TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+
+    steps:
+      - name: The tag is a release
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$TAG is not a release tag: a release is v<MAJOR.MINOR.PATCH>, the app's \`version\`."
+            exit 1
+          fi
+          gh release view "$TAG" --json tagName,isDraft --jq '"\(.tagName) draft=\(.isDraft)"'
+
+      # The tag, not the ref a manual run was started from: the APKs must be
+      # built from the commit the release names.
+      - name: Checkout the release tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          persist-credentials: false
 
       - name: Set up Java 21
         uses: actions/setup-java@v4
@@ -43,77 +175,131 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Typecheck
-        run: bunx tsc --noEmit
+        run: bun run typecheck
 
       - name: Test
-        run: bun test src modules
+        run: bun run test
 
-      # `app.json` points Android's `googleServicesFile` at a gitignored
-      # `google-services.json` (FCM push), so a clean checkout cannot prebuild.
       # A release needs the real file, from the `GOOGLE_SERVICES_JSON` secret,
       # and fails here without it rather than shipping an APK that never
-      # receives a push. A manual run with no release tag is a build check: it
-      # falls back to the committed template, and its APK has no working push.
+      # receives a push (docs/notifications-infra.md).
       - name: Provide google-services.json
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-          IS_RELEASE: ${{ github.event_name == 'release' || github.event.inputs.release_tag != '' }}
         run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
-          elif [ "$IS_RELEASE" = "true" ]; then
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
             echo "::error::A release build needs the GOOGLE_SERVICES_JSON secret (docs/notifications-infra.md)."
             exit 1
-          else
-            echo "::warning::No GOOGLE_SERVICES_JSON secret: building with the template; push notifications will not work in this APK."
-            cp google-services.json.example google-services.json
           fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+
+      # The tag names the version: v<version> of app.json, which the desktop
+      # build (package.json) shares. versionCode is derived from it.
+      - name: Version
+        id: plan
+        run: |
+          set -euo pipefail
+          config="$(bunx expo config --json --type public)"
+          version="$(jq -r '.version' <<<"$config")"
+          version_code="$(jq -r '.android.versionCode' <<<"$config")"
+          package="$(jq -r '.android.package' <<<"$config")"
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::The tag $TAG does not name the app's version $version: release it as v$version, or bump \`version\` in app.json and package.json."
+            exit 1
+          fi
+          if [ "$(jq -r '.version' package.json)" != "$version" ]; then
+            echo "::error::package.json's version is not app.json's $version."
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            echo "version-code=$version_code"
+            echo "package=$package"
+          } >> "$GITHUB_OUTPUT"
+          echo "::notice::$package $version, versionCode $version_code"
+
+      # The keystore and its password only ever exist as files in the runner's
+      # temporary directory; Gradle reads them through ORG_GRADLE_PROJECT_*.
+      - name: Provide the release key
+        env:
+          KEYSTORE_B64: ${{ secrets.FAIRWALLET_UPLOAD_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.FAIRWALLET_UPLOAD_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::The release environment needs FAIRWALLET_UPLOAD_KEYSTORE_B64 and FAIRWALLET_UPLOAD_KEYSTORE_PASSWORD."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/fairwallet-release.keystore"
+          printf '%s' "$KEYSTORE_PASSWORD" > "$RUNNER_TEMP/fairwallet-release.pass"
+          {
+            echo "ORG_GRADLE_PROJECT_FAIRWALLET_UPLOAD_STORE_FILE=$RUNNER_TEMP/fairwallet-release.keystore"
+            echo "ORG_GRADLE_PROJECT_FAIRWALLET_UPLOAD_STORE_PASSWORD_FILE=$RUNNER_TEMP/fairwallet-release.pass"
+            echo "ORG_GRADLE_PROJECT_FAIRWALLET_UPLOAD_KEY_ALIAS=fairwallet"
+          } >> "$GITHUB_ENV"
 
       - name: Prebuild Android project
-        run: bunx expo prebuild --platform android --clean
+        run: bunx expo prebuild --platform android --clean --no-install
 
-      - name: Build Release APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleRelease \
-            -Dorg.gradle.jvmargs="-Xmx4g" \
-            -Dorg.gradle.parallel=true
+      # Two invocations: withFairWalletAbiSplits turns the ABI splits off in one
+      # that builds a bundle (https://issuetracker.google.com/402800800).
+      - name: Build the signed AAB
+        working-directory: android
+        run: ./gradlew :app:bundleRelease --console=plain "$GRADLE_JVMARGS"
 
-      - name: Collect and rename APKs
-        # `release_tag` is attacker-controllable workflow_dispatch input: pass it
-        # through the environment instead of interpolating it into the script.
+      - name: Build the signed APKs
+        working-directory: android
+        run: ./gradlew :app:assembleRelease --console=plain "$GRADLE_JVMARGS"
+
+      - name: Collect, check and checksum
         env:
-          RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+          VERSION: ${{ steps.plan.outputs.version }}
+          PACKAGE: ${{ steps.plan.outputs.package }}
         run: |
-          VERSION="${GITHUB_REF_NAME:-${RELEASE_TAG:-dev}}"
-          # A branch run names the APK after the branch, and a `/` in it would
-          # be a directory.
-          VERSION="${VERSION//\//-}"
-          mkdir -p apk-output
-          for apk in $(find android/app/build/outputs/apk/release -name "*.apk"); do
-            filename=$(basename "$apk")
-            cp "$apk" "apk-output/FAIRWallet-${VERSION}.apk"
+          set -euo pipefail
+          out=android/app/build/outputs
+          expected="$(grep -o "RELEASE_CERT_SHA256 = '[0-9a-f]*'" plugins/withFairWalletReleaseSigning.js | cut -d"'" -f2)"
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)"
+          ls -l "$out/apk/release" "$out/bundle/release"
+          shopt -s nullglob
+          apks=("$out"/apk/release/*.apk)
+          if [ "${#apks[@]}" -ne 2 ]; then
+            echo "::error::Expected exactly the arm64-v8a and armeabi-v7a APKs, got: ${apks[*]}"
+            exit 1
+          fi
+          mkdir -p dist
+          for abi in arm64-v8a armeabi-v7a; do
+            apk="$out/apk/release/app-$abi-release.apk"
+            test -f "$apk" || { echo "::error::No $abi APK."; exit 1; }
+            # Belt and braces next to fairwalletVerifyReleaseSigning: the signer
+            # of the file itself.
+            signer="$("$apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+            if [ "$signer" != "$expected" ]; then
+              echo "::error::$apk is signed by $signer, not FAIRWallet's $expected."
+              exit 1
+            fi
+            libs="$(unzip -Z1 "$apk" 'lib/*' | cut -d/ -f2 | sort -u | tr '\n' ' ')"
+            if [ "$libs" != "$abi " ]; then
+              echo "::error::$apk carries native libraries for: $libs"
+              exit 1
+            fi
+            cp "$apk" "dist/FAIRWallet-$VERSION-$abi.apk"
           done
-          echo "=== Built APKs ==="
-          ls -lh apk-output/
+          cp "$out/bundle/release/app-release.aab" "dist/$PACKAGE-$VERSION.aab"
+          cd dist
+          for file in *.apk; do
+            sha256sum "$file" > "$file.sha256"
+          done
+          ls -l
 
-      - name: Upload APKs as artifact
+      - name: Upload the AAB (for Google Play)
         uses: actions/upload-artifact@v4
         with:
-          name: FAIRWallet-APK
-          path: apk-output/*.apk
+          name: ${{ steps.plan.outputs.package }}-${{ steps.plan.outputs.version }}-aab
+          path: dist/*.aab
+          if-no-files-found: error
           retention-days: 90
 
-      - name: Attach APKs to Release
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: apk-output/*.apk
-
-      - name: Attach APKs to Release (manual trigger)
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event.inputs.release_tag }}
-          files: apk-output/*.apk
+      - name: Attach the APKs to the release
+        run: gh release upload "$TAG" dist/*.apk dist/*.apk.sha256 --clobber

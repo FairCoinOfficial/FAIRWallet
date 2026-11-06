@@ -2,7 +2,7 @@
   "expo": {
     "name": "FAIRWallet",
     "slug": "fairwallet",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": ["fairwallet", "faircoin"],
@@ -110,7 +110,10 @@
             "enableShrinkResourcesInReleaseBuilds": false
           }
         }
-      ]
+      ],
+      "./plugins/withFairWalletReleaseVersion",
+      "./plugins/withFairWalletAbiSplits",
+      "./plugins/withFairWalletReleaseSigning"
     ],
     "experiments": {
       "typedRoutes": true,

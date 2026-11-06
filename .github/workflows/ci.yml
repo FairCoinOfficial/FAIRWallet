@@ -48,7 +48,7 @@ jobs:
         run: bun run typecheck
 
       - name: Test
-        run: bun test src modules
+        run: bun run test
 
       # tsc passing says the types line up; it says nothing about whether Metro
       # resolves the graph or the Tailwind pipeline emits the stylesheet. The

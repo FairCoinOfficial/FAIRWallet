@@ -18,13 +18,17 @@ Design reference: `docs/superpowers/specs/2026-07-16-background-notifications-de
 
 ## 1. Firebase / FCM (Android + the server sender)
 
-FairCoin's Android package id is **`in.fairco.wallet`** (see `app.json`).
+FairCoin's Android package id is **`in.fairco.walletapp`** (see `app.json`; the
+iOS bundle id is `in.fairco.wallet`).
 
 1. Create a Firebase project (or reuse one) at <https://console.firebase.google.com>.
-2. **Add an Android app** with package name `in.fairco.wallet`.
+2. **Add an Android app** with package name `in.fairco.walletapp`.
 3. Download the generated **`google-services.json`** and place it at the repo
    root (`FAIRWallet/google-services.json`). `app.json` already points Android's
-   `googleServicesFile` at it. It is gitignored — do **not** commit it.
+   `googleServicesFile` at it. It is gitignored — do **not** commit it. For
+   release builds, store its contents as the repository secret
+   `GOOGLE_SERVICES_JSON` (`gh secret set GOOGLE_SERVICES_JSON < google-services.json`);
+   the Android release workflow fails without it.
 4. Create an **FCM HTTP v1 service account** for the *server* to send pushes:
    Firebase console → Project settings → **Service accounts** → *Generate new
    private key*. This downloads a service-account **JSON**.
